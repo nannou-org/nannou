@@ -1,5 +1,5 @@
 <!DOCTYPE HTML>
-<html lang="en" class="light" dir="ltr">
+<html lang="en" class="light sidebar-visible" dir="ltr">
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
@@ -7,7 +7,7 @@
 
 
         <!-- Custom HTML head -->
-        
+
         <meta name="description" content="A one-stop shop for Nannou Knowledge!">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
@@ -24,26 +24,40 @@
         <link rel="stylesheet" href="../../fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" href="../../highlight.css">
-        <link rel="stylesheet" href="../../tomorrow-night.css">
-        <link rel="stylesheet" href="../../ayu-highlight.css">
+        <link rel="stylesheet" id="highlight-css" href="../../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../../ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
-    </head>
-    <body class="sidebar-visible no-js">
-    <div id="body-container">
-        <!-- Provide site root to javascript -->
-        <script>
-            var path_to_root = "../../";
-            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
-        </script>
 
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                var theme = localStorage.getItem('mdbook-theme');
-                var sidebar = localStorage.getItem('mdbook-sidebar');
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
                     localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
@@ -57,24 +71,22 @@
 
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
-            var theme;
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
-            var html = document.querySelector('html');
+            const html = document.documentElement;
             html.classList.remove('light')
             html.classList.add(theme);
-            var body = document.querySelector('body');
-            body.classList.remove('no-js')
-            body.classList.add('js');
+            html.classList.add("js");
         </script>
 
         <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            var body = document.querySelector('body');
-            var sidebar = null;
-            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
@@ -82,45 +94,25 @@
                 sidebar = 'hidden';
             }
             sidebar_toggle.checked = sidebar === 'visible';
-            body.classList.remove('sidebar-visible');
-            body.classList.add("sidebar-" + sidebar);
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
-            <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../../welcome.html">Welcome!</a></li><li class="chapter-item expanded "><a href="../../why_nannou.html"><strong aria-hidden="true">1.</strong> Why Nannou?</a></li><li class="chapter-item expanded "><a href="../../getting_started.html"><strong aria-hidden="true">2.</strong> Getting Started</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../getting_started/platform-specific_setup.html"><strong aria-hidden="true">2.1.</strong> Platform-specific Setup</a></li><li class="chapter-item expanded "><a href="../../getting_started/installing_rust.html"><strong aria-hidden="true">2.2.</strong> Installing Rust</a></li><li class="chapter-item expanded "><a href="../../getting_started/editor_setup.html"><strong aria-hidden="true">2.3.</strong> Editor Setup</a></li><li class="chapter-item expanded "><a href="../../getting_started/running_examples.html"><strong aria-hidden="true">2.4.</strong> Running Examples</a></li><li class="chapter-item expanded "><a href="../../getting_started/create_a_project.html"><strong aria-hidden="true">2.5.</strong> Create A Project</a></li><li class="chapter-item expanded "><a href="../../getting_started/updating.html"><strong aria-hidden="true">2.6.</strong> Updating Nannou and Rust</a></li></ol></li><li class="chapter-item expanded "><a href="../../tutorials.html"><strong aria-hidden="true">3.</strong> Tutorials</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../tutorials/basics/anatomy-of-a-nannou-app.html"><strong aria-hidden="true">3.1.</strong> Basics - Anatomy of a Nannou App</a></li><li class="chapter-item expanded "><a href="../../tutorials/basics/draw-a-sketch.html"><strong aria-hidden="true">3.2.</strong> Basics - Drawing a Sketch</a></li><li class="chapter-item expanded "><a href="../../tutorials/basics/sketch-vs-app.html"><strong aria-hidden="true">3.3.</strong> Basics - Sketch vs App</a></li><li class="chapter-item expanded "><a href="../../tutorials/basics/window-coordinates.html"><strong aria-hidden="true">3.4.</strong> Basics - Window Coordinates</a></li><li class="chapter-item expanded "><a href="../../tutorials/draw/drawing-2d-shapes.html"><strong aria-hidden="true">3.5.</strong> Draw - 2D Shapes</a></li><li class="chapter-item expanded "><a href="../../tutorials/draw/animating-a-circle.html"><strong aria-hidden="true">3.6.</strong> Draw - Animating a Circle</a></li><li class="chapter-item expanded "><a href="../../tutorials/draw/drawing-images.html"><strong aria-hidden="true">3.7.</strong> Draw - Drawing Images</a></li><li class="chapter-item expanded "><a href="../../tutorials/osc/osc-introduction.html"><strong aria-hidden="true">3.8.</strong> OSC - Introduction</a></li><li class="chapter-item expanded "><a href="../../tutorials/osc/osc-sender.html" class="active"><strong aria-hidden="true">3.9.</strong> OSC - Sending OSC</a></li></ol></li><li class="chapter-item expanded "><a href="../../community_tutorials.html"><strong aria-hidden="true">4.</strong> Community Tutorials</a></li><li class="chapter-item expanded "><a href="../../contributing.html"><strong aria-hidden="true">5.</strong> Contributing</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../contributing/about-the-codebase.html"><strong aria-hidden="true">5.1.</strong> About the Codebase</a></li><li class="chapter-item expanded "><a href="../../contributing/pr-checklist.html"><strong aria-hidden="true">5.2.</strong> PR Checklist</a></li><li class="chapter-item expanded "><a href="../../contributing/pr-reviews.html"><strong aria-hidden="true">5.3.</strong> PR Reviews</a></li><li class="chapter-item expanded "><a href="../../contributing/publishing-new-versions.html"><strong aria-hidden="true">5.4.</strong> Publishing New Versions</a></li></ol></li><li class="chapter-item expanded "><a href="../../developer_reference.html"><strong aria-hidden="true">6.</strong> Developer Reference</a></li><li class="chapter-item expanded "><a href="../../api_reference.html"><strong aria-hidden="true">7.</strong> API Reference</a></li><li class="chapter-item expanded "><a href="../../showcases.html"><strong aria-hidden="true">8.</strong> Showcases</a></li><li class="chapter-item expanded affix "><a href="../../changelog.html">Changelog</a></li><li class="chapter-item expanded affix "><a href="../../contributors.html">Contributors</a></li><li class="chapter-item expanded affix "><a href="../../code_of_conduct.html">Code of Conduct</a></li></ol>
-            </div>
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../../toc.html"></iframe>
+            </noscript>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
             </div>
         </nav>
 
-        <!-- Track and set sidebar scroll position -->
-        <script>
-            var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
-            sidebarScrollbox.addEventListener('click', function(e) {
-                if (e.target.tagName === 'A') {
-                    sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
-                }
-            }, { passive: true });
-            var sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
-            sessionStorage.removeItem('sidebar-scroll');
-            if (sidebarScrollTop) {
-                // preserve sidebar scroll position when navigating via links within sidebar
-                sidebarScrollbox.scrollTop = sidebarScrollTop;
-            } else {
-                // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
-                var activeSection = document.querySelector('#sidebar .active');
-                if (activeSection) {
-                    activeSection.scrollIntoView({ block: 'center' });
-                }
-            }
-        </script>
-
         <div id="page-wrapper" class="page-wrapper">
 
             <div class="page">
-                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar-hover-placeholder"></div>
                 <div id="menu-bar" class="menu-bar sticky">
                     <div class="left-buttons">
                         <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
@@ -130,13 +122,14 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
                             <i class="fa fa-search"></i>
                         </button>
                     </div>
@@ -212,12 +205,12 @@ Add a field to the struct called <code>sender</code> with a <a href="https://doc
 </span><span class="boring">}
 </span>fn model(_app: &amp;App) -&gt; Model {
     let port = 1234;
-    let target_addr = format!(&quot;{}:{}&quot;, &quot;127.0.0.1&quot;, port);
+    let target_addr = format!("{}:{}", "127.0.0.1", port);
 
 	let sender = osc::sender()
-        .expect(&quot;Could not bind to default socket&quot;)
+        .expect("Could not bind to default socket")
         .connect(target_addr)
-        .expect(&quot;Could not connect to socket at address&quot;);
+        .expect("Could not connect to socket at address");
 
     Model { sender }
 }
@@ -227,30 +220,30 @@ Add a field to the struct called <code>sender</code> with a <a href="https://doc
 </span><span class="boring">fn main() {
 </span>let port = 1234;
 <span class="boring">}</span></code></pre></pre>
-<p>The osc-sender expects a string in the format &quot;address:port&quot;, for example <code>&quot;127.0.0.1:1234&quot;</code>.</p>
-<p>The address can either be an internal address or the address of another computer on your network. In this tutorial we will be targetting our own computer's internal address which is represented by <code>&quot;127.0.0.1&quot;</code>.</p>
+<p>The osc-sender expects a string in the format "address:port", for example <code>"127.0.0.1:1234"</code>.</p>
+<p>The address can either be an internal address or the address of another computer on your network. In this tutorial we will be targetting our own computer's internal address which is represented by <code>"127.0.0.1"</code>.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {
 </span><span class="boring">let port = 1234;
-</span>let target_addr = format!(&quot;{}:{}&quot;, &quot;127.0.0.1&quot;, port);
+</span>let target_addr = format!("{}:{}", "127.0.0.1", port);
 <span class="boring">}</span></code></pre></pre>
 <p>Lastly, we need to bind our OSC sender to the network socket. This isn't always successful, so we are attaching the <code>expect()</code>-method (read more about <a href="https://doc.rust-lang.org/std/option/enum.Option.html#method.expect"><code>expect()</code> here</a>) to post an error message if it is not successful. If it is successful, the <code>.connect(target_addr)</code>-method is used to connect the sender to the target address. Again, this may be unsuccesful so we use the <code>expect()</code>-method on the result of that operation as well.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused_variables)]
 </span><span class="boring">use nannou_osc as osc;
 </span><span class="boring">fn main() {
 </span><span class="boring">    let port = 1234;
-</span><span class="boring">    let target_addr = format!(&quot;{}:{}&quot;, &quot;127.0.0.1&quot;, port);
+</span><span class="boring">    let target_addr = format!("{}:{}", "127.0.0.1", port);
 </span>let sender = osc::sender()
-    .expect(&quot;Could not bind to default socket&quot;)
+    .expect("Could not bind to default socket")
     .connect(target_addr)
-    .expect(&quot;Could not connect to socket at address&quot;);
+    .expect("Could not connect to socket at address");
 <span class="boring">}</span></code></pre></pre>
 <h3 id="sending-osc-messages"><a class="header" href="#sending-osc-messages">Sending OSC messages</a></h3>
 <p>An OSC packet consists of at least two components: An OSC address and 0 or more arguments containing data. The OSC address is not to be confused with the network address we connected to before. Instead, an OSC address is a path sort of like a URL, for example <code>/circle/position</code>.</p>
 <p>To create an OSC packet, we first need to make an address.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {
-</span>let osc_addr = &quot;/circle/position&quot;.to_string();
+</span>let osc_addr = "/circle/position".to_string();
 <span class="boring">}</span></code></pre></pre>
 <p>Then create a vector of arguments. These need to be formatted using the types found in <a href="https://docs.rs/nannou_osc/latest/nannou_osc/enum.Type.html">osc::Type</a> in the nannou_osc crate. Below we create an argument list of two floating point values: the <code>x</code> and <code>y</code> coordinates of our circle.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused_variables)]
@@ -277,7 +270,7 @@ Add a field to the struct called <code>sender</code> with a <a href="https://doc
 </span><span class="boring">}
 </span><span class="boring">fn main() {
 </span><span class="boring">   let model: Model = unimplemented!();
-</span><span class="boring">   let osc_addr = &quot;/circle/position&quot;.to_string();
+</span><span class="boring">   let osc_addr = "/circle/position".to_string();
 </span><span class="boring">   let args = vec![osc::Type::Float(0.0), osc::Type::Float(0.0)];
 </span><span class="boring">   let packet = (osc_addr, args);
 </span>    model.sender.send(packet).ok();
@@ -298,15 +291,15 @@ fn model(_app: &amp;App) -&gt; Model {
     // The network port that data is being sent to
     let port = 1234;
 
-    // The osc-sender expects a string in the format &quot;address:port&quot;, for example &quot;127.0.0.1:1234&quot;
-    // &quot;127.0.0.1&quot; is equivalent to your computers internal address.
-    let target_addr = format!(&quot;{}:{}&quot;, &quot;127.0.0.1&quot;, port);
+    // The osc-sender expects a string in the format "address:port", for example "127.0.0.1:1234"
+    // "127.0.0.1" is equivalent to your computers internal address.
+    let target_addr = format!("{}:{}", "127.0.0.1", port);
 
     // This is the osc Sender which contains a couple of expectations in case something goes wrong.
     let sender = osc::sender()
-        .expect(&quot;Could not bind to default socket&quot;)
+        .expect("Could not bind to default socket")
         .connect(target_addr)
-        .expect(&quot;Could not connect to socket at address&quot;);
+        .expect("Could not connect to socket at address");
 
     Model { sender }
 }
@@ -324,7 +317,7 @@ fn view(app: &amp;App, model: &amp;Model, frame: Frame) {
     let y = map_range(slowersine, -1.0, 1.0, boundary.bottom(), boundary.top());
 
     // Send x-y coordinates as OSC
-    let osc_addr = &quot;/circle/position&quot;.to_string();
+    let osc_addr = "/circle/position".to_string();
     let args = vec![osc::Type::Float(x), osc::Type::Float(y)];
     let packet = (osc_addr, args);
 

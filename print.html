@@ -1,5 +1,5 @@
 <!DOCTYPE HTML>
-<html lang="en" class="light" dir="ltr">
+<html lang="en" class="light sidebar-visible" dir="ltr">
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
@@ -8,7 +8,7 @@
 
 
         <!-- Custom HTML head -->
-        
+
         <meta name="description" content="A one-stop shop for Nannou Knowledge!">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
@@ -25,26 +25,40 @@
         <link rel="stylesheet" href="fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" href="highlight.css">
-        <link rel="stylesheet" href="tomorrow-night.css">
-        <link rel="stylesheet" href="ayu-highlight.css">
+        <link rel="stylesheet" id="highlight-css" href="highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
-    </head>
-    <body class="sidebar-visible no-js">
-    <div id="body-container">
-        <!-- Provide site root to javascript -->
-        <script>
-            var path_to_root = "";
-            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
-        </script>
 
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                var theme = localStorage.getItem('mdbook-theme');
-                var sidebar = localStorage.getItem('mdbook-sidebar');
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
                     localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
@@ -58,24 +72,22 @@
 
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
-            var theme;
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
-            var html = document.querySelector('html');
+            const html = document.documentElement;
             html.classList.remove('light')
             html.classList.add(theme);
-            var body = document.querySelector('body');
-            body.classList.remove('no-js')
-            body.classList.add('js');
+            html.classList.add("js");
         </script>
 
         <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            var body = document.querySelector('body');
-            var sidebar = null;
-            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
@@ -83,45 +95,25 @@
                 sidebar = 'hidden';
             }
             sidebar_toggle.checked = sidebar === 'visible';
-            body.classList.remove('sidebar-visible');
-            body.classList.add("sidebar-" + sidebar);
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
-            <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="welcome.html">Welcome!</a></li><li class="chapter-item expanded "><a href="why_nannou.html"><strong aria-hidden="true">1.</strong> Why Nannou?</a></li><li class="chapter-item expanded "><a href="getting_started.html"><strong aria-hidden="true">2.</strong> Getting Started</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="getting_started/platform-specific_setup.html"><strong aria-hidden="true">2.1.</strong> Platform-specific Setup</a></li><li class="chapter-item expanded "><a href="getting_started/installing_rust.html"><strong aria-hidden="true">2.2.</strong> Installing Rust</a></li><li class="chapter-item expanded "><a href="getting_started/editor_setup.html"><strong aria-hidden="true">2.3.</strong> Editor Setup</a></li><li class="chapter-item expanded "><a href="getting_started/running_examples.html"><strong aria-hidden="true">2.4.</strong> Running Examples</a></li><li class="chapter-item expanded "><a href="getting_started/create_a_project.html"><strong aria-hidden="true">2.5.</strong> Create A Project</a></li><li class="chapter-item expanded "><a href="getting_started/updating.html"><strong aria-hidden="true">2.6.</strong> Updating Nannou and Rust</a></li></ol></li><li class="chapter-item expanded "><a href="tutorials.html"><strong aria-hidden="true">3.</strong> Tutorials</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="tutorials/basics/anatomy-of-a-nannou-app.html"><strong aria-hidden="true">3.1.</strong> Basics - Anatomy of a Nannou App</a></li><li class="chapter-item expanded "><a href="tutorials/basics/draw-a-sketch.html"><strong aria-hidden="true">3.2.</strong> Basics - Drawing a Sketch</a></li><li class="chapter-item expanded "><a href="tutorials/basics/sketch-vs-app.html"><strong aria-hidden="true">3.3.</strong> Basics - Sketch vs App</a></li><li class="chapter-item expanded "><a href="tutorials/basics/window-coordinates.html"><strong aria-hidden="true">3.4.</strong> Basics - Window Coordinates</a></li><li class="chapter-item expanded "><a href="tutorials/draw/drawing-2d-shapes.html"><strong aria-hidden="true">3.5.</strong> Draw - 2D Shapes</a></li><li class="chapter-item expanded "><a href="tutorials/draw/animating-a-circle.html"><strong aria-hidden="true">3.6.</strong> Draw - Animating a Circle</a></li><li class="chapter-item expanded "><a href="tutorials/draw/drawing-images.html"><strong aria-hidden="true">3.7.</strong> Draw - Drawing Images</a></li><li class="chapter-item expanded "><a href="tutorials/osc/osc-introduction.html"><strong aria-hidden="true">3.8.</strong> OSC - Introduction</a></li><li class="chapter-item expanded "><a href="tutorials/osc/osc-sender.html"><strong aria-hidden="true">3.9.</strong> OSC - Sending OSC</a></li></ol></li><li class="chapter-item expanded "><a href="community_tutorials.html"><strong aria-hidden="true">4.</strong> Community Tutorials</a></li><li class="chapter-item expanded "><a href="contributing.html"><strong aria-hidden="true">5.</strong> Contributing</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="contributing/about-the-codebase.html"><strong aria-hidden="true">5.1.</strong> About the Codebase</a></li><li class="chapter-item expanded "><a href="contributing/pr-checklist.html"><strong aria-hidden="true">5.2.</strong> PR Checklist</a></li><li class="chapter-item expanded "><a href="contributing/pr-reviews.html"><strong aria-hidden="true">5.3.</strong> PR Reviews</a></li><li class="chapter-item expanded "><a href="contributing/publishing-new-versions.html"><strong aria-hidden="true">5.4.</strong> Publishing New Versions</a></li></ol></li><li class="chapter-item expanded "><a href="developer_reference.html"><strong aria-hidden="true">6.</strong> Developer Reference</a></li><li class="chapter-item expanded "><a href="api_reference.html"><strong aria-hidden="true">7.</strong> API Reference</a></li><li class="chapter-item expanded "><a href="showcases.html"><strong aria-hidden="true">8.</strong> Showcases</a></li><li class="chapter-item expanded affix "><a href="changelog.html">Changelog</a></li><li class="chapter-item expanded affix "><a href="contributors.html">Contributors</a></li><li class="chapter-item expanded affix "><a href="code_of_conduct.html">Code of Conduct</a></li></ol>
-            </div>
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
             </div>
         </nav>
 
-        <!-- Track and set sidebar scroll position -->
-        <script>
-            var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
-            sidebarScrollbox.addEventListener('click', function(e) {
-                if (e.target.tagName === 'A') {
-                    sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
-                }
-            }, { passive: true });
-            var sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
-            sessionStorage.removeItem('sidebar-scroll');
-            if (sidebarScrollTop) {
-                // preserve sidebar scroll position when navigating via links within sidebar
-                sidebarScrollbox.scrollTop = sidebarScrollTop;
-            } else {
-                // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
-                var activeSection = document.querySelector('#sidebar .active');
-                if (activeSection) {
-                    activeSection.scrollIntoView({ block: 'center' });
-                }
-            }
-        </script>
-
         <div id="page-wrapper" class="page-wrapper">
 
             <div class="page">
-                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar-hover-placeholder"></div>
                 <div id="menu-bar" class="menu-bar sticky">
                     <div class="left-buttons">
                         <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
@@ -131,13 +123,14 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
                             <i class="fa fa-search"></i>
                         </button>
                     </div>
@@ -195,8 +188,8 @@ This chapter covers everything from installing Rust right through to starting
 your own Nannou project.</p>
 <h3 id="tutorials"><a class="header" href="#tutorials"><a href="/tutorials.html">Tutorials</a></a></h3>
 <p>A suite of tutorials demonstrating how to do different things with Nannou. For
-example, &quot;How do I output sounds?&quot;, &quot;How do I draw shapes?&quot;, &quot;How can I connect
-to my laser?&quot;</p>
+example, "How do I output sounds?", "How do I draw shapes?", "How can I connect
+to my laser?"</p>
 <blockquote>
 <p>You can find more tutorials by the community <a href="/community_tutorials.html">here</a>.</p>
 </blockquote>
@@ -581,8 +574,8 @@ for supporting Rust.</p>
 <p>To get the examples we can clone the nannou repository.</p>
 <pre><code class="language-bash">git clone https://github.com/nannou-org/nannou
 </code></pre>
-<p>If you do not have <code>git</code> installed you can press the &quot;Clone or download&quot; button
-at the top of this page and then press &quot;Download .zip&quot;.</p>
+<p>If you do not have <code>git</code> installed you can press the "Clone or download" button
+at the top of this page and then press "Download .zip".</p>
 <p>Now, change the current directory to <code>nannou</code>.</p>
 <pre><code class="language-bash">cd nannou
 </code></pre>
@@ -595,15 +588,15 @@ entry within the <code>[[examples]]</code> table of the package's <code>Cargo.to
 matched entry's <code>path</code> property points to the source file to build:</p>
 <pre><code class="language-toml"># Draw
 [[example]]
-name = &quot;draw&quot;
-path = &quot;draw/draw.rs&quot;
+name = "draw"
+path = "draw/draw.rs"
 </code></pre>
 <p>If we were to look through the nature of code directory and decide we want to
 run the following example:</p>
 <pre><code class="language-toml"># Chapter 1 Vectors
 [[example]]
-name = &quot;1_1_bouncingball_novectors&quot;
-path = &quot;chp_01_vectors/1_1_bouncingball_novectors.rs&quot;
+name = "1_1_bouncingball_novectors"
+path = "chp_01_vectors/1_1_bouncingball_novectors.rs"
 </code></pre>
 <p>We could do so with the following:</p>
 <pre><code class="language-bash">cargo run --release --example 1_1_bouncingball_novectors
@@ -640,13 +633,13 @@ create a new project with just a few small steps:</p>
 <p>Edit the <code>Cargo.toml</code> file and add the latest version of nannou to the bottom
 like so:</p>
 <pre><code class="language-toml">[package]
-name = &quot;my_project&quot;
-version = &quot;0.1.0&quot;
-authors = [&quot;mitchmindtree &lt;mitchell.nordine@gmail.com&gt;&quot;]
-edition = &quot;2018&quot;
+name = "my_project"
+version = "0.1.0"
+authors = ["mitchmindtree &lt;mitchell.nordine@gmail.com&gt;"]
+edition = "2018"
 
 [dependencies]
-nannou = &quot;0.17&quot;
+nannou = "0.17"
 </code></pre>
 <p>Note that there is a chance the nannou version above might be out of date.
 You can check the latest version by typing <code>cargo search nannou</code> in your
@@ -702,7 +695,7 @@ look at the next chapter.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="updating-nannou"><a class="header" href="#updating-nannou">Updating nannou</a></h1>
 <p>You can update to a new version of nannou by editing your <code>Cargo.toml</code> file to
 use the new crate. For version 0.12 add the line</p>
-<pre><code class="language-toml">nannou = &quot;0.12&quot;
+<pre><code class="language-toml">nannou = "0.12"
 </code></pre>
 <p>Then within the nannou directory run the following to update all dependencies:</p>
 <pre><code class="language-bash">cargo update
@@ -718,12 +711,12 @@ the following:</p>
 <p>In the previous chapter we prepared everything needed to start our own Nannou
 project! In this chapter, we will take a more focused look at all of the
 different features we can add to our Nannou project.</p>
-<p>If you are new to Nannou or Rust we recommend starting with the &quot;Basics&quot;
+<p>If you are new to Nannou or Rust we recommend starting with the "Basics"
 tutorials before going on. If you are feeling more confident, feel free to
 choose your own adventure through the following tutorials depending on what you
 want to add to your project!</p>
 <h2 id="rust-basics"><a class="header" href="#rust-basics">Rust Basics</a></h2>
-<p>Tutorials for learning the basics of Rust with nannou. </p>
+<p>Tutorials for learning the basics of Rust with nannou.</p>
 <ul>
 <li><a href="https://doc.rust-lang.org/book/ch03-01-variables-and-mutability.html">Rust variables</a></li>
 <li><a href="https://doc.rust-lang.org/book/ch03-05-control-flow.html">Rust control flows</a></li>
@@ -962,7 +955,7 @@ application event to modify the model.</p>
 <span class="boring">fn main() {}</span></code></pre></pre>
 <p>The <code>model</code> function is run once at the beginning of the nannou app and produces
 a fresh, new instance of the <strong>Model</strong> that we declared previously, AKA the app
-state. This can be thought of as the &quot;setup&quot; stage of our application. Here, we
+state. This can be thought of as the "setup" stage of our application. Here, we
 might do things like create some windows, create a GUI, load some images or
 anything else that we want to happen once at the beginning of our program. We
 will learn how to do all of these things in future tutorials, but for now we
@@ -1002,8 +995,8 @@ events during which we may wish to update our <strong>Model</strong> in some way
 example, we may wish to turn a camera when a mouse is moved, begin drawing a
 shape when a button is pressed, or step forward an animation on timed updates.</p>
 <p>All of these events are described within the <strong>Event</strong> type. One way to
-distinguish between which event is currently occurring is to <a href="https://doc.rust-lang.org/book/ch06-02-match.html">&quot;pattern
-match&quot;</a> on the event and
+distinguish between which event is currently occurring is to <a href="https://doc.rust-lang.org/book/ch06-02-match.html">"pattern
+match"</a> on the event and
 handle only those events that we care about, ignoring all the others. A simpler
 approach is to not register an <strong>event</strong> function while building the app at all,
 and instead only register more specific functions for those events that we care
@@ -1544,7 +1537,7 @@ draw.ellipse()
 <p><img src="tutorials/basics/./images/window_coordinates_example8.png" alt="window_coordinates.rs" /></p>
 <p>For consistency, let's try and add the same padding between the circle and the
 square as we have between the square and the edges of the window.</p>
-<p>We can do so by using the <code>shift</code> method to &quot;shift&quot; the circle down from the
+<p>We can do so by using the <code>shift</code> method to "shift" the circle down from the
 square:</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
 </span><span class="boring">use nannou::prelude::*;
@@ -1577,9 +1570,9 @@ really mean by all these numbers.</p>
 else?</em></p>
 <p>In nannou, we generally describe positions within window space in <strong>points</strong>.
 Points are very similar to <strong>pixels</strong>, except that points allow us to work
-without having to worry about the &quot;scale factor&quot; of our display.</p>
+without having to worry about the "scale factor" of our display.</p>
 <blockquote>
-<p><em><strong>Wait, what is &quot;scale factor&quot;?</strong></em></p>
+<p><em><strong>Wait, what is "scale factor"?</strong></em></p>
 <p>The scale factor helps us to reason about the density of pixels on the
 display. Modern displays don't have a consistent relationship between
 resolution and size. For example, modern mobile phones can boast resolutions
@@ -1784,7 +1777,7 @@ let points = (0..=360).map(|i| {
     (pt2(x,y), STEELBLUE)
 });
 // Create a polyline builder. Hot-tip: polyline is short-hand for a path that is
-// drawn via &quot;stroke&quot; tessellation rather than &quot;fill&quot; tessellation.
+// drawn via "stroke" tessellation rather than "fill" tessellation.
 draw.polyline()
     .weight(3.0)
     .points_colored(points); // Submit our points.
@@ -2094,7 +2087,7 @@ fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
   app.new_window().size(512, 512).view(view).build().unwrap();
   // Load the image from disk and upload it to a GPU texture.
   let assets = app.assets_path().unwrap();
-  let img_path = assets.join(&quot;images&quot;).join(&quot;nature&quot;).join(&quot;nature_1.jpg&quot;);
+  let img_path = assets.join("images").join("nature").join("nature_1.jpg");
   let texture = wgpu::Texture::from_path(app, img_path).unwrap();
   Model { texture }
 }
@@ -2116,7 +2109,7 @@ fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
 </span><span class="boring">  app.new_window().size(512, 512).view(view).build().unwrap();
 </span><span class="boring">  // Load the image from disk and upload it to a GPU texture.
 </span><span class="boring">  let assets = app.assets_path().unwrap();
-</span><span class="boring">  let img_path = assets.join(&quot;images&quot;).join(&quot;nature&quot;).join(&quot;nature_1.jpg&quot;);
+</span><span class="boring">  let img_path = assets.join("images").join("nature").join("nature_1.jpg");
 </span><span class="boring">  let texture = wgpu::Texture::from_path(app, img_path).unwrap();
 </span><span class="boring">  Model { texture }
 </span><span class="boring">}
@@ -2144,7 +2137,7 @@ fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
 </span><span class="boring">  app.new_window().size(512, 512).view(view).build().unwrap();
 </span><span class="boring">  // Load the image from disk and upload it to a GPU texture.
 </span><span class="boring">  let assets = app.assets_path().unwrap();
-</span><span class="boring">  let img_path = assets.join(&quot;images&quot;).join(&quot;nature&quot;).join(&quot;nature_1.jpg&quot;);
+</span><span class="boring">  let img_path = assets.join("images").join("nature").join("nature_1.jpg");
 </span><span class="boring">  let texture = wgpu::Texture::from_path(app, img_path).unwrap();
 </span><span class="boring">  Model { texture }
 </span><span class="boring">}
@@ -2180,9 +2173,9 @@ fn view(_app: &amp;App, _model: &amp;Model, _frame: Frame) {
 <h2 id="setting-up-osc"><a class="header" href="#setting-up-osc">Setting up OSC</a></h2>
 <p>To use OSC in nannou, it is necessary to add the <code>nannou_osc</code> crate as a dependency in your nannou project.</p>
 <p>Open up your <code>Cargo.toml</code> file at the root of your nannou project and add the following line under the <code>[dependencies]</code> tag:</p>
-<pre><code class="language-toml">nannou_osc = &quot;0.15.0&quot;
+<pre><code class="language-toml">nannou_osc = "0.15.0"
 </code></pre>
-<p>The value in the quotes is the version of the OSC package. At the time of writing this, <code>&quot;0.15.0&quot;</code> is the latest version.</p>
+<p>The value in the quotes is the version of the OSC package. At the time of writing this, <code>"0.15.0"</code> is the latest version.</p>
 <p>To get the latest version of the osc library, execute <code>cargo search nannou_osc</code> on the command line and read the resulting version from there.</p>
 <p>To use the crate in your nannou-projects you can add a use-statement at the top of your <code>main.rs</code> file to import the OSC-functionality.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused_imports)]
@@ -2227,12 +2220,12 @@ Add a field to the struct called <code>sender</code> with a <a href="https://doc
 </span><span class="boring">}
 </span>fn model(_app: &amp;App) -&gt; Model {
     let port = 1234;
-    let target_addr = format!(&quot;{}:{}&quot;, &quot;127.0.0.1&quot;, port);
+    let target_addr = format!("{}:{}", "127.0.0.1", port);
 
 	let sender = osc::sender()
-        .expect(&quot;Could not bind to default socket&quot;)
+        .expect("Could not bind to default socket")
         .connect(target_addr)
-        .expect(&quot;Could not connect to socket at address&quot;);
+        .expect("Could not connect to socket at address");
 
     Model { sender }
 }
@@ -2242,30 +2235,30 @@ Add a field to the struct called <code>sender</code> with a <a href="https://doc
 </span><span class="boring">fn main() {
 </span>let port = 1234;
 <span class="boring">}</span></code></pre></pre>
-<p>The osc-sender expects a string in the format &quot;address:port&quot;, for example <code>&quot;127.0.0.1:1234&quot;</code>.</p>
-<p>The address can either be an internal address or the address of another computer on your network. In this tutorial we will be targetting our own computer's internal address which is represented by <code>&quot;127.0.0.1&quot;</code>.</p>
+<p>The osc-sender expects a string in the format "address:port", for example <code>"127.0.0.1:1234"</code>.</p>
+<p>The address can either be an internal address or the address of another computer on your network. In this tutorial we will be targetting our own computer's internal address which is represented by <code>"127.0.0.1"</code>.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {
 </span><span class="boring">let port = 1234;
-</span>let target_addr = format!(&quot;{}:{}&quot;, &quot;127.0.0.1&quot;, port);
+</span>let target_addr = format!("{}:{}", "127.0.0.1", port);
 <span class="boring">}</span></code></pre></pre>
 <p>Lastly, we need to bind our OSC sender to the network socket. This isn't always successful, so we are attaching the <code>expect()</code>-method (read more about <a href="https://doc.rust-lang.org/std/option/enum.Option.html#method.expect"><code>expect()</code> here</a>) to post an error message if it is not successful. If it is successful, the <code>.connect(target_addr)</code>-method is used to connect the sender to the target address. Again, this may be unsuccesful so we use the <code>expect()</code>-method on the result of that operation as well.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused_variables)]
 </span><span class="boring">use nannou_osc as osc;
 </span><span class="boring">fn main() {
 </span><span class="boring">    let port = 1234;
-</span><span class="boring">    let target_addr = format!(&quot;{}:{}&quot;, &quot;127.0.0.1&quot;, port);
+</span><span class="boring">    let target_addr = format!("{}:{}", "127.0.0.1", port);
 </span>let sender = osc::sender()
-    .expect(&quot;Could not bind to default socket&quot;)
+    .expect("Could not bind to default socket")
     .connect(target_addr)
-    .expect(&quot;Could not connect to socket at address&quot;);
+    .expect("Could not connect to socket at address");
 <span class="boring">}</span></code></pre></pre>
 <h3 id="sending-osc-messages"><a class="header" href="#sending-osc-messages">Sending OSC messages</a></h3>
 <p>An OSC packet consists of at least two components: An OSC address and 0 or more arguments containing data. The OSC address is not to be confused with the network address we connected to before. Instead, an OSC address is a path sort of like a URL, for example <code>/circle/position</code>.</p>
 <p>To create an OSC packet, we first need to make an address.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {
-</span>let osc_addr = &quot;/circle/position&quot;.to_string();
+</span>let osc_addr = "/circle/position".to_string();
 <span class="boring">}</span></code></pre></pre>
 <p>Then create a vector of arguments. These need to be formatted using the types found in <a href="https://docs.rs/nannou_osc/latest/nannou_osc/enum.Type.html">osc::Type</a> in the nannou_osc crate. Below we create an argument list of two floating point values: the <code>x</code> and <code>y</code> coordinates of our circle.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused_variables)]
@@ -2292,7 +2285,7 @@ Add a field to the struct called <code>sender</code> with a <a href="https://doc
 </span><span class="boring">}
 </span><span class="boring">fn main() {
 </span><span class="boring">   let model: Model = unimplemented!();
-</span><span class="boring">   let osc_addr = &quot;/circle/position&quot;.to_string();
+</span><span class="boring">   let osc_addr = "/circle/position".to_string();
 </span><span class="boring">   let args = vec![osc::Type::Float(0.0), osc::Type::Float(0.0)];
 </span><span class="boring">   let packet = (osc_addr, args);
 </span>    model.sender.send(packet).ok();
@@ -2313,15 +2306,15 @@ fn model(_app: &amp;App) -&gt; Model {
     // The network port that data is being sent to
     let port = 1234;
 
-    // The osc-sender expects a string in the format &quot;address:port&quot;, for example &quot;127.0.0.1:1234&quot;
-    // &quot;127.0.0.1&quot; is equivalent to your computers internal address.
-    let target_addr = format!(&quot;{}:{}&quot;, &quot;127.0.0.1&quot;, port);
+    // The osc-sender expects a string in the format "address:port", for example "127.0.0.1:1234"
+    // "127.0.0.1" is equivalent to your computers internal address.
+    let target_addr = format!("{}:{}", "127.0.0.1", port);
 
     // This is the osc Sender which contains a couple of expectations in case something goes wrong.
     let sender = osc::sender()
-        .expect(&quot;Could not bind to default socket&quot;)
+        .expect("Could not bind to default socket")
         .connect(target_addr)
-        .expect(&quot;Could not connect to socket at address&quot;);
+        .expect("Could not connect to socket at address");
 
     Model { sender }
 }
@@ -2339,7 +2332,7 @@ fn view(app: &amp;App, model: &amp;Model, frame: Frame) {
     let y = map_range(slowersine, -1.0, 1.0, boundary.bottom(), boundary.top());
 
     // Send x-y coordinates as OSC
-    let osc_addr = &quot;/circle/position&quot;.to_string();
+    let osc_addr = "/circle/position".to_string();
     let args = vec![osc::Type::Float(x), osc::Type::Float(y)];
     let packet = (osc_addr, args);
 
@@ -2361,10 +2354,10 @@ fn view(app: &amp;App, model: &amp;Model, frame: Frame) {
 <p>This is a collection of tutorials by the community.</p>
 <ul>
 <li>
-<p><strong><a href="https://github.com/sidwellr/schotter">&quot;Schotter Four Ways&quot;</a>.</strong>	A comprehensive generative art tutorial by Rick Sidwell introducing Rust workspaces, sketches vs. apps, multiple windows, image capture, keyboard input, and user interfaces.</p>
+<p><strong><a href="https://github.com/sidwellr/schotter">"Schotter Four Ways"</a>.</strong>	A comprehensive generative art tutorial by Rick Sidwell introducing Rust workspaces, sketches vs. apps, multiple windows, image capture, keyboard input, and user interfaces.</p>
 </li>
 <li>
-<p><strong><a href="https://dev.to/deciduously/creative-coding-in-rust-with-nannou-1lbl">&quot;Creative Coding in Rust with Nannou&quot;</a>.</strong> A Rust/Nannou tutorial by Ben Lovy detailing an idiomatic Rust approach to creative coding. It sets up a general framework that is useful for general projects, then uses it to code a simple demo application.</p>
+<p><strong><a href="https://dev.to/deciduously/creative-coding-in-rust-with-nannou-1lbl">"Creative Coding in Rust with Nannou"</a>.</strong> A Rust/Nannou tutorial by Ben Lovy detailing an idiomatic Rust approach to creative coding. It sets up a general framework that is useful for general projects, then uses it to code a simple demo application.</p>
 </li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="contributing"><a class="header" href="#contributing">Contributing</a></h1>
@@ -2384,7 +2377,7 @@ one! Feel free to <a href="https://github.com/nannou-org/nannou/issues">open an 
 and documentation, including this guide! At the moment, the main code repository
 (repo) is hosted <a href="https://github.com/nannou-org/nannou">at Github</a>.</p>
 <h3 id="pull-requests"><a class="header" href="#pull-requests">Pull Requests</a></h3>
-<p>All code changes and code reviews for nannou happen through &quot;Pull Requests&quot;
+<p>All code changes and code reviews for nannou happen through "Pull Requests"
 (PRs). If you are new to pull requests, there are <a href="https://duckduckgo.com/?t=ffab&amp;q=how+to+make+a+pul+request+github&amp;ia=web">many great guides out
 there</a>, but in short they are a nice way of proposing, reviewing,
 discussing and merging changes to a codebase.</p>
@@ -2404,7 +2397,7 @@ PR and let the repo bot check for you.</li>
 last commit. Keep in mind that sometimes warnings already exist due to changes
 in the compiler's linter between versions. Try to at least make sure that your
 changes do not add any new ones :)</li>
-<li><strong>Check Examples</strong> - Make sure the examples still work by running 
+<li><strong>Check Examples</strong> - Make sure the examples still work by running
 <code>cargo run --bin run_all_examples</code>. This executes a script that builds and runs
 all the examples in the project. You need to do a manual check to see
 if examples have failed to run successfully (e.g. check for wgpu validation errors).</li>
@@ -2457,8 +2450,8 @@ follow the rust convention which you can read about <a href="https://doc.rust-la
 <p><em><strong>Hot tip</strong>! Each of the numbers in a crate version has its own name:</em></p>
 <pre><code>MAJOR.MINOR.PATCH
 </code></pre>
-<p><em>E.g. in the version <code>0.15.3</code> the <code>0</code> is the &quot;major&quot; version, the <code>15</code> is the
-&quot;minor&quot; version and the <code>3</code> is the &quot;patch&quot; or &quot;tiny&quot; version. Keep an eye out
+<p><em>E.g. in the version <code>0.15.3</code> the <code>0</code> is the "major" version, the <code>15</code> is the
+"minor" version and the <code>3</code> is the "patch" or "tiny" version. Keep an eye out
 for these names when reading about versioning in Rust.</em></p>
 </blockquote>
 <p>Also necessary to keep in mind is that nannou synchronises versions that
@@ -2481,7 +2474,7 @@ the <code>[dependencies]</code> section of <code>nannou_isf</code>.</li>
 the version of all of the <code>nannou_*</code> crates!</p>
 <p>To make this easier, the nannou repo includes a small program at
 <code>scripts/set_version</code>. You can use it like so:</p>
-<pre><code>cargo run --bin set_version -- &quot;0.42.0&quot;
+<pre><code>cargo run --bin set_version -- "0.42.0"
 </code></pre>
 <p>This will:</p>
 <ul>
@@ -2504,7 +2497,7 @@ the <code>Unreleased</code> heading.</li>
 <p>Otherwise, we avoid referring to specific versions in the guide to make updating
 easier. If you happen to be familiar with grep, this command can help you to
 double check that there are no more places to update:</p>
-<pre><code>grep -nr &quot;= \&quot;0.14\&quot;&quot; guide/
+<pre><code>grep -nr "= \"0.14\"" guide/
 </code></pre>
 <p>where <code>0.14</code> would be replaced with the beginning of the previous version of
 <code>nannou</code>. This should should list the files and line numbers where the previous
@@ -2570,11 +2563,11 @@ progress once it's available.</strong></em></p>
 <p><strong>Note:</strong> As of wgpu 0.10, all nannou projects now require either:</p>
 <ol>
 <li>The following line in their top-level cargo manifest:
-<pre><code class="language-toml">resolver = &quot;2&quot;
+<pre><code class="language-toml">resolver = "2"
 </code></pre>
 OR</li>
 <li>All packages must use the 2021 edition (or later) of Rust, e.g.
-<pre><code class="language-toml">edition = &quot;2021&quot;
+<pre><code class="language-toml">edition = "2021"
 </code></pre>
 </li>
 </ol>
@@ -2873,7 +2866,7 @@ circuit interpolation.</li>
 <li>Adds a <code>set_version</code> script for synchronising version updates across nannou
 crates.</li>
 <li>Add a <code>random_ascii()</code> function.</li>
-<li>Add many more &quot;Generative Design&quot; and &quot;Nature of Code&quot; examples.</li>
+<li>Add many more "Generative Design" and "Nature of Code" examples.</li>
 <li>Fix bug where <code>capture_frame_threaded</code> was not actually threaded.</li>
 </ul>
 <p><strong>The Great Repository Refactor</strong></p>
@@ -2895,10 +2888,10 @@ ability to run examples of specific packages in the workspace.</li>
 </ul>
 <p><strong>Guide</strong></p>
 <ul>
-<li>Add a &quot;Sketch vs App&quot; tutorial.</li>
-<li>Add a &quot;Window Coordinates&quot; tutorial.</li>
-<li>Add &quot;OSC Introduction&quot; and &quot;OSC Sender&quot; tutorials.</li>
-<li>Ensure the &quot;Drawing 2D Shapes&quot; tutorial code is tested.</li>
+<li>Add a "Sketch vs App" tutorial.</li>
+<li>Add a "Window Coordinates" tutorial.</li>
+<li>Add "OSC Introduction" and "OSC Sender" tutorials.</li>
+<li>Ensure the "Drawing 2D Shapes" tutorial code is tested.</li>
 <li>Add automated testing of all guide code on each PR to nannou repo.</li>
 </ul>
 <p><strong>Draw API</strong></p>
@@ -3060,7 +3053,7 @@ by disabling default-features.</li>
 <li>Refactor default font out of ui module into app module.</li>
 <li>Add <code>text</code> module along with <code>text::Builder</code> and <code>Text</code> APIs. Allows for
 laying out multi-line, justified, auto-wrapping text.</li>
-<li>Add <code>draw.text(&quot;foo&quot;)</code> API. Currently quite slow as it uses the <code>draw.path()</code>
+<li>Add <code>draw.text("foo")</code> API. Currently quite slow as it uses the <code>draw.path()</code>
 API internally, but this can be improved in the future by adopting a glyph
 cache.</li>
 <li>Add <code>simple_text.rs</code> and <code>simple_text_path.rs</code> examples.</li>
@@ -3208,7 +3201,7 @@ to focused window.</li>
 <li>Add many new items to prelude.</li>
 <li>Add more <code>Rect</code> constructors.</li>
 <li>Add <code>Range::lerp</code> method.</li>
-<li>Window name defaults to &quot;nannou - exe_name&quot; if no name is given.</li>
+<li>Window name defaults to "nannou - exe_name" if no name is given.</li>
 <li>Correct existing and add missing geometry scalar default types.</li>
 </ul>
 <hr />
@@ -3268,7 +3261,7 @@ fail.</li>
 <p>This project exists thanks to all the people who contribute.</p>
 <p><a href="https://github.com/nannou-org/nannou/graphs/contributors"><img src="https://opencollective.com/nannou/contributors.svg?width=890&button=false" /></a></p>
 <h2 id="backers"><a class="header" href="#backers">Backers</a></h2>
-<p>Thank you to all our backers! 🙏 </p>
+<p>Thank you to all our backers! 🙏</p>
 <p><a href="https://opencollective.com/nannou#backers" target="_blank"><img src="https://opencollective.com/nannou/backers.svg?width=890"></a></p>
 <h2 id="sponsors"><a class="header" href="#sponsors">Sponsors</a></h2>
 <p>Support this project by becoming a sponsor. Your logo will show up here with a link to your website.</p>
@@ -3318,7 +3311,7 @@ fail.</li>
 <p>Instances of abusive, harassing, or otherwise unacceptable behavior may be reported by contacting the project team at <a href="mailto:contact@nannou.cc"><strong>contact@nannou.cc</strong></a>. The project team will review and investigate all complaints, and will respond in a way that it deems appropriate to the circumstances. The project team is obligated to maintain confidentiality with regard to the reporter of an incident. Further details of specific enforcement policies may be posted separately.</p>
 <p>Project maintainers who do not follow or enforce the Code of Conduct in good faith may face temporary or permanent repercussions as determined by other members of the project's leadership.</p>
 <h2 id="attribution"><a class="header" href="#attribution">Attribution</a></h2>
-<p>This Code of Conduct is adapted from the <a href="http://contributor-covenant.org">Contributor Covenant</a>, version 1.4, available at <a href="http://contributor-covenant.org/version/1/4/">http://contributor-covenant.org/version/1/4</a> as well as the <a href="http://blog.izs.me/post/30036893703/policy-on-trolling">Node.js Policy on Trolling</a> and the <a href="https://www.rust-lang.org/en-US/conduct.html">Rust Code of Conduct</a> </p>
+<p>This Code of Conduct is adapted from the <a href="http://contributor-covenant.org">Contributor Covenant</a>, version 1.4, available at <a href="http://contributor-covenant.org/version/1/4/">http://contributor-covenant.org/version/1/4</a> as well as the <a href="http://blog.izs.me/post/30036893703/policy-on-trolling">Node.js Policy on Trolling</a> and the <a href="https://www.rust-lang.org/en-US/conduct.html">Rust Code of Conduct</a></p>
 
                     </main>
 
