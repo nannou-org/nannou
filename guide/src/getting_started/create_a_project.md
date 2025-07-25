@@ -20,7 +20,12 @@ create a new project with just a few small steps:
    cd my-project
    ```
 
-3. Edit the `Cargo.toml` file and add the latest version of nannou to the bottom
+3. As of [Rust 1.62.0]([url](https://blog.rust-lang.org/2022/06/30/Rust-1.62.0.html#cargo-add)), you can add `nannou` to your project like so:
+   ```
+   cargo add nannou
+   ```
+   
+   Alternately, you can edit the `Cargo.toml` file and add the latest version of nannou to the bottom
    like so:
 
    ```toml
@@ -31,7 +36,7 @@ create a new project with just a few small steps:
    edition = "2018"
 
    [dependencies]
-   nannou = "0.17"
+   nannou = "0.18.1"
    ```
 
    Note that there is a chance the nannou version above might be out of date.
