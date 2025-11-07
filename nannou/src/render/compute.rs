@@ -5,17 +5,18 @@ use bevy::{
     platform::collections::HashMap,
     prelude::*,
     render::{
-        Render, RenderSet,
+        Render, RenderSystems,
         extract_component::ExtractComponentPlugin,
         render_graph::{
-            NodeRunError, RenderGraphApp, RenderGraphContext, RenderLabel, ViewNode, ViewNodeRunner,
+            NodeRunError, RenderGraphContext, RenderGraphExt, RenderLabel, ViewNode, ViewNodeRunner,
         },
         render_resource::{
             BindGroup, BindGroupLayout, CachedComputePipelineId, ComputePipelineDescriptor,
-            PipelineCache, ShaderRef, SpecializedComputePipeline, SpecializedComputePipelines,
+            PipelineCache, SpecializedComputePipeline, SpecializedComputePipelines,
         },
         renderer::{RenderContext, RenderDevice},
     },
+    shader::ShaderRef,
 };
 use bevy_nannou::prelude::{AsBindGroup, CachedPipelineState};
 use std::{borrow::Cow, hash::Hash};
@@ -48,8 +49,8 @@ where
             .add_systems(
                 Render,
                 (
-                    queue_pipeline::<CM>.in_set(RenderSet::Queue),
-                    prepare_bind_group::<CM>.in_set(RenderSet::PrepareBindGroups),
+                    queue_pipeline::<CM>.in_set(RenderSystems::Queue),
+                    prepare_bind_group::<CM>.in_set(RenderSystems::PrepareBindGroups),
                 ),
             );
     }
@@ -228,7 +229,7 @@ where
             push_constant_ranges: Vec::new(),
             shader: self.shader.clone(),
             shader_defs: vec![],
-            entry_point: Cow::from(key.shader_entry),
+            entry_point: Some(Cow::from(key.shader_entry)),
             zero_initialize_workgroup_memory: false,
         }
     }
@@ -258,7 +259,7 @@ where
         &self,
         _graph: &mut RenderGraphContext,
         render_context: &mut RenderContext<'w>,
-        (bind_group, state): QueryItem<'w, Self::ViewQuery>,
+        (bind_group, state): QueryItem<'w, '_, Self::ViewQuery>,
         world: &'w World,
     ) -> Result<(), NodeRunError> {
         let pipeline_cache = world.resource::<PipelineCache>();

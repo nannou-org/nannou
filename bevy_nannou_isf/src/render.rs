@@ -1,16 +1,16 @@
 use crate::asset::{GpuIsf, Isf, IsfHandle};
 use crate::inputs::{IsfInputValue, IsfInputs};
 use bevy::asset::embedded_asset;
+use bevy::camera::RenderTarget;
 use bevy::core_pipeline::core_3d::graph::{Core3d, Node3d};
 use bevy::ecs::query::{QueryItem, ROQueryItem};
 use bevy::ecs::system::SystemParamItem;
 use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
-use bevy::render::camera::RenderTarget;
 use bevy::render::extract_resource::ExtractResource;
 use bevy::render::render_asset::RenderAssets;
 use bevy::render::render_graph::{
-    NodeRunError, RenderGraphApp, RenderGraphContext, RenderLabel, ViewNode, ViewNodeRunner,
+    NodeRunError, RenderGraphContext, RenderGraphExt, RenderLabel, ViewNode, ViewNodeRunner,
 };
 use bevy::render::render_phase::{
     PhaseItem, RenderCommand, RenderCommandResult, TrackedRenderPass,
@@ -22,7 +22,7 @@ use bevy::render::render_resource::*;
 use bevy::render::renderer::{RenderContext, RenderDevice};
 use bevy::render::texture::{DefaultImageSampler, GpuImage};
 use bevy::render::view::{ExtractedView, ViewTarget};
-use bevy::render::{Render, RenderApp, RenderSet};
+use bevy::render::{Render, RenderApp, RenderSystems};
 use bevy::window::{PrimaryWindow, WindowRef};
 use std::num::NonZero;
 
@@ -40,8 +40,8 @@ impl Plugin for IsfRenderPlugin {
             .add_systems(
                 Render,
                 (
-                    queue_isf.in_set(RenderSet::Queue),
-                    prepare_isf_bind_groups.in_set(RenderSet::PrepareBindGroups),
+                    queue_isf.in_set(RenderSystems::Queue),
+                    prepare_isf_bind_groups.in_set(RenderSystems::PrepareBindGroups),
                 ),
             )
             .init_resource::<SpecializedRenderPipelines<IsfPipeline>>()
@@ -99,6 +99,9 @@ fn update_render_targets(
             .expect(&format!("Image not found: {:?}", image)),
         RenderTarget::TextureView(_) => {
             todo!("implement texture view")
+        }
+        RenderTarget::None { .. } => {
+            todo!("implement none target")
         }
     };
 
@@ -461,6 +464,7 @@ impl ViewNode for IsfNode {
                             store: StoreOp::Store,
                         }
                     },
+                    depth_slice: None,
                 },
                 None => view_target.get_color_attachment(),
             };
@@ -483,6 +487,7 @@ impl ViewNode for IsfNode {
     }
 }
 
+#[allow(dead_code)]
 struct DrawIsf;
 
 impl<P> RenderCommand<P> for DrawIsf
@@ -497,8 +502,8 @@ where
 
     fn render<'w>(
         _: &P,
-        _: ROQueryItem<'w, Self::ViewQuery>,
-        _: Option<ROQueryItem<'w, Self::ItemQuery>>,
+        _: ROQueryItem<'w, '_, Self::ViewQuery>,
+        _: Option<ROQueryItem<'w, '_, Self::ItemQuery>>,
         _: SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
@@ -569,13 +574,13 @@ impl SpecializedRenderPipeline for IsfPipeline {
             vertex: VertexState {
                 shader: self.fullscreen_shader.clone(),
                 shader_defs: Vec::new(),
-                entry_point: "main".into(),
+                entry_point: Some("main".into()),
                 buffers: vec![],
             },
             fragment: Some(FragmentState {
                 shader: key.shader,
                 shader_defs: vec![],
-                entry_point: "main".into(),
+                entry_point: Some("main".into()),
                 targets: vec![Some(ColorTargetState {
                     format: key.format,
                     blend: None,

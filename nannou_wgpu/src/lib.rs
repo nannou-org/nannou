@@ -54,7 +54,6 @@ pub use self::{
         row_padded_buffer::RowPaddedBuffer,
     },
 };
-use wgpu::MemoryHints;
 #[doc(inline)]
 pub use wgpu::{
     Adapter, AdapterInfo, AddressMode, Backend, Backends, BindGroup, BindGroupDescriptor,
@@ -67,27 +66,28 @@ pub use wgpu::{
     ComputePass, ComputePassDescriptor, ComputePipeline, ComputePipelineDescriptor, DepthBiasState,
     DepthStencilState, Device, DeviceDescriptor, DeviceType, DownlevelCapabilities, DownlevelFlags,
     DynamicOffset, Error, Extent3d, Face, Features, FilterMode, FragmentState, FrontFace,
-    ImageSubresourceRange, IndexFormat, Instance, Label, Limits, LoadOp, MAP_ALIGNMENT, Maintain,
-    MapMode, MultisampleState, Operations, Origin3d, PUSH_CONSTANT_ALIGNMENT, PipelineLayout,
-    PipelineLayoutDescriptor, PipelineStatisticsTypes, PolygonMode, PowerPreference, PresentMode,
-    PrimitiveState, PrimitiveTopology, PushConstantRange, QUERY_RESOLVE_BUFFER_ALIGNMENT,
-    QUERY_SET_MAX_QUERIES, QUERY_SIZE, QuerySet, QuerySetDescriptor, QueryType, Queue,
-    RenderBundle, RenderBundleDepthStencil, RenderBundleDescriptor, RenderBundleEncoder,
-    RenderBundleEncoderDescriptor, RenderPass, RenderPassColorAttachment,
-    RenderPassDepthStencilAttachment, RenderPassDescriptor, RenderPipeline,
-    RenderPipelineDescriptor, RequestAdapterOptions, RequestAdapterOptionsBase, RequestDeviceError,
-    Sampler, SamplerBorderColor, SamplerDescriptor, ShaderLocation, ShaderModel, ShaderModule,
-    ShaderModuleDescriptor, ShaderSource, ShaderStages, StencilFaceState, StencilOperation,
-    StencilState, StorageTextureAccess, Surface, SurfaceConfiguration, SurfaceError, SurfaceStatus,
-    SurfaceTexture, TexelCopyBufferInfo, TexelCopyBufferLayout, TexelCopyTextureInfo,
-    Texture as TextureHandle, TextureAspect, TextureDescriptor, TextureDimension, TextureFormat,
-    TextureFormatFeatureFlags, TextureFormatFeatures, TextureSampleType, TextureUsages,
-    TextureView as TextureViewHandle, TextureViewDescriptor, TextureViewDimension,
-    UncapturedErrorHandler, VERTEX_STRIDE_ALIGNMENT, VertexAttribute, VertexBufferLayout,
-    VertexFormat, VertexState, VertexStepMode, include_wgsl,
+    ImageSubresourceRange, IndexFormat, Instance, Label, Limits, LoadOp, MAP_ALIGNMENT, MapMode,
+    MultisampleState, Operations, Origin3d, PUSH_CONSTANT_ALIGNMENT, PipelineLayout,
+    PipelineLayoutDescriptor, PipelineStatisticsTypes, PollType, PolygonMode, PowerPreference,
+    PresentMode, PrimitiveState, PrimitiveTopology, PushConstantRange,
+    QUERY_RESOLVE_BUFFER_ALIGNMENT, QUERY_SET_MAX_QUERIES, QUERY_SIZE, QuerySet,
+    QuerySetDescriptor, QueryType, Queue, RenderBundle, RenderBundleDepthStencil,
+    RenderBundleDescriptor, RenderBundleEncoder, RenderBundleEncoderDescriptor, RenderPass,
+    RenderPassColorAttachment, RenderPassDepthStencilAttachment, RenderPassDescriptor,
+    RenderPipeline, RenderPipelineDescriptor, RequestAdapterOptions, RequestAdapterOptionsBase,
+    RequestDeviceError, Sampler, SamplerBorderColor, SamplerDescriptor, ShaderLocation,
+    ShaderModel, ShaderModule, ShaderModuleDescriptor, ShaderSource, ShaderStages,
+    StencilFaceState, StencilOperation, StencilState, StorageTextureAccess, Surface,
+    SurfaceConfiguration, SurfaceError, SurfaceStatus, SurfaceTexture, TexelCopyBufferInfo,
+    TexelCopyBufferLayout, TexelCopyTextureInfo, Texture as TextureHandle, TextureAspect,
+    TextureDescriptor, TextureDimension, TextureFormat, TextureFormatFeatureFlags,
+    TextureFormatFeatures, TextureSampleType, TextureUsages, TextureView as TextureViewHandle,
+    TextureViewDescriptor, TextureViewDimension, UncapturedErrorHandler, VERTEX_STRIDE_ALIGNMENT,
+    VertexAttribute, VertexBufferLayout, VertexFormat, VertexState, VertexStepMode, include_wgsl,
     util::{self, BufferInitDescriptor},
     vertex_attr_array,
 };
+use wgpu::{MemoryHints, Trace};
 
 /// The default power preference used for requesting the WGPU adapter.
 pub const DEFAULT_POWER_PREFERENCE: PowerPreference = PowerPreference::HighPerformance;
@@ -131,6 +131,7 @@ pub fn default_device_descriptor() -> DeviceDescriptor<'static> {
         required_features,
         required_limits,
         memory_hints: MemoryHints::default(),
+        trace: Trace::Off,
     }
 }
 

@@ -1,4 +1,4 @@
-use bevy::render::render_resource::ShaderRef;
+use bevy::shader::ShaderRef;
 use bevy_nannou_derive::shader_model;
 use bevy_nannou_draw::render::ShaderModel;
 

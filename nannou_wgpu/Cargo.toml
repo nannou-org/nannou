@@ -21,10 +21,9 @@ tokio = { workspace = true, features = ["rt"]}
 
 [features]
 capturer = ["image"]
-replay = ["wgpu/replay"]
 serde = ["wgpu/serde"]
 spirv = ["wgpu/spirv"]
 webgl = ["wgpu/webgl"]
 
 [package.metadata.docs.rs]
-features = ["capturer", "image", "replay", "serde", "spirv", "webgl"]
+features = ["capturer", "image", "serde", "spirv", "webgl"]

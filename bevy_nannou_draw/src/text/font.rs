@@ -103,7 +103,7 @@ impl Map {
     // }
 
     /// Produces an iterator yielding the `Id` for each `Font` within the `Map`.
-    pub fn ids(&self) -> Ids {
+    pub fn ids(&self) -> Ids<'_> {
         Ids {
             keys: self.map.keys(),
         }

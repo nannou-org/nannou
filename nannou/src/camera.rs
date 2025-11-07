@@ -1,15 +1,11 @@
-// FIXME: Remove deprecatd `Camera3dBundle`.
-#![allow(deprecated)]
-
-use crate::{App, prelude::bevy_render::camera::RenderTarget};
+use crate::{App, prelude::camera::RenderTarget};
 use bevy::{
-    core_pipeline::{
-        bloom::{Bloom, BloomPrefilter},
-        tonemapping::Tonemapping,
-    },
+    camera::{self, visibility::RenderLayers},
+    core_pipeline::tonemapping::Tonemapping,
     math::UVec2,
+    post_process::bloom::{Bloom, BloomPrefilter},
     prelude::{Projection, Transform, Vec2},
-    render::{camera, view::RenderLayers},
+    render::view::Hdr,
     window::WindowRef,
 };
 use bevy_nannou::prelude::{
@@ -25,6 +21,7 @@ pub struct Camera<'a, 'w> {
 pub struct CameraComponents {
     pub transform: Transform,
     pub camera: camera::Camera,
+    pub hdr: Option<Hdr>,
     pub projection: Projection,
     pub tonemapping: Tonemapping,
     pub bloom_settings: Option<Bloom>,
@@ -82,7 +79,7 @@ pub trait SetCamera: Sized {
 
     fn hdr(self, hdr: bool) -> Self {
         self.map_camera(|mut camera| {
-            camera.camera.hdr = hdr;
+            camera.hdr = if hdr { Some(Hdr) } else { None };
             camera
         })
     }
@@ -171,7 +168,7 @@ pub trait SetCamera: Sized {
 
     fn bloom_composite_mode(
         self,
-        composite_mode: bevy::core_pipeline::bloom::BloomCompositeMode,
+        composite_mode: bevy::post_process::bloom::BloomCompositeMode,
     ) -> Self {
         self.map_camera(|mut camera| {
             let settings = camera.bloom_settings.get_or_insert_with(Bloom::default);
@@ -223,6 +220,12 @@ impl<'a, 'w> Builder<'a, 'w> {
                 .entity_mut(entity)
                 .insert(bloom_settings);
         }
+        if let Some(hdr) = self.camera.hdr {
+            self.app
+                .component_world_mut()
+                .entity_mut(entity)
+                .insert(hdr);
+        }
         entity
     }
 }
@@ -254,16 +257,18 @@ impl<'a, 'w> SetCamera for Camera<'a, 'w> {
         let mut camera_q = world.query::<(
             &Transform,
             &camera::Camera,
+            Option<&Hdr>,
             &Projection,
             &Tonemapping,
             &RenderLayers,
             Option<&Bloom>,
         )>();
-        let (transform, camera, projection, tonemapping, render_layers, bloom_settings) =
+        let (transform, camera, hdr, projection, tonemapping, render_layers, bloom_settings) =
             camera_q.get(&mut world, self.entity).unwrap();
         let camera = CameraComponents {
             transform: transform.clone(),
             camera: camera.clone(),
+            hdr: hdr.cloned(),
             projection: projection.clone(),
             tonemapping: tonemapping.clone(),
             render_layers: render_layers.clone(),
@@ -273,7 +278,9 @@ impl<'a, 'w> SetCamera for Camera<'a, 'w> {
         if let Some(bloom_settings) = camera.bloom_settings.take() {
             world.entity_mut(self.entity).insert(bloom_settings);
         }
-
+        if let Some(hdr) = camera.hdr.take() {
+            world.entity_mut(self.entity).insert(hdr);
+        }
         world.entity_mut(self.entity).insert({
             let CameraComponents {
                 transform,

@@ -1,7 +1,6 @@
 #import bevy_pbr::{
     forward_io::{Vertex}
     mesh_functions::{get_world_from_local, mesh_position_local_to_clip, mesh_position_local_to_world}
-    view_transformations::{position_world_to_clip}
 }
 
 struct Particle {

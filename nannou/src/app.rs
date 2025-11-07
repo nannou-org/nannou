@@ -273,9 +273,7 @@ where
                 ..default()
             }),
             #[cfg(feature = "egui")]
-            bevy_egui::EguiPlugin {
-                enable_multipass_for_primary_context: false,
-            }, // TODO: should we use this?
+            bevy_egui::EguiPlugin::default(),
             NannouPlugin,
         ))
         .init_resource::<RunMode>();
@@ -296,7 +294,7 @@ where
 impl<M, E> Builder<M, E>
 where
     M: 'static + Send + Sync,
-    E: Event,
+    E: Message,
 {
     /// The default `view` function that the app will call to allow you to present your Model to
     /// the surface of a window on your display.
@@ -602,11 +600,11 @@ where
         self.0.try_apply(value)
     }
 
-    fn reflect_ref(&self) -> ReflectRef {
+    fn reflect_ref(&self) -> ReflectRef<'_> {
         self.0.reflect_ref()
     }
 
-    fn reflect_mut(&mut self) -> ReflectMut {
+    fn reflect_mut(&mut self) -> ReflectMut<'_> {
         self.0.reflect_mut()
     }
 
@@ -666,7 +664,7 @@ impl<'w> App<'w> {
     pub const DEFAULT_FULLSCREEN_ON_SHORTCUT: bool = true;
 
     /// Retrieve a mutable reference to the [`AssetServer`] resource.
-    pub fn asset_server(&self) -> RefMut<AssetServer> {
+    pub fn asset_server(&self) -> RefMut<'_, AssetServer> {
         let world = self.resource_world_mut();
         RefMut::map(world, |world| {
             world.resource_mut::<AssetServer>().into_inner()
@@ -703,7 +701,7 @@ impl<'w> App<'w> {
 
     #[cfg(feature = "egui")]
     /// Get the egui context for the provided window.
-    pub fn egui_for_window(&self, window: Entity) -> RefMut<EguiContext> {
+    pub fn egui_for_window(&self, window: Entity) -> RefMut<'_, EguiContext> {
         let world = self.component_world_mut();
         RefMut::map(world, |world| {
             world
@@ -715,7 +713,7 @@ impl<'w> App<'w> {
 
     #[cfg(feature = "egui")]
     /// Get the egui context for the currently focused window.
-    pub fn egui(&self) -> RefMut<EguiContext> {
+    pub fn egui(&self) -> RefMut<'_, EguiContext> {
         self.egui_for_window(self.window_id())
     }
 
@@ -1015,7 +1013,7 @@ impl<'w> App<'w> {
 
     /// Quits the currently running application.
     pub fn quit(&mut self) {
-        self.resource_world_mut().send_event(AppExit::Success);
+        self.resource_world_mut().write_message(AppExit::Success);
     }
 
     pub fn set_update_mode(&self, mode: UpdateMode) {
@@ -1042,9 +1040,8 @@ fn get_app_and_state<'w, 's, S: SystemParam + 'static>(
     world: &'w mut World,
     state: &'s mut SystemState<S>,
 ) -> (App<'w>, <S as SystemParam>::Item<'w, 's>) {
-    state.update_archetypes(world);
     let app = App::new(world);
-    let param = unsafe { state.get_unchecked_manual(*app.resource_world.borrow_mut()) };
+    let param = unsafe { state.get_unchecked(*app.resource_world.borrow_mut()) };
     (app, param)
 }
 
@@ -1194,13 +1191,13 @@ fn compute<M, CM>(
 fn events<M, E>(
     world: &mut World,
     state: &mut SystemState<(
-        EventReader<E>,
+        MessageReader<E>,
         Res<EventFnRes<M, E>>,
         ResMut<ModelHolder<M>>,
     )>,
 ) where
     M: Send + Sync + 'static,
-    E: Event,
+    E: Message,
 {
     let (app, (mut events, event_fn, mut model)) = get_app_and_state(world, state);
     for evt in events.read() {
@@ -1214,7 +1211,7 @@ fn events<M, E>(
 fn key_events<M>(
     world: &mut World,
     state: &mut SystemState<(
-        EventReader<KeyboardInput>,
+        MessageReader<KeyboardInput>,
         Query<&WindowUserFunctions<M>>,
         ResMut<ModelHolder<M>>,
     )>,
@@ -1247,7 +1244,7 @@ fn key_events<M>(
 fn received_char_events<M>(
     world: &mut World,
     state: &mut SystemState<(
-        EventReader<KeyboardInput>,
+        MessageReader<KeyboardInput>,
         Query<&WindowUserFunctions<M>>,
         ResMut<ModelHolder<M>>,
     )>,
@@ -1276,7 +1273,7 @@ fn received_char_events<M>(
 fn cursor_moved_events<M>(
     world: &mut World,
     state: &mut SystemState<(
-        EventReader<CursorMoved>,
+        MessageReader<CursorMoved>,
         Query<&WindowUserFunctions<M>>,
         ResMut<ModelHolder<M>>,
     )>,
@@ -1299,7 +1296,7 @@ fn cursor_moved_events<M>(
 fn mouse_button_events<M>(
     world: &mut World,
     state: &mut SystemState<(
-        EventReader<MouseButtonInput>,
+        MessageReader<MouseButtonInput>,
         Query<&WindowUserFunctions<M>>,
         ResMut<ModelHolder<M>>,
     )>,
@@ -1332,7 +1329,7 @@ fn mouse_button_events<M>(
 fn cursor_entered_events<M>(
     world: &mut World,
     state: &mut SystemState<(
-        EventReader<CursorEntered>,
+        MessageReader<CursorEntered>,
         Query<&WindowUserFunctions<M>>,
         ResMut<ModelHolder<M>>,
     )>,
@@ -1356,7 +1353,7 @@ fn cursor_entered_events<M>(
 fn cursor_left_events<M>(
     world: &mut World,
     state: &mut SystemState<(
-        EventReader<CursorLeft>,
+        MessageReader<CursorLeft>,
         Query<&WindowUserFunctions<M>>,
         ResMut<ModelHolder<M>>,
     )>,
@@ -1379,7 +1376,7 @@ fn cursor_left_events<M>(
 fn mouse_wheel_events<M>(
     world: &mut World,
     state: &mut SystemState<(
-        EventReader<MouseWheel>,
+        MessageReader<MouseWheel>,
         Query<&WindowUserFunctions<M>>,
         ResMut<ModelHolder<M>>,
     )>,
@@ -1402,7 +1399,7 @@ fn mouse_wheel_events<M>(
 fn window_moved_events<M>(
     world: &mut World,
     state: &mut SystemState<(
-        EventReader<WindowMoved>,
+        MessageReader<WindowMoved>,
         Query<&WindowUserFunctions<M>>,
         ResMut<ModelHolder<M>>,
     )>,
@@ -1425,7 +1422,7 @@ fn window_moved_events<M>(
 fn window_resized_events<M>(
     world: &mut World,
     state: &mut SystemState<(
-        EventReader<WindowResized>,
+        MessageReader<WindowResized>,
         Query<&WindowUserFunctions<M>>,
         ResMut<ModelHolder<M>>,
     )>,
@@ -1449,7 +1446,7 @@ fn window_resized_events<M>(
 fn touch_events<M>(
     world: &mut World,
     state: &mut SystemState<(
-        EventReader<TouchInput>,
+        MessageReader<TouchInput>,
         Query<&WindowUserFunctions<M>>,
         ResMut<ModelHolder<M>>,
     )>,
@@ -1472,7 +1469,7 @@ fn touch_events<M>(
 fn file_drop_events<M>(
     world: &mut World,
     state: &mut SystemState<(
-        EventReader<FileDragAndDrop>,
+        MessageReader<FileDragAndDrop>,
         Query<&WindowUserFunctions<M>>,
         ResMut<ModelHolder<M>>,
     )>,
@@ -1515,7 +1512,7 @@ fn file_drop_events<M>(
 fn window_focus_events<M>(
     world: &mut World,
     state: &mut SystemState<(
-        EventReader<WindowFocused>,
+        MessageReader<WindowFocused>,
         Query<&WindowUserFunctions<M>>,
         ResMut<ModelHolder<M>>,
     )>,
@@ -1543,7 +1540,7 @@ fn window_focus_events<M>(
 fn window_closed_events<M>(
     world: &mut World,
     state: &mut SystemState<(
-        EventReader<WindowClosed>,
+        MessageReader<WindowClosed>,
         Query<&WindowUserFunctions<M>>,
         ResMut<ModelHolder<M>>,
     )>,
@@ -1564,7 +1561,7 @@ fn window_closed_events<M>(
 }
 
 #[allow(clippy::type_complexity)]
-fn last<M>(world: &mut World, state: &mut SystemState<(EventReader<AppExit>, Res<ExitFnRes<M>>)>)
+fn last<M>(world: &mut World, state: &mut SystemState<(MessageReader<AppExit>, Res<ExitFnRes<M>>)>)
 where
     M: 'static + Send + Sync,
 {

@@ -2,9 +2,9 @@
 #![allow(deprecated)]
 
 use bevy::{
-    pbr::DirectionalLight,
+    camera::visibility::RenderLayers,
+    light::DirectionalLight,
     prelude::{Color, Transform, Vec2},
-    render::view::RenderLayers,
 };
 
 use bevy_nannou::prelude::{Entity, Vec3, default};

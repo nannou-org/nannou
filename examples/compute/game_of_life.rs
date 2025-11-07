@@ -1,5 +1,6 @@
 mod particle_mouse;
 
+use bevy::asset::RenderAssetUsages;
 use nannou::prelude::*;
 
 const DISPLAY_FACTOR: u32 = 4;

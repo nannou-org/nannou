@@ -35,6 +35,7 @@ impl<'a> ColorAttachmentDescriptorBuilder<'a> {
                     load: LoadOp::Clear(Color::TRANSPARENT),
                     store: StoreOp::Store,
                 },
+                depth_slice: None,
             },
         }
     }

@@ -334,7 +334,7 @@ impl<'buffer> ImageReadMapping<'buffer> {
     ///
     /// Unsafe: `P::TEXTURE_FORMAT` MUST match the texture format / image type used to create the
     /// wrapped RowPaddedBuffer! If this is not the case, may result in undefined behavior!
-    pub unsafe fn as_image<P>(&self) -> image::SubImage<ImageHolder<P>>
+    pub unsafe fn as_image<P>(&self) -> image::SubImage<ImageHolder<'_, P>>
     where
         P: Pixel + PixelWithColorType + 'static,
     {

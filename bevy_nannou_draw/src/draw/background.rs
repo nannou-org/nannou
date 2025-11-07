@@ -12,7 +12,7 @@ where
 }
 
 /// Begin coloring the background.
-pub fn new<SM>(draw: &Draw<SM>) -> Background<SM>
+pub fn new<SM>(draw: &Draw<SM>) -> Background<'_, SM>
 where
     SM: ShaderModel + Default,
 {

@@ -258,11 +258,11 @@ impl Struct for IsfInputs {
         self.len()
     }
 
-    fn iter_fields(&self) -> FieldIter {
+    fn iter_fields(&self) -> FieldIter<'_> {
         FieldIter::new(self)
     }
 
-    fn clone_dynamic(&self) -> DynamicStruct {
+    fn to_dynamic_struct(&self) -> DynamicStruct {
         let mut dynamic_struct = DynamicStruct::default();
         for (name, value) in self.deref() {
             dynamic_struct.insert(name, value.clone());
@@ -300,12 +300,12 @@ impl PartialReflect for IsfInputs {
     }
 
     #[inline]
-    fn reflect_ref(&self) -> ReflectRef {
+    fn reflect_ref(&self) -> ReflectRef<'_> {
         ReflectRef::Struct(self)
     }
 
     #[inline]
-    fn reflect_mut(&mut self) -> ReflectMut {
+    fn reflect_mut(&mut self) -> ReflectMut<'_> {
         ReflectMut::Struct(self)
     }
 
@@ -315,7 +315,7 @@ impl PartialReflect for IsfInputs {
     }
 
     #[inline]
-    fn clone_value(&self) -> Box<dyn PartialReflect> {
+    fn to_dynamic(&self) -> Box<dyn PartialReflect> {
         Box::new(self.to_dynamic_struct())
     }
 

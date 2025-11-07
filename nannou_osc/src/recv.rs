@@ -255,7 +255,7 @@ impl Receiver<Unconnected> {
     ///
     /// Each call to `next` will block until the next packet is received or until some error
     /// occurs.
-    pub fn iter(&self) -> Iter<Unconnected> {
+    pub fn iter(&self) -> Iter<'_, Unconnected> {
         Iter { receiver: self }
     }
 
@@ -263,7 +263,7 @@ impl Receiver<Unconnected> {
     ///
     /// Each call to `next` will only return `Some` while there are pending packets and will return
     /// `None` otherwise.
-    pub fn try_iter(&self) -> TryIter<Unconnected> {
+    pub fn try_iter(&self) -> TryIter<'_, Unconnected> {
         TryIter { receiver: self }
     }
 }
@@ -325,7 +325,7 @@ impl Receiver<Connected> {
     ///
     /// Each call to `next` will block until the next packet is received or until some error
     /// occurs.
-    pub fn iter(&self) -> Iter<Connected> {
+    pub fn iter(&self) -> Iter<'_, Connected> {
         Iter { receiver: self }
     }
 
@@ -333,7 +333,7 @@ impl Receiver<Connected> {
     ///
     /// Each call to `next` will only return `Some` while there are pending packets and will return
     /// `None` otherwise.
-    pub fn try_iter(&self) -> TryIter<Connected> {
+    pub fn try_iter(&self) -> TryIter<'_, Connected> {
         TryIter { receiver: self }
     }
 }
