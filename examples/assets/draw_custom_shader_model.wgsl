@@ -4,7 +4,7 @@ struct CustomShaderModel {
     color: vec4<f32>,
 };
 
-@group(2) @binding(0) var<uniform> shader_model: CustomShaderModel;
+@group(#{MATERIAL_BIND_GROUP}) @binding(0) var<uniform> shader_model: CustomShaderModel;
 
 @fragment
 fn fragment(

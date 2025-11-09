@@ -5,6 +5,7 @@ use crate::{
     draw::{Draw, DrawCommand, drawing::Drawing, primitive::Primitive},
     render::{PreparedShaderModel, ShaderModel, queue_shader_model},
 };
+use bevy::pbr::MATERIAL_BIND_GROUP_INDEX;
 use bevy::render::extract_instances::ExtractedInstances;
 use bevy::{
     core_pipeline::core_3d::Transparent3d,
@@ -126,8 +127,8 @@ where
 type DrawIndirectShaderModel<SM> = (
     SetItemPipeline,
     SetMeshViewBindGroup<0>,
-    SetMeshBindGroup<1>,
-    SetShaderModelBindGroup<SM, 2>,
+    SetMeshBindGroup<2>,
+    SetShaderModelBindGroup<SM, MATERIAL_BIND_GROUP_INDEX>,
     DrawMeshIndirect,
 );
 

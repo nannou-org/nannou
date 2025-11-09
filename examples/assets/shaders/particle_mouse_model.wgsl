@@ -9,7 +9,7 @@ struct Particle {
     color: vec4<f32>,
 };
 
-@group(2) @binding(0) var<storage, read> particles: array<Particle>;
+@group(#{MATERIAL_BIND_GROUP}) @binding(0) var<storage, read> particles: array<Particle>;
 
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,

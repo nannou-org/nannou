@@ -21,8 +21,8 @@ use bevy::{
     },
     mesh::MeshVertexBufferLayoutRef,
     pbr::{
-        DrawMesh, MeshPipeline, MeshPipelineKey, RenderMeshInstances, SetMeshBindGroup,
-        SetMeshViewBindGroup,
+        DrawMesh, MATERIAL_BIND_GROUP_INDEX, MeshPipeline, MeshPipelineKey, RenderMeshInstances,
+        SetMeshBindGroup, SetMeshViewBindGroup,
     },
     prelude::{TypePath, *},
     render::{
@@ -49,7 +49,7 @@ use bevy::{
         texture::GpuImage,
         view::ExtractedView,
     },
-    shader::ShaderRef,
+    shader::{ShaderDefVal, ShaderRef},
     window::{PrimaryWindow, WindowRef},
 };
 use lyon::lyon_tessellation::{FillTessellator, StrokeTessellator};
@@ -244,8 +244,8 @@ impl<P: PhaseItem, SM: ShaderModel, const I: usize> RenderCommand<P>
 pub type DrawShaderModel<SM> = (
     SetItemPipeline,
     SetMeshViewBindGroup<0>,
-    SetMeshBindGroup<1>,
-    SetShaderModelBindGroup<SM, 2>,
+    SetMeshBindGroup<2>,
+    SetShaderModelBindGroup<SM, MATERIAL_BIND_GROUP_INDEX>,
     DrawMesh,
 );
 
@@ -470,17 +470,27 @@ where
         layout: &MeshVertexBufferLayoutRef,
     ) -> Result<RenderPipelineDescriptor, SpecializedMeshPipelineError> {
         let mut descriptor = self.mesh_pipeline.specialize(key.mesh_key, layout)?;
+
         if let Some(vertex_shader) = &self.vertex_shader {
             descriptor.vertex.shader = vertex_shader.clone();
+            descriptor.vertex.shader_defs.push(ShaderDefVal::UInt(
+                "MATERIAL_BIND_GROUP".into(),
+                MATERIAL_BIND_GROUP_INDEX as u32,
+            ));
         }
 
         if let Some(fragment_shader) = &self.fragment_shader {
-            descriptor.fragment.as_mut().unwrap().shader = fragment_shader.clone();
+            let fragment = descriptor.fragment.as_mut().unwrap();
+            fragment.shader = fragment_shader.clone();
+            fragment.shader_defs.push(ShaderDefVal::UInt(
+                "MATERIAL_BIND_GROUP".into(),
+                MATERIAL_BIND_GROUP_INDEX as u32,
+            ));
         }
 
         descriptor
             .layout
-            .insert(2, self.shader_model_layout.clone());
+            .insert(MATERIAL_BIND_GROUP_INDEX, self.shader_model_layout.clone());
 
         let pipeline = ShaderModelPipeline {
             mesh_pipeline: self.mesh_pipeline.clone(),
