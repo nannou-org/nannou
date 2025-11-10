@@ -22,7 +22,7 @@ use bevy::{
     mesh::MeshVertexBufferLayoutRef,
     pbr::{
         DrawMesh, MATERIAL_BIND_GROUP_INDEX, MeshPipeline, MeshPipelineKey, RenderMeshInstances,
-        SetMeshBindGroup, SetMeshViewBindGroup,
+        SetMeshBindGroup, SetMeshViewBindGroup, SetMeshViewBindingArrayBindGroup,
     },
     prelude::{TypePath, *},
     render::{
@@ -244,6 +244,7 @@ impl<P: PhaseItem, SM: ShaderModel, const I: usize> RenderCommand<P>
 pub type DrawShaderModel<SM> = (
     SetItemPipeline,
     SetMeshViewBindGroup<0>,
+    SetMeshViewBindingArrayBindGroup<1>,
     SetMeshBindGroup<2>,
     SetShaderModelBindGroup<SM, MATERIAL_BIND_GROUP_INDEX>,
     DrawMesh,
