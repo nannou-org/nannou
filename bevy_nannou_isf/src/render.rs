@@ -121,7 +121,7 @@ fn update_render_targets(
                 let expr_str = expr
                     .replace("$WIDTH", &x.to_string())
                     .replace("$HEIGHT", &y.to_string());
-                let result = evalexpr::eval_int(&expr_str)
+                let result = evalexpr::eval_float(&expr_str)
                     .expect(&format!("Failed to evaluate expression: {:?}", expr));
                 result as u32
             })
@@ -133,7 +133,7 @@ fn update_render_targets(
                 let expr_str = expr
                     .replace("$WIDTH", &x.to_string())
                     .replace("$HEIGHT", &y.to_string());
-                let result = evalexpr::eval_int(&expr_str)
+                let result = evalexpr::eval_float(&expr_str)
                     .expect(&format!("Failed to evaluate expression: {:?}", expr));
                 result as u32
             })
