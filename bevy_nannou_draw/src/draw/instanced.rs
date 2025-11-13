@@ -1,17 +1,18 @@
 //! A shader that renders a mesh multiple times in one draw call.
 
-use crate::render::ShaderModelHandle;
+use crate::render::ShaderModelAsset;
 use crate::{
     draw::{Draw, DrawCommand, drawing::Drawing, primitive::Primitive},
     render::{PreparedShaderModel, ShaderModel, queue_shader_model},
 };
+use bevy::pbr::{MATERIAL_BIND_GROUP_INDEX, SetMeshViewBindingArrayBindGroup};
 use bevy::{
     core_pipeline::core_3d::Transparent3d,
     ecs::system::{SystemParamItem, lifetimeless::*},
     pbr::{RenderMeshInstances, SetMeshBindGroup, SetMeshViewBindGroup},
     prelude::*,
     render::{
-        Render, RenderApp, RenderSet,
+        Render, RenderApp, RenderSystems,
         extract_component::ExtractComponent,
         extract_instances::ExtractedInstances,
         mesh::{RenderMesh, RenderMeshBufferInfo, allocator::MeshAllocator},
@@ -44,7 +45,7 @@ where
     }
 }
 
-pub fn new<SM>(draw: &Draw<SM>) -> Instanced<SM>
+pub fn new<SM>(draw: &Draw<SM>) -> Instanced<'_, SM>
 where
     SM: ShaderModel + Default,
 {
@@ -116,7 +117,7 @@ where
                 Render,
                 queue_shader_model::<SM, With<InstancedMesh>, DrawInstancedShaderModel<SM>>
                     .after(prepare_assets::<PreparedShaderModel<SM>>)
-                    .in_set(RenderSet::QueueMeshes),
+                    .in_set(RenderSystems::QueueMeshes),
             );
     }
 }
@@ -124,8 +125,9 @@ where
 type DrawInstancedShaderModel<SM> = (
     SetItemPipeline,
     SetMeshViewBindGroup<0>,
-    SetMeshBindGroup<1>,
-    SetShaderModelBindGroup<SM, 2>,
+    SetMeshViewBindingArrayBindGroup<1>,
+    SetMeshBindGroup<2>,
+    SetShaderModelBindGroup<SM, MATERIAL_BIND_GROUP_INDEX>,
     DrawMeshInstanced,
 );
 
@@ -135,7 +137,7 @@ impl<P: PhaseItem, SM: ShaderModel, const I: usize> RenderCommand<P>
 {
     type Param = (
         SRes<RenderAssets<PreparedShaderModel<SM>>>,
-        SRes<ExtractedInstances<ShaderModelHandle<SM>>>,
+        SRes<ExtractedInstances<ShaderModelAsset<SM>>>,
     );
     type ViewQuery = ();
     type ItemQuery = ();
@@ -151,10 +153,10 @@ impl<P: PhaseItem, SM: ShaderModel, const I: usize> RenderCommand<P>
         let models = models.into_inner();
         let instances = instances.into_inner();
 
-        let Some(handle) = instances.get(&item.main_entity()) else {
+        let Some(model_asset) = instances.get(&item.main_entity()) else {
             return RenderCommandResult::Skip;
         };
-        let Some(shader_model) = models.get(&handle.0) else {
+        let Some(shader_model) = models.get(model_asset.0) else {
             return RenderCommandResult::Skip;
         };
         pass.set_bind_group(I, &shader_model.bind_group, &[]);

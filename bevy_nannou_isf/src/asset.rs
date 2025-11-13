@@ -355,6 +355,7 @@ impl RenderAsset for GpuIsf {
         isf: Self::SourceAsset,
         _asset_id: AssetId<Self::SourceAsset>,
         _param: &mut SystemParamItem<Self::Param>,
+        _previous_asset: Option<&Self>,
     ) -> Result<Self, PrepareAssetError<Self::SourceAsset>> {
         Ok(GpuIsf { isf })
     }

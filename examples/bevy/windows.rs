@@ -1,5 +1,5 @@
+use bevy::camera::visibility::RenderLayers;
 use bevy::prelude::*;
-use bevy::render::view::RenderLayers;
 use bevy::window::WindowResolution;
 use bevy_nannou::NannouPlugin;
 use bevy_nannou::prelude::*;
@@ -36,7 +36,7 @@ fn update(
             .spawn((
                 Window {
                     title: "Nannou".to_string(),
-                    resolution: WindowResolution::new(400.0, 400.0),
+                    resolution: WindowResolution::new(400, 400),
                     ..Default::default()
                 },
                 layer.clone(),

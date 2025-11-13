@@ -43,10 +43,10 @@ impl Plugin for NannouIsfPlugin {
 
 fn asset_event_handler(
     mut commands: Commands,
-    mut ev_asset: EventReader<AssetEvent<Isf>>,
+    mut ev_asset: MessageReader<AssetEvent<Isf>>,
     mut isf_inputs: ResMut<IsfInputs>,
     cameras: Query<Entity, With<Camera>>,
-    assets: Res<Assets<Isf>>,
+    mut assets: ResMut<Assets<Isf>>,
 ) {
     for ev in ev_asset.read() {
         match ev {
@@ -54,9 +54,9 @@ fn asset_event_handler(
                 // TODO: handle these events
             }
             AssetEvent::LoadedWithDependencies { id } => {
-                let handle = Handle::Weak(*id);
-                let isf = assets.get(&handle).unwrap();
+                let isf = assets.get(*id).unwrap();
                 *isf_inputs = IsfInputs::from_isf(&isf.isf);
+                let handle = assets.get_strong_handle(*id).unwrap();
                 for camera in cameras.iter() {
                     commands.entity(camera).insert(IsfHandle(handle.clone()));
                 }

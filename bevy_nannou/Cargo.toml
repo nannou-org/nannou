@@ -5,9 +5,11 @@ edition.workspace = true
 
 [dependencies]
 bevy = { workspace = true, default-features = false, features = [
+    "bevy_post_process",
     "bevy_window",
     "bevy_winit",
     "jpeg",
+    "zstd_rust",
 ]}
 bevy_nannou_derive = { path = "../bevy_nannou_derive" }
 bevy_nannou_draw = { path = "../bevy_nannou_draw" }

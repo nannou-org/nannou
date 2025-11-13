@@ -33,6 +33,7 @@
  */
 use nannou::image;
 use nannou::noise::{MultiFractal, NoiseFn, Seedable};
+use nannou::prelude::bevy_asset::RenderAssetUsages;
 use nannou::prelude::*;
 
 fn main() {

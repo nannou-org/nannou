@@ -1,8 +1,8 @@
 //! Items related to the custom mesh type used by the `Draw` API.
 
+use bevy::asset::RenderAssetUsages;
+use bevy::mesh::{Indices, PrimitiveTopology, VertexAttributeValues};
 use bevy::prelude::*;
-use bevy::render::mesh::{Indices, PrimitiveTopology, VertexAttributeValues};
-use bevy::render::render_asset::RenderAssetUsages;
 
 pub use self::builder::MeshBuilder;
 

@@ -37,7 +37,7 @@ impl Path {
     }
 
     /// Returns a lyon view on this **Path**.
-    pub fn as_slice(&self) -> lyon::path::PathSlice {
+    pub fn as_slice(&self) -> lyon::path::PathSlice<'_> {
         self.path.as_slice()
     }
 
@@ -47,17 +47,17 @@ impl Path {
     }
 
     /// Iterates over the entire **Path** yielding **PathEvent**s.
-    pub fn iter(&self) -> lyon::path::Iter {
+    pub fn iter(&self) -> lyon::path::Iter<'_> {
         self.path.iter()
     }
 
     /// Iterates over the endpoint and control point ids of the **Path**.
-    pub fn id_iter(&self) -> lyon::path::IdIter {
+    pub fn id_iter(&self) -> lyon::path::IdIter<'_> {
         self.path.id_iter()
     }
 
     /// Iterate over points alongside their attributes.
-    pub fn iter_with_attributes(&self) -> lyon::path::IterWithAttributes {
+    pub fn iter_with_attributes(&self) -> lyon::path::IterWithAttributes<'_> {
         self.path.iter_with_attributes()
     }
 

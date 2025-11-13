@@ -24,7 +24,7 @@ pub fn shader_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     // Add derive attributes
     input
         .attrs
-        .push(parse_quote!(#[derive(Asset, TypePath, AsBindGroup, Debug, Clone, Default)]));
+        .push(parse_quote!(#[derive(::bevy::asset::Asset, ::bevy::prelude::TypePath, ::bevy_nannou::prelude::AsBindGroup, Debug, Clone, Default)]));
 
     let expanded = quote! {
         #input

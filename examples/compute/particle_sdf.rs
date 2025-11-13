@@ -1,3 +1,4 @@
+use bevy::asset::RenderAssetUsages;
 use nannou::prelude::bevy_render::storage::ShaderStorageBuffer;
 use nannou::prelude::*;
 

@@ -208,7 +208,7 @@ impl Texture {
     ///
     /// By default, the produced **TextureViewBuilder** will build a texture view for the
     /// descriptor returned via `default_view_descriptor`.
-    pub fn view(&self) -> ViewBuilder {
+    pub fn view(&self) -> ViewBuilder<'_> {
         ViewBuilder {
             texture: self,
             info: self.default_view_info(),

@@ -66,7 +66,7 @@ impl<'a, 'w> Frame<'a, 'w> {
 
     /// Access the command encoder in order to encode commands that will be submitted to the swap
     /// chain queue at the end of the call to **view**.
-    pub fn command_encoder(&self) -> std::cell::RefMut<wgpu::CommandEncoder> {
+    pub fn command_encoder(&self) -> std::cell::RefMut<'_, wgpu::CommandEncoder> {
         std::cell::RefMut::map(self.render_context.borrow_mut(), |x| x.command_encoder())
     }
 
@@ -190,7 +190,7 @@ impl<'a, 'w> Frame<'a, 'w> {
     /// Note that this method will not perform any resolving. In the case that `msaa_samples` is
     /// greater than `1`, a render pass will be automatically added after the `view` completes and
     /// before the texture is drawn to the swapchain.
-    pub fn color_attachment_descriptor(&self) -> wgpu::RenderPassColorAttachment {
+    pub fn color_attachment_descriptor(&self) -> wgpu::RenderPassColorAttachment<'_> {
         self.view_target.get_color_attachment()
     }
 
@@ -211,6 +211,7 @@ impl<'a, 'w> Frame<'a, 'w> {
                     load: wgpu::LoadOp::Clear(linear_color.into()),
                     store: wgpu::StoreOp::Store,
                 },
+                depth_slice: None,
             })],
             depth_stencil_attachment: None,
             timestamp_writes: None,

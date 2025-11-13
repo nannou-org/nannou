@@ -26,6 +26,7 @@ pub struct RenderContext<'a> {
 
 /// The position and dimensions of the scissor.
 #[derive(Clone, Copy, Debug, PartialEq)]
+#[allow(dead_code)]
 pub struct Scissor {
     pub left: u32,
     pub bottom: u32,

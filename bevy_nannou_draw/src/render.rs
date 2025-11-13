@@ -6,7 +6,11 @@ use crate::draw::{
     render::{RenderContext, RenderPrimitive},
 };
 use bevy::{
-    asset::{Asset, UntypedAssetId, load_internal_asset, weak_handle},
+    asset::{Asset, UntypedAssetId, load_internal_asset, uuid_handle},
+    camera::{
+        RenderTarget,
+        visibility::{NoFrustumCulling, RenderLayers, add_visibility_class},
+    },
     core_pipeline::core_3d::Transparent3d,
     ecs::{
         query::{QueryFilter, QueryItem},
@@ -15,17 +19,17 @@ use bevy::{
             lifetimeless::{Read, SRes},
         },
     },
+    mesh::MeshVertexBufferLayoutRef,
     pbr::{
-        DrawMesh, MeshPipeline, MeshPipelineKey, RenderMeshInstances, SetMeshBindGroup,
-        SetMeshViewBindGroup,
+        DrawMesh, MATERIAL_BIND_GROUP_INDEX, MeshPipeline, MeshPipelineKey, RenderMeshInstances,
+        SetMeshBindGroup, SetMeshViewBindGroup, SetMeshViewBindingArrayBindGroup,
     },
     prelude::{TypePath, *},
     render::{
-        RenderApp, RenderSet,
-        camera::RenderTarget,
+        RenderApp, RenderSystems,
         extract_component::{ExtractComponent, ExtractComponentPlugin},
         extract_instances::{ExtractInstance, ExtractInstancesPlugin, ExtractedInstances},
-        mesh::{MeshVertexBufferLayoutRef, RenderMesh},
+        mesh::RenderMesh,
         render_asset::{
             PrepareAssetError, RenderAsset, RenderAssetPlugin, RenderAssets, prepare_assets,
         },
@@ -36,23 +40,23 @@ use bevy::{
         render_resource::{
             AsBindGroup, AsBindGroupError, AsBindGroupShaderType, BindGroup, BindGroupId,
             BindGroupLayout, BindingResources, BlendState, PipelineCache, PolygonMode,
-            RenderPipelineDescriptor, ShaderRef, ShaderType, SpecializedMeshPipeline,
+            RenderPipelineDescriptor, ShaderType, SpecializedMeshPipeline,
             SpecializedMeshPipelineError, SpecializedMeshPipelines,
         },
         renderer::RenderDevice,
         storage::ShaderStorageBuffer,
         sync_world::MainEntity,
         texture::GpuImage,
-        view,
-        view::{ExtractedView, NoFrustumCulling, RenderLayers},
+        view::ExtractedView,
     },
+    shader::{ShaderDefVal, ShaderRef},
     window::{PrimaryWindow, WindowRef},
 };
 use lyon::lyon_tessellation::{FillTessellator, StrokeTessellator};
 use std::{any::TypeId, hash::Hash, marker::PhantomData};
 
 pub const DEFAULT_NANNOU_SHADER_HANDLE: Handle<Shader> =
-    weak_handle!("f2dbf06f-38d5-47f1-8ad4-3f188d888dd0");
+    uuid_handle!("f2dbf06f-38d5-47f1-8ad4-3f188d888dd0");
 
 pub trait ShaderModel:
     Asset + AsBindGroup + Clone + Default + Sized + Send + Sync + 'static
@@ -84,16 +88,16 @@ pub trait ShaderModel:
 }
 
 #[derive(Component, Clone)]
-pub struct ShaderModelHandle<SM: ShaderModel>(pub(crate) Handle<SM>);
+pub struct ShaderModelAsset<SM: ShaderModel>(pub(crate) AssetId<SM>);
 
-impl<SM> ExtractInstance for ShaderModelHandle<SM>
+impl<SM> ExtractInstance for ShaderModelAsset<SM>
 where
     SM: ShaderModel,
 {
-    type QueryData = Read<ShaderModelHandle<SM>>;
+    type QueryData = Read<ShaderModelAsset<SM>>;
     type QueryFilter = ();
 
-    fn extract(item: QueryItem<'_, Self::QueryData>) -> Option<Self> {
+    fn extract(item: QueryItem<'_, '_, Self::QueryData>) -> Option<Self> {
         Some(item.clone())
     }
 }
@@ -135,7 +139,7 @@ where
     fn build(&self, app: &mut App) {
         app.init_asset::<SM>()
             .add_plugins((
-                ExtractInstancesPlugin::<ShaderModelHandle<SM>>::extract_visible(),
+                ExtractInstancesPlugin::<ShaderModelAsset<SM>>::extract_visible(),
                 RenderAssetPlugin::<PreparedShaderModel<SM>>::default(),
                 IndirectShaderModelPlugin::<SM>::default(),
                 InstancedShaderModelPlugin::<SM>::default(),
@@ -152,7 +156,7 @@ where
                 bevy::render::Render,
                 queue_shader_model::<SM, With<ShaderModelMesh>, DrawShaderModel<SM>>
                     .after(prepare_assets::<PreparedShaderModel<SM>>)
-                    .in_set(RenderSet::QueueMeshes),
+                    .in_set(RenderSystems::QueueMeshes),
             );
     }
 
@@ -183,6 +187,7 @@ impl<SM: ShaderModel> RenderAsset for PreparedShaderModel<SM> {
         shader_model: Self::SourceAsset,
         _asset_id: AssetId<Self::SourceAsset>,
         (render_device, pipeline, shader_model_param): &mut SystemParamItem<Self::Param>,
+        _previous_asset: Option<&Self>,
     ) -> Result<Self, PrepareAssetError<Self::SourceAsset>> {
         match shader_model.as_bind_group(
             &pipeline.shader_model_layout,
@@ -192,7 +197,7 @@ impl<SM: ShaderModel> RenderAsset for PreparedShaderModel<SM> {
             Ok(prepared) => Ok(PreparedShaderModel {
                 bindings: prepared.bindings,
                 bind_group: prepared.bind_group,
-                key: prepared.data,
+                key: shader_model.bind_group_data(),
             }),
             Err(AsBindGroupError::RetryNextUpdate) => {
                 Err(PrepareAssetError::RetryNextUpdate(shader_model))
@@ -209,7 +214,7 @@ impl<P: PhaseItem, SM: ShaderModel, const I: usize> RenderCommand<P>
 {
     type Param = (
         SRes<RenderAssets<PreparedShaderModel<SM>>>,
-        SRes<ExtractedInstances<ShaderModelHandle<SM>>>,
+        SRes<ExtractedInstances<ShaderModelAsset<SM>>>,
     );
     type ViewQuery = ();
     type ItemQuery = ();
@@ -225,10 +230,10 @@ impl<P: PhaseItem, SM: ShaderModel, const I: usize> RenderCommand<P>
         let models = models.into_inner();
         let model_instances = model_instances.into_inner();
 
-        let Some(handle) = model_instances.get(&item.main_entity()) else {
+        let Some(model_asset) = model_instances.get(&item.main_entity()) else {
             return RenderCommandResult::Skip;
         };
-        let Some(model) = models.get(&handle.0) else {
+        let Some(model) = models.get(model_asset.0) else {
             return RenderCommandResult::Skip;
         };
         pass.set_bind_group(I, &model.bind_group, &[]);
@@ -239,8 +244,9 @@ impl<P: PhaseItem, SM: ShaderModel, const I: usize> RenderCommand<P>
 pub type DrawShaderModel<SM> = (
     SetItemPipeline,
     SetMeshViewBindGroup<0>,
-    SetMeshBindGroup<1>,
-    SetShaderModelBindGroup<SM, 2>,
+    SetMeshViewBindingArrayBindGroup<1>,
+    SetMeshBindGroup<2>,
+    SetShaderModelBindGroup<SM, MATERIAL_BIND_GROUP_INDEX>,
     DrawMesh,
 );
 
@@ -329,7 +335,7 @@ pub(crate) fn queue_shader_model<SM, QF, RC>(
         ResMut<ViewSortedRenderPhases<Transparent3d>>,
         Query<(&ExtractedView, &Msaa)>,
         Res<RenderAssets<PreparedShaderModel<SM>>>,
-        Res<ExtractedInstances<ShaderModelHandle<SM>>>,
+        Res<ExtractedInstances<ShaderModelAsset<SM>>>,
     ),
 ) where
     SM: ShaderModel,
@@ -347,10 +353,10 @@ pub(crate) fn queue_shader_model<SM, QF, RC>(
 
         let view_key = msaa_key | MeshPipelineKey::from_hdr(view.hdr);
         for (entity, main_entity, draw_idx) in &nannou_meshes {
-            let Some(handle) = extracted_instances.get(main_entity) else {
+            let Some(model_asset) = extracted_instances.get(main_entity) else {
                 continue;
             };
-            let Some(shader_model) = shader_models.get(&handle.0) else {
+            let Some(shader_model) = shader_models.get(model_asset.0) else {
                 continue;
             };
             let Some(mesh_instance) = render_mesh_instances.render_mesh_queue_data(*main_entity)
@@ -465,17 +471,27 @@ where
         layout: &MeshVertexBufferLayoutRef,
     ) -> Result<RenderPipelineDescriptor, SpecializedMeshPipelineError> {
         let mut descriptor = self.mesh_pipeline.specialize(key.mesh_key, layout)?;
+
         if let Some(vertex_shader) = &self.vertex_shader {
             descriptor.vertex.shader = vertex_shader.clone();
+            descriptor.vertex.shader_defs.push(ShaderDefVal::UInt(
+                "MATERIAL_BIND_GROUP".into(),
+                MATERIAL_BIND_GROUP_INDEX as u32,
+            ));
         }
 
         if let Some(fragment_shader) = &self.fragment_shader {
-            descriptor.fragment.as_mut().unwrap().shader = fragment_shader.clone();
+            let fragment = descriptor.fragment.as_mut().unwrap();
+            fragment.shader = fragment_shader.clone();
+            fragment.shader_defs.push(ShaderDefVal::UInt(
+                "MATERIAL_BIND_GROUP".into(),
+                MATERIAL_BIND_GROUP_INDEX as u32,
+            ));
         }
 
         descriptor
             .layout
-            .insert(2, self.shader_model_layout.clone());
+            .insert(MATERIAL_BIND_GROUP_INDEX, self.shader_model_layout.clone());
 
         let pipeline = ShaderModelPipeline {
             mesh_pipeline: self.mesh_pipeline.clone(),
@@ -526,7 +542,7 @@ fn update_shader_model<SM>(
         state.shader_models.iter().for_each(|(id, model)| {
             if id.type_id() == TypeId::of::<SM>() {
                 let model = model.downcast_ref::<SM>().unwrap();
-                models.insert(id.typed(), model.clone());
+                models.insert(id.typed(), model.clone()).unwrap();
             }
         });
     }
@@ -535,7 +551,7 @@ fn update_shader_model<SM>(
         if id.type_id() == TypeId::of::<SM>() {
             commands
                 .entity(entity)
-                .insert(ShaderModelHandle(Handle::Weak(id.typed::<SM>())));
+                .insert(ShaderModelAsset(id.typed::<SM>()));
         }
     }
 }
@@ -738,7 +754,7 @@ fn clear_previous_frame(
 }
 
 #[derive(Component, ExtractComponent, Clone)]
-#[component(on_add = view::add_visibility_class::<ShaderModelMesh>)]
+#[component(on_add = add_visibility_class::<ShaderModelMesh>)]
 pub struct ShaderModelMesh;
 
 #[derive(Resource)]

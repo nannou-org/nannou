@@ -1,11 +1,12 @@
 use bevy::prelude::*;
 
 pub mod prelude {
+    pub use bevy::camera;
     pub use bevy::color::palettes::css::*;
     pub use bevy::color::prelude::*;
-    pub use bevy::core_pipeline::bloom::*;
     pub use bevy::image::{ImageAddressMode, ImageSampler, ImageSamplerDescriptor, prelude::*};
     pub use bevy::input::mouse::MouseWheel;
+    pub use bevy::post_process::bloom::*;
     pub use bevy::prelude::{
         ClearColorConfig, Entity, Handle, Image, KeyCode, MonitorSelection, MouseButton,
         OrthographicProjection, TouchInput, Vec3, Window, WindowResizeConstraints, debug, default,
@@ -13,6 +14,8 @@ pub mod prelude {
     };
     pub use bevy::render::render_asset::*;
     pub use bevy::render::render_resource::*;
+    pub use bevy::shader::*;
+    pub use bevy::window::CursorOptions;
     pub use bevy::winit::UpdateMode;
     pub use bevy_nannou_derive::shader_model;
 

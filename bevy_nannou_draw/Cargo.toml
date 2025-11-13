@@ -13,6 +13,7 @@ bevy = { workspace = true, default-features = false, features = [
     "bevy_ui", # needed for `BackgroundColor`
     "bevy_log",
     "tonemapping_luts",
+    "zstd_rust",
 ]}
 lyon.workspace = true
 nannou_core = { path = "../nannou_core" }

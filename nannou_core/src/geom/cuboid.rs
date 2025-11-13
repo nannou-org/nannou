@@ -479,7 +479,7 @@ where
     }
 
     /// The same as `corners` but produces an iterator rather than a fixed-size array.
-    pub fn corners_iter(&self) -> Corners<S> {
+    pub fn corners_iter(&self) -> Corners<'_, S> {
         Corners {
             cuboid: self,
             corner_index: 0,
@@ -500,7 +500,7 @@ where
     }
 
     /// An iterator yielding a quad for each face on the cuboid.
-    pub fn faces_iter(&self) -> FaceQuads<S> {
+    pub fn faces_iter(&self) -> FaceQuads<'_, S> {
         FaceQuads {
             faces: Faces { next_face_index: 0 },
             cuboid: self,
@@ -510,7 +510,7 @@ where
     /// Produce an iterator yielding every triangle in the cuboid (two for each face).
     ///
     /// Uses the `faces_iter` method internally.
-    pub fn triangles_iter(&self) -> Triangles<S> {
+    pub fn triangles_iter(&self) -> Triangles<'_, S> {
         let mut face_quads = self.faces_iter();
         let first_quad = face_quads.next().unwrap();
         let triangles = first_quad.triangles_iter();

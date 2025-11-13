@@ -44,7 +44,7 @@ pub struct IterFromIndices<'a, I, V: 'a = Default> {
 }
 
 /// Produce an iterator yielding a vertex for each index yielded by the given indices iterator.
-pub fn iter_from_indices<I, V>(indices: I, vertices: &[V]) -> IterFromIndices<I::IntoIter, V>
+pub fn iter_from_indices<I, V>(indices: I, vertices: &[V]) -> IterFromIndices<'_, I::IntoIter, V>
 where
     I: IntoIterator<Item = usize>,
 {

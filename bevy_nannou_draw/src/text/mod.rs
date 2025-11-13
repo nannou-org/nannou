@@ -387,7 +387,7 @@ impl<'a> Text<'a> {
     }
 
     /// Produce an iterator yielding each wrapped line within the **Text**.
-    pub fn lines(&self) -> TextLines {
+    pub fn lines(&self) -> TextLines<'_> {
         fn info_byte_range(info: &line::Info) -> std::ops::Range<usize> {
             info.byte_range()
         }
@@ -395,7 +395,7 @@ impl<'a> Text<'a> {
     }
 
     /// The bounding rectangle for each line.
-    pub fn line_rects(&self) -> TextLineRects {
+    pub fn line_rects(&self) -> TextLineRects<'_> {
         let offset = self.position_offset();
         let line_rects = line::rects(
             self.line_infos.iter().cloned(),
@@ -408,20 +408,20 @@ impl<'a> Text<'a> {
     }
 
     /// Produce an iterator yielding all lines of text alongside their bounding rects.
-    pub fn lines_with_rects(&self) -> TextLinesWithRects {
+    pub fn lines_with_rects(&self) -> TextLinesWithRects<'_> {
         self.lines().zip(self.line_rects())
     }
 
     /// Produce an iterator yielding iterators yielding every glyph alongside its bounding rect for
     /// each line.
-    pub fn glyphs_per_line(&self) -> TextGlyphsPerLine {
+    pub fn glyphs_per_line(&self) -> TextGlyphsPerLine<'_> {
         glyph::rects_per_line(self.lines_with_rects(), &self.font, self.layout.font_size)
     }
 
     /// Produce an iterator yielding every glyph alongside its bounding rect.
     ///
     /// This is the "flattened" version of the `glyphs_per_line` method.
-    pub fn glyphs(&self) -> TextGlyphs {
+    pub fn glyphs(&self) -> TextGlyphs<'_> {
         self.glyphs_per_line().flat_map(std::convert::identity)
     }
 
@@ -589,7 +589,7 @@ pub fn exact_height(
 
 /// Produce an iterator yielding each line within the given `text` as a new `&str`, where the
 /// start and end indices into each line are provided by the given iterator.
-pub fn lines<I>(text: &str, ranges: I) -> Lines<I>
+pub fn lines<I>(text: &str, ranges: I) -> Lines<'_, I>
 where
     I: Iterator<Item = std::ops::Range<usize>>,
 {
@@ -680,6 +680,6 @@ pub fn pt_to_scale(font_size_in_points: FontSize) -> Scale {
 }
 
 /// Begin building a **Text** instance.
-pub fn text(s: &str) -> Builder {
+pub fn text(s: &str) -> Builder<'_> {
     Builder::from(s)
 }

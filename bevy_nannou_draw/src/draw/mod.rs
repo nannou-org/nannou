@@ -530,7 +530,7 @@ where
     }
 
     /// Add the given type to be drawn.
-    pub fn a<T>(&self, primitive: T) -> Drawing<T, SM>
+    pub fn a<T>(&self, primitive: T) -> Drawing<'_, T, SM>
     where
         T: Into<Primitive>,
         Primitive: Into<Option<T>>,
@@ -568,59 +568,59 @@ where
     }
 
     /// Begin drawing a **Path**.
-    pub fn path(&self) -> Drawing<primitive::PathInit, SM> {
+    pub fn path(&self) -> Drawing<'_, primitive::PathInit, SM> {
         self.a(Default::default())
     }
 
     /// Begin drawing an **Ellipse**.
-    pub fn ellipse(&self) -> Drawing<primitive::Ellipse, SM> {
+    pub fn ellipse(&self) -> Drawing<'_, primitive::Ellipse, SM> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Line**.
-    pub fn line(&self) -> Drawing<primitive::Line, SM> {
+    pub fn line(&self) -> Drawing<'_, primitive::Line, SM> {
         self.a(Default::default())
     }
 
     /// Begin drawing an **Arrow**.
-    pub fn arrow(&self) -> Drawing<primitive::Arrow, SM> {
+    pub fn arrow(&self) -> Drawing<'_, primitive::Arrow, SM> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Quad**.
-    pub fn quad(&self) -> Drawing<primitive::Quad, SM> {
+    pub fn quad(&self) -> Drawing<'_, primitive::Quad, SM> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Rect**.
-    pub fn rect(&self) -> Drawing<primitive::Rect, SM> {
+    pub fn rect(&self) -> Drawing<'_, primitive::Rect, SM> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Triangle**.
-    pub fn tri(&self) -> Drawing<primitive::Tri, SM> {
+    pub fn tri(&self) -> Drawing<'_, primitive::Tri, SM> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Polygon**.
-    pub fn polygon(&self) -> Drawing<primitive::PolygonInit, SM> {
+    pub fn polygon(&self) -> Drawing<'_, primitive::PolygonInit, SM> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Mesh**.
-    pub fn mesh(&self) -> Drawing<primitive::mesh::Vertexless, SM> {
+    pub fn mesh(&self) -> Drawing<'_, primitive::mesh::Vertexless, SM> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Polyline**.
     ///
     /// Note that this is simply short-hand for `draw.path().stroke()`
-    pub fn polyline(&self) -> Drawing<primitive::PathStroke, SM> {
+    pub fn polyline(&self) -> Drawing<'_, primitive::PathStroke, SM> {
         self.path().stroke()
     }
 
     /// Begin drawing a **Text**.
-    pub fn text(&self, s: &str) -> Drawing<primitive::Text, SM> {
+    pub fn text(&self, s: &str) -> Drawing<'_, primitive::Text, SM> {
         let text = {
             let state = self.state.read().expect("lock poisoned");
             let mut intermediary_state = state.intermediary_state.write().expect("lock poisoned");

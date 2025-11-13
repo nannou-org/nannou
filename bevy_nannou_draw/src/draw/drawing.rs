@@ -55,7 +55,11 @@ pub struct DrawingContext<'a> {
 }
 
 /// Construct a new **Drawing** instance.
-pub fn new<T, SM: ShaderModel>(draw: &Draw<SM>, index: usize, model_index: usize) -> Drawing<T, SM>
+pub fn new<T, SM: ShaderModel>(
+    draw: &Draw<SM>,
+    index: usize,
+    model_index: usize,
+) -> Drawing<'_, T, SM>
 where
     T: Into<Primitive>,
     SM: ShaderModel + Default,
