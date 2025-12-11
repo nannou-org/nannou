@@ -1,6 +1,3 @@
-// FIXME: Lots of code showing as never used including `main` - not sure why.
-#![allow(dead_code)]
-
 use bevy::asset::RenderAssetUsages;
 use nannou::prelude::bevy_render::storage::ShaderStorageBuffer;
 use nannou::prelude::*;

@@ -1,5 +1,3 @@
-mod particle_mouse;
-
 use bevy::asset::RenderAssetUsages;
 use nannou::prelude::*;
 
