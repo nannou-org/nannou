@@ -2974,7 +2974,7 @@ dependencies = [
 
 [[package]]
 name = "nannou_audio"
-version = "0.19.0"
+version = "0.19.1"
 dependencies = [
  "cpal",
  "dasp_sample",
