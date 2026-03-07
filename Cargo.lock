@@ -1110,65 +1110,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7ef8e4b7e61dfe7719bb03c884dc270cd46a82efb40f93e9933b990c5c190c59"
 
 [[package]]
-name = "bevy_nannou"
-version = "0.1.0"
-dependencies = [
- "bevy",
- "bevy_nannou_derive",
- "bevy_nannou_draw",
- "bevy_nannou_isf",
- "bevy_nannou_video",
-]
-
-[[package]]
-name = "bevy_nannou_derive"
-version = "0.1.0"
-dependencies = [
- "bevy",
- "bevy_nannou",
- "bevy_nannou_draw",
- "quote 1.0.42",
- "syn 1.0.109",
-]
-
-[[package]]
-name = "bevy_nannou_draw"
-version = "0.1.0"
-dependencies = [
- "bevy",
- "bitflags 2.10.0",
- "lyon",
- "nannou_core",
- "notosans",
- "rayon",
- "rusttype",
- "uuid",
-]
-
-[[package]]
-name = "bevy_nannou_isf"
-version = "0.1.0"
-dependencies = [
- "bevy",
- "bevy-inspector-egui",
- "bytemuck",
- "evalexpr",
- "isf",
- "thiserror 2.0.17",
-]
-
-[[package]]
-name = "bevy_nannou_video"
-version = "0.1.0"
-dependencies = [
- "bevy",
- "rayon",
- "serde",
- "thiserror 2.0.17",
- "video-rs",
-]
-
-[[package]]
 name = "bevy_pbr"
 version = "0.17.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1705,24 +1646,6 @@ dependencies = [
  "shlex",
  "syn 2.0.109",
  "which",
-]
-
-[[package]]
-name = "bindgen"
-version = "0.70.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f49d8fed880d473ea71efb9bf597651e77201bdd4893efe54c9e5d65ae04ce6f"
-dependencies = [
- "bitflags 2.10.0",
- "cexpr",
- "clang-sys",
- "itertools 0.13.0",
- "proc-macro2 1.0.103",
- "quote 1.0.42",
- "regex",
- "rustc-hash 1.1.0",
- "shlex",
- "syn 2.0.109",
 ]
 
 [[package]]
@@ -2830,7 +2753,6 @@ version = "0.1.0"
 dependencies = [
  "audrey",
  "bevy",
- "bevy_nannou",
  "bytemuck",
  "futures",
  "hound",
@@ -2896,9 +2818,9 @@ dependencies = [
 
 [[package]]
 name = "ffmpeg-next"
-version = "7.1.0"
+version = "8.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "da02698288e0275e442a47fc12ca26d50daf0d48b15398ba5906f20ac2e2a9f9"
+checksum = "d658424d233cbd993a972dd73a66ca733acd12a494c68995c9ac32ae1fe65b40"
 dependencies = [
  "bitflags 2.10.0",
  "ffmpeg-sys-next",
@@ -2907,11 +2829,11 @@ dependencies = [
 
 [[package]]
 name = "ffmpeg-sys-next"
-version = "7.1.3"
+version = "8.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9e9c75ebd4463de9d8998fb134ba26347fe5faee62fabf0a4b4d41bd500b4ad"
+checksum = "9bca20aa4ee774fe384c2490096c122b0b23cf524a9910add0686691003d797b"
 dependencies = [
- "bindgen 0.70.1",
+ "bindgen 0.72.1",
  "cc",
  "libc",
  "num_cpus",
@@ -4489,11 +4411,14 @@ dependencies = [
  "bevy-inspector-egui",
  "bevy_common_assets",
  "bevy_egui",
- "bevy_nannou",
  "find_folder",
  "image 0.25.8",
  "lyon",
  "nannou_core",
+ "nannou_derive",
+ "nannou_draw",
+ "nannou_isf",
+ "nannou_video",
  "nannou_wgpu",
  "noise",
  "pennereq",
@@ -4524,6 +4449,43 @@ dependencies = [
 ]
 
 [[package]]
+name = "nannou_derive"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "nannou",
+ "nannou_draw",
+ "quote 1.0.42",
+ "syn 1.0.109",
+]
+
+[[package]]
+name = "nannou_draw"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "bitflags 2.10.0",
+ "lyon",
+ "nannou_core",
+ "notosans",
+ "rayon",
+ "rusttype",
+ "uuid",
+]
+
+[[package]]
+name = "nannou_isf"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "bevy-inspector-egui",
+ "bytemuck",
+ "evalexpr",
+ "isf",
+ "thiserror 2.0.17",
+]
+
+[[package]]
 name = "nannou_laser"
 version = "0.19.0"
 dependencies = [
@@ -4538,6 +4500,17 @@ name = "nannou_osc"
 version = "0.19.0"
 dependencies = [
  "rosc",
+]
+
+[[package]]
+name = "nannou_video"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "rayon",
+ "serde",
+ "thiserror 2.0.17",
+ "video-rs",
 ]
 
 [[package]]
@@ -7631,9 +7604,9 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "video-rs"
-version = "0.10.5"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "859aad7261bac267f90f9635ec9addba3b4bcb4bbb2edb03fec3e6b765657bee"
+checksum = "2633ec4c2a8aeb7c0e970f75ba99122a75841e9f7b34d5225366d0e61a870a8c"
 dependencies = [
  "ffmpeg-next",
  "tracing",

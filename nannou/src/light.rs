@@ -7,7 +7,7 @@ use bevy::{
     prelude::{Color, Transform, Vec2},
 };
 
-use bevy_nannou::prelude::{Entity, Vec3, default};
+use crate::prelude::{Entity, Vec3, default};
 
 use crate::App;
 

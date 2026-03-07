@@ -15,26 +15,26 @@ pub fn shader_model(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let vertex_shader_impl = vertex_shader
         .map(|path| quote! { #path.into() })
-        .unwrap_or_else(|| quote! { ::bevy_nannou::prelude::ShaderRef::Default });
+        .unwrap_or_else(|| quote! { ::nannou::prelude::ShaderRef::Default });
 
     let fragment_shader_impl = fragment_shader
         .map(|path| quote! { #path.into() })
-        .unwrap_or_else(|| quote! { ::bevy_nannou::prelude::ShaderRef::Default });
+        .unwrap_or_else(|| quote! { ::nannou::prelude::ShaderRef::Default });
 
     // Add derive attributes
     input
         .attrs
-        .push(parse_quote!(#[derive(::bevy::asset::Asset, ::bevy::prelude::TypePath, ::bevy_nannou::prelude::AsBindGroup, Debug, Clone, Default)]));
+        .push(parse_quote!(#[derive(::bevy::asset::Asset, ::bevy::prelude::TypePath, ::nannou::prelude::AsBindGroup, Debug, Clone, Default)]));
 
     let expanded = quote! {
         #input
 
-        impl #impl_generics ::bevy_nannou::prelude::render::ShaderModel for #name #ty_generics #where_clause {
-            fn vertex_shader() -> ::bevy_nannou::prelude::ShaderRef {
+        impl #impl_generics ::nannou::prelude::render::ShaderModel for #name #ty_generics #where_clause {
+            fn vertex_shader() -> ::nannou::prelude::ShaderRef {
                 #vertex_shader_impl
             }
 
-            fn fragment_shader() -> ::bevy_nannou::prelude::ShaderRef {
+            fn fragment_shader() -> ::nannou::prelude::ShaderRef {
                 #fragment_shader_impl
             }
         }

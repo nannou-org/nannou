@@ -1,3 +1,6 @@
+use crate::prelude::{
+    ClearColorConfig, Entity, OrthographicProjection, Vec3, default, render::NannouCamera,
+};
 use crate::{App, prelude::camera::RenderTarget};
 use bevy::{
     camera::{self, visibility::RenderLayers},
@@ -7,9 +10,6 @@ use bevy::{
     prelude::{Projection, Transform, Vec2},
     render::view::Hdr,
     window::WindowRef,
-};
-use bevy_nannou::prelude::{
-    ClearColorConfig, Entity, OrthographicProjection, Vec3, default, render::NannouCamera,
 };
 
 pub struct Camera<'a, 'w> {

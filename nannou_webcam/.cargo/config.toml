@@ -1,0 +1,27 @@
+# alternatively, `export CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER=wasm-server-runner`
+
+[target.wasm32-unknown-unknown]
+runner = "wasm-server-runner"
+rustflags = [
+    "--cfg=web_sys_unstable_apis",
+    "--cfg=getrandom_backend=\"wasm_js\"",
+    # "--cfg=wasm_js",
+    # "-C",
+    # "target-feature=+atomics,+bulk-memory,+mutable-globals",  # for wasm-bindgen-rayon
+]
+
+
+# fix spurious network error on windows
+# [source.crates-io]
+# registry = "https://github.com/rust-lang/crates.io-index"
+
+[http]
+proxy = ""
+
+
+# offline development
+# [source.crates-io]
+# replace-with = "vendored-sources"
+
+# [source.vendored-sources]
+# directory = "vendor"

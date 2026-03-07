@@ -10,6 +10,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use crate::prelude::{MonitorSelection, render::NannouCamera};
 use crate::{App, geom::Point2, glam::Vec2, prelude::WindowResizeConstraints};
 use bevy::{
     camera::RenderTarget,
@@ -26,7 +27,6 @@ use bevy::{
     },
     window::{CursorGrabMode, CursorIcon, PrimaryWindow, WindowLevel, WindowMode, WindowRef},
 };
-use bevy_nannou::prelude::{MonitorSelection, render::NannouCamera};
 use nannou_core::geom;
 
 /// A nannou window.
@@ -83,7 +83,7 @@ impl<'a, 'w> Window<'a, 'w> {
     }
 
     #[allow(dead_code)]
-    fn window(&self) -> bevy_nannou::prelude::Window {
+    fn window(&self) -> bevy::window::Window {
         let world = self.app.component_world();
         world
             .get::<bevy::window::Window>(self.entity)
@@ -91,7 +91,7 @@ impl<'a, 'w> Window<'a, 'w> {
             .clone()
     }
 
-    fn window_mut(&self) -> RefMut<'_, bevy_nannou::prelude::Window> {
+    fn window_mut(&self) -> RefMut<'_, bevy::window::Window> {
         let world = self.app.component_world_mut();
 
         RefMut::map(world, |world| {
@@ -102,7 +102,7 @@ impl<'a, 'w> Window<'a, 'w> {
         })
     }
 
-    fn cursor_options_mut(&self) -> RefMut<'_, bevy_nannou::prelude::CursorOptions> {
+    fn cursor_options_mut(&self) -> RefMut<'_, bevy::window::CursorOptions> {
         let world = self.app.component_world_mut();
 
         RefMut::map(world, |world| {

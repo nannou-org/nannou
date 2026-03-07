@@ -1,10 +1,9 @@
 [workspace]
 members = [
-    "bevy_nannou",
-    "bevy_nannou_derive",
-    "bevy_nannou_draw",
-    "bevy_nannou_isf",
-    "bevy_nannou_video",
+    "nannou_derive",
+    "nannou_draw",
+    "nannou_isf",
+    "nannou_video",
     "examples",
     "generative_design",
     "guide/book_tests",
@@ -70,7 +69,7 @@ toml = "0.8"
 toml_edit = "0.22"
 usvg = "0.4"
 uuid = "1.8"
-video-rs = "0.10"
+video-rs = "0.11"
 walkdir = "2"
 wgpu = "26"
 wikipedia = "0.5"

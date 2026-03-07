@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
-use bevy_nannou::prelude::{Asset, Assets, AssetServer, Deref, DerefMut, Mut};
+use crate::prelude::{Asset, Assets, AssetServer, Deref, DerefMut, Mut};
 use crate::prelude::bevy_ecs::world::unsafe_world_cell::UnsafeWorldCell;
 
 #[derive(Deref, DerefMut)]

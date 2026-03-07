@@ -1,0 +1,144 @@
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>bevy_webcam</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background: #111;
+        color: #fff;
+        font-family: sans-serif;
+      }
+      .loading {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 18px;
+        color: #ccc;
+      }
+      .hidden {
+        display: none;
+      }
+      video {
+        position: absolute;
+        width: 0;
+        height: 0;
+        opacity: 0;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="loading">Requesting webcam access…</div>
+
+    <script>
+      const cameras = new Map();
+
+      window.request_camera = async function(device_index, width, height, framerate) {
+        if (cameras.has(device_index)) return;
+
+        try {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const videoDevices = devices.filter(d => d.kind === 'videoinput');
+          const device = videoDevices[device_index];
+
+          const videoConstraints = device && device.deviceId
+            ? { deviceId: { exact: device.deviceId } }
+            : { facingMode: 'user' };
+
+          if (width > 0) videoConstraints.width = { ideal: width };
+          if (height > 0) videoConstraints.height = { ideal: height };
+          if (framerate > 0) videoConstraints.frameRate = { ideal: framerate };
+
+          const constraints = {
+            video: videoConstraints,
+            audio: false,
+          };
+
+          const stream = await navigator.mediaDevices.getUserMedia(constraints);
+          const [track] = stream.getVideoTracks();
+          cameras.set(device_index, { stream, track });
+
+          if (typeof MediaStreamTrackProcessor === 'undefined') {
+            console.error('MediaStreamTrackProcessor is not available');
+            return;
+          }
+
+          const processor = new MediaStreamTrackProcessor({ track });
+          const reader = processor.readable.getReader();
+
+          async function pump() {
+            const { value: frame, done } = await reader.read();
+            if (done) {
+              console.warn(`Video stream ${device_index} ended`);
+              return;
+            }
+
+            try {
+              const format = 'RGBA';
+              const pixelBuffer = new Uint8Array(frame.allocationSize({ format }));
+              await frame.copyTo(pixelBuffer, { format });
+              window.__wasm_frame_input(device_index, pixelBuffer, frame.displayWidth, frame.displayHeight);
+            } catch (error) {
+              console.error('Failed to process video frame', error);
+            } finally {
+              frame.close();
+            }
+
+            requestAnimationFrame(pump);
+          }
+
+          pump();
+        } catch (error) {
+          console.error(`Failed to open camera ${device_index}:`, error);
+        }
+      };
+
+      document.addEventListener('contextmenu', event => event.preventDefault());
+    </script>
+
+    <script type="module">
+      import init, { frame_input, register_device } from './out/bevy_webcam.js';
+
+      window.__wasm_frame_input = frame_input;
+
+      async function enumerateDevices() {
+        try {
+          const tempStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          tempStream.getTracks().forEach(t => t.stop());
+        } catch (e) {
+          console.warn('Camera permission denied:', e);
+          return;
+        }
+
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(d => d.kind === 'videoinput');
+        videoDevices.forEach((device, index) => {
+          register_device(index, device.label || `Camera ${index}`);
+        });
+      }
+
+      async function boot() {
+        await init();
+        await enumerateDevices();
+        document.querySelector('.loading')?.classList.add('hidden');
+      }
+
+      boot().catch(error => {
+        console.error(error);
+        const loading = document.querySelector('.loading');
+        if (loading) {
+          loading.textContent = error.message;
+        }
+      });
+    </script>
+  </body>
+</html>

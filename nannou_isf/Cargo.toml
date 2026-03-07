@@ -1,5 +1,5 @@
 [package]
-name = "bevy_nannou_isf"
+name = "nannou_isf"
 version.workspace = true
 edition.workspace = true
 
