@@ -545,7 +545,7 @@ impl FromWorld for IsfPipeline {
             isf_textures_bind_group_layouts: default(),
             fullscreen_shader: world
                 .resource_mut::<AssetServer>()
-                .load("embedded://bevy_nannou_isf/fullscreen.vert"),
+                .load("embedded://nannou_isf/fullscreen.vert"),
         }
     }
 }

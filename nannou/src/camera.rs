@@ -8,7 +8,7 @@ use bevy::{
     render::view::Hdr,
     window::WindowRef,
 };
-use bevy_nannou::prelude::{
+use crate::prelude::{
     ClearColorConfig, Entity, OrthographicProjection, Vec3, default, render::NannouCamera,
 };
 

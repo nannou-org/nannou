@@ -1,6 +1,6 @@
 use bevy::shader::ShaderRef;
-use bevy_nannou_derive::shader_model;
-use bevy_nannou_draw::render::ShaderModel;
+use nannou_derive::shader_model;
+use nannou_draw::render::ShaderModel;
 
 #[shader_model]
 struct TestShaderModel {}

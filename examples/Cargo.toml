@@ -16,7 +16,6 @@ edition.workspace = true
 [dev-dependencies]
 audrey.workspace = true
 bevy.workspace = true
-bevy_nannou = { path = "../bevy_nannou" }
 hrtf.workspace = true
 nannou = { version = "0.19.0", path = "../nannou" }
 nannou_audio = { version = "0.19.0", path = "../nannou_audio" }

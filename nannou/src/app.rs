@@ -51,10 +51,8 @@ use crate::{
     window,
     window::WindowUserFunctions,
 };
-use bevy_nannou::{
-    NannouPlugin,
-    prelude::{draw, render::NannouCamera},
-};
+use crate::NannouPlugin;
+use crate::prelude::{draw, render::NannouCamera};
 use find_folder;
 use std::{
     any::Any,

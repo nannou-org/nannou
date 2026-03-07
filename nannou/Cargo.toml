@@ -11,11 +11,20 @@ license.workspace = true
 edition.workspace = true
 
 [dependencies]
-bevy = { workspace = true }
+bevy = { workspace = true, default-features = false, features = [
+    "bevy_post_process",
+    "bevy_window",
+    "bevy_winit",
+    "jpeg",
+    "zstd_rust",
+]}
 bevy-inspector-egui = { workspace = true, optional = true }
 bevy_egui = { workspace = true, optional = true }
 bevy_common_assets = { workspace = true, optional = true }
-bevy_nannou = { version = "0.1.0", path = "../bevy_nannou" }
+nannou_derive = { path = "../nannou_derive" }
+nannou_draw = { path = "../nannou_draw" }
+nannou_isf = { path = "../nannou_isf", optional = true }
+nannou_video = { path = "../nannou_video", optional = true }
 find_folder = { workspace = true }
 lyon = { workspace = true }
 nannou_core = { version ="0.19.0", path = "../nannou_core", features = ["std"] }
@@ -37,14 +46,20 @@ tokio = { version = "1", features = ["rt"]}
 image = { workspace = true, features = [] }
 
 [features]
-default = ["bevy_nannou/default"]
+default = [
+    # FIXME: bevy defaults to x11 so we do.. but that seems oldschool?
+    # We should use wayland instead no?
+    "x11",
+    "webgl2",
+]
 config_json = ["bevy_common_assets/json"]
 config_toml = ["bevy_common_assets/toml"]
 egui = ["bevy_egui", "bevy-inspector-egui"]
 hot_reload = ["bevy/file_watcher", "bevy/multi_threaded"]
-isf = ["bevy_nannou/isf"]
+isf = ["nannou_isf"]
+nightly = ["nannou_draw/nightly"]
 serde = ["dep:serde", "toml", "serde_json", "nannou_core/serde"]
-video = ["bevy_nannou/video"]
-wayland = ["bevy_nannou/wayland"]
-webgl2 = ["bevy_nannou/webgl2"]
-x11 = ["bevy_nannou/x11"]
+video = ["nannou_video"]
+wayland = ["bevy/wayland"]
+webgl2 = ["bevy/webgl2"]
+x11 = ["bevy/x11"]

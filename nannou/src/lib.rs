@@ -12,6 +12,8 @@
 //! If you're new to nannou, we recommend checking out [the
 //! examples](https://github.com/nannou-org/nannou/tree/master/examples) to get an idea of how
 //! nannou applications are structured and how the API works.
+use bevy::prelude::{App as BevyApp, Plugin};
+
 pub use find_folder;
 pub use lyon;
 
@@ -35,6 +37,23 @@ pub mod time;
 mod window;
 
 pub use nannou_wgpu as wgpu;
+
+pub struct NannouPlugin;
+
+impl Plugin for NannouPlugin {
+    fn build(&self, app: &mut BevyApp) {
+        app.add_plugins(nannou_draw::NannouDrawPlugin);
+        #[cfg(feature = "isf")]
+        {
+            app.add_plugins(nannou_isf::NannouIsfPlugin);
+        }
+        #[cfg(feature = "video")]
+        {
+            bevy::prelude::info!("Adding video plugin");
+            app.add_plugins(nannou_video::NannouVideoPlugin);
+        }
+    }
+}
 
 /// Begin building the `App`.
 ///

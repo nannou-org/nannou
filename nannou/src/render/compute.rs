@@ -18,7 +18,7 @@ use bevy::{
     },
     shader::ShaderRef,
 };
-use bevy_nannou::prelude::{AsBindGroup, CachedPipelineState};
+use crate::prelude::{AsBindGroup, CachedPipelineState};
 use std::{borrow::Cow, hash::Hash};
 use wgpu::ComputePassDescriptor;
 
