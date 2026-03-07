@@ -1,9 +1,9 @@
 use bevy::camera::visibility::RenderLayers;
+use bevy::prelude::App;
 use bevy::prelude::*;
 use bevy::window::WindowResolution;
 use nannou::NannouPlugin;
 use nannou::prelude::*;
-use bevy::prelude::App;
 
 fn main() {
     let mut app = App::new();

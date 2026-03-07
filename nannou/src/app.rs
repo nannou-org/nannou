@@ -35,6 +35,8 @@ use bevy_egui::EguiContext;
 #[cfg(feature = "egui")]
 use bevy_inspector_egui::quick::ResourceInspectorPlugin;
 
+use crate::NannouPlugin;
+use crate::prelude::{draw, render::NannouCamera};
 use crate::{
     camera,
     frame::{Frame, FramePlugin},
@@ -51,8 +53,6 @@ use crate::{
     window,
     window::WindowUserFunctions,
 };
-use crate::NannouPlugin;
-use crate::prelude::{draw, render::NannouCamera};
 use find_folder;
 use std::{
     any::Any,

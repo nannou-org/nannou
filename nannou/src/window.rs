@@ -10,6 +10,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use crate::prelude::{MonitorSelection, render::NannouCamera};
 use crate::{App, geom::Point2, glam::Vec2, prelude::WindowResizeConstraints};
 use bevy::{
     camera::RenderTarget,
@@ -26,7 +27,6 @@ use bevy::{
     },
     window::{CursorGrabMode, CursorIcon, PrimaryWindow, WindowLevel, WindowMode, WindowRef},
 };
-use crate::prelude::{MonitorSelection, render::NannouCamera};
 use nannou_core::geom;
 
 /// A nannou window.

@@ -1,4 +1,5 @@
 use crate::prelude::bevy_render::{MainWorld, extract_component::ExtractComponent};
+use crate::prelude::{AsBindGroup, CachedPipelineState};
 use bevy::{
     core_pipeline::core_3d::graph::{Core3d, Node3d},
     ecs::{query::QueryItem, system::StaticSystemParam},
@@ -18,7 +19,6 @@ use bevy::{
     },
     shader::ShaderRef,
 };
-use crate::prelude::{AsBindGroup, CachedPipelineState};
 use std::{borrow::Cow, hash::Hash};
 use wgpu::ComputePassDescriptor;
 
