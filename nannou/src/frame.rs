@@ -31,34 +31,34 @@ fn extract_scale_factors(
 }
 
 #[derive(Resource, Deref, DerefMut, Default)]
-struct ExtractedWindowsScaleFactor(EntityHashMap<f32>);
+pub(crate) struct ExtractedWindowsScaleFactor(EntityHashMap<f32>);
 
-pub struct Frame<'a, 'w> {
+pub struct Frame<'a, 'r, 'w, 's> {
     window_id: Entity,
-    world: &'w World,
-    view_target: &'w ViewTarget,
-    extracted_windows: &'w ExtractedWindows,
-    render_device: &'w RenderDevice,
-    render_context: RefCell<&'a mut RenderContext<'w>>,
+    view_target: &'r ViewTarget,
+    extracted_windows: &'r ExtractedWindows,
+    scale_factors: &'r ExtractedWindowsScaleFactor,
+    render_device: &'r RenderDevice,
+    render_context: RefCell<&'a mut RenderContext<'w, 's>>,
 }
 
-impl<'a, 'w> Frame<'a, 'w> {
+impl<'a, 'r, 'w, 's> Frame<'a, 'r, 'w, 's> {
     pub const TEXTURE_FORMAT: wgpu::TextureFormat =
         nannou_wgpu::RenderPipelineBuilder::DEFAULT_COLOR_FORMAT;
 
     pub(crate) fn new(
-        world: &'w World,
+        render_device: &'r RenderDevice,
+        scale_factors: &'r ExtractedWindowsScaleFactor,
         view_target_id: Entity,
-        view_target: &'w ViewTarget,
-        extracted_windows: &'w ExtractedWindows,
-        render_context: &'a mut RenderContext<'w>,
+        view_target: &'r ViewTarget,
+        extracted_windows: &'r ExtractedWindows,
+        render_context: &'a mut RenderContext<'w, 's>,
     ) -> Self {
-        let render_device = world.resource::<RenderDevice>();
         Frame {
             window_id: view_target_id,
-            world,
             view_target,
             render_device,
+            scale_factors,
             render_context: RefCell::new(render_context),
             extracted_windows,
         }
@@ -81,8 +81,7 @@ impl<'a, 'w> Frame<'a, 'w> {
     /// associated with this **Frame**.
     pub fn rect(&self) -> geom::Rect {
         let window = self.extracted_windows.windows.get(&self.window_id).unwrap();
-        let scale_factor = self.world.resource::<ExtractedWindowsScaleFactor>();
-        let scale_factor = scale_factor.get(&self.window_id).unwrap();
+        let scale_factor = self.scale_factors.get(&self.window_id).unwrap();
         let scale_factor = *scale_factor as f32;
         let [width, height] = [window.physical_width, window.physical_height];
         geom::Rect::from_x_y_w_h(
@@ -107,7 +106,7 @@ impl<'a, 'w> Frame<'a, 'w> {
 
     /// The texture format of the frame's swap chain texture.
     pub fn swap_chain_texture_format(&self) -> wgpu::TextureFormat {
-        self.view_target.out_texture_format()
+        self.view_target.out_texture_view_format()
     }
 
     /// The device and queue on which the swap chain was created and which will be used to submit
@@ -216,6 +215,7 @@ impl<'a, 'w> Frame<'a, 'w> {
             depth_stencil_attachment: None,
             timestamp_writes: None,
             occlusion_query_set: None,
+            multiview_mask: None,
         });
     }
 }

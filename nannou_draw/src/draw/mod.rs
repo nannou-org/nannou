@@ -26,7 +26,7 @@ use bevy::{
     render::{
         render_resource as wgpu,
         render_resource::{BlendComponent, BlendState},
-        storage::ShaderStorageBuffer,
+        storage::ShaderBuffer,
     },
 };
 use lyon::path::PathEvent;
@@ -129,7 +129,7 @@ pub enum DrawCommand {
     /// Draw an instanced primitive
     Instanced(Primitive, Range<u32>),
     /// Draw a primitive using an indirect buffer.
-    Indirect(Primitive, Handle<ShaderStorageBuffer>),
+    Indirect(Primitive, Handle<ShaderBuffer>),
     /// A change in the rendering context occurred.
     Context(DrawContext),
     /// A change in the shader model occurred.

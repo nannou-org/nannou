@@ -41,7 +41,7 @@ impl Isf {
 }
 
 // 2. ISF Asset Loader
-#[derive(Default)]
+#[derive(Default, TypePath)]
 pub struct IsfLoader;
 
 #[derive(Debug, Error)]

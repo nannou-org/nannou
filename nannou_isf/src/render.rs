@@ -2,16 +2,12 @@ use crate::asset::{GpuIsf, Isf, IsfHandle};
 use crate::inputs::{IsfInputValue, IsfInputs};
 use bevy::asset::embedded_asset;
 use bevy::camera::RenderTarget;
-use bevy::core_pipeline::core_3d::graph::{Core3d, Node3d};
-use bevy::ecs::query::{QueryItem, ROQueryItem};
+use bevy::core_pipeline::schedule::{Core3d, Core3dSystems};
 use bevy::ecs::system::SystemParamItem;
 use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
 use bevy::render::extract_resource::ExtractResource;
 use bevy::render::render_asset::RenderAssets;
-use bevy::render::render_graph::{
-    NodeRunError, RenderGraphContext, RenderGraphExt, RenderLabel, ViewNode, ViewNodeRunner,
-};
 use bevy::render::render_phase::{
     PhaseItem, RenderCommand, RenderCommandResult, TrackedRenderPass,
 };
@@ -19,7 +15,7 @@ use bevy::render::render_resource::binding_types::{
     sampler, texture_2d, uniform_buffer, uniform_buffer_sized,
 };
 use bevy::render::render_resource::*;
-use bevy::render::renderer::{RenderContext, RenderDevice};
+use bevy::render::renderer::{RenderContext, RenderDevice, ViewQuery};
 use bevy::render::texture::{DefaultImageSampler, GpuImage};
 use bevy::render::view::{ExtractedView, ViewTarget};
 use bevy::render::{Render, RenderApp, RenderSystems};
@@ -45,11 +41,7 @@ impl Plugin for IsfRenderPlugin {
                 ),
             )
             .init_resource::<SpecializedRenderPipelines<IsfPipeline>>()
-            .add_render_graph_node::<ViewNodeRunner<IsfNode>>(Core3d, IsfLabel)
-            .add_render_graph_edges(
-                Core3d,
-                (Node3d::StartMainPass, IsfLabel, Node3d::EndMainPass),
-            );
+            .add_systems(Core3d, isf_render_system.in_set(Core3dSystems::MainPass));
     }
 
     fn finish(&self, app: &mut App) {
@@ -73,14 +65,14 @@ pub struct IsfPass {
 }
 
 fn update_render_targets(
-    camera_q: Single<(&Camera, &IsfHandle)>,
+    camera_q: Single<(&RenderTarget, &IsfHandle)>,
     windows_q: Query<(&Window, Option<&PrimaryWindow>)>,
     mut render_targets: ResMut<IsfRenderTargets>,
     mut images: ResMut<Assets<Image>>,
     isfs: Res<Assets<Isf>>,
 ) {
-    let (camera, isf) = *camera_q;
-    let resolution = match &camera.target {
+    let (render_target, isf) = *camera_q;
+    let resolution = match render_target {
         RenderTarget::Window(window) => match window {
             WindowRef::Primary => windows_q
                 .iter()
@@ -181,7 +173,6 @@ pub struct IsfPipelineIds(Vec<CachedRenderPipelineId>);
 
 fn queue_isf(
     mut commands: Commands,
-    render_device: Res<RenderDevice>,
     pipeline_cache: Res<PipelineCache>,
     mut isf_pipeline: ResMut<IsfPipeline>,
     isf_assets: Res<RenderAssets<GpuIsf>>,
@@ -193,14 +184,14 @@ fn queue_isf(
     for (view_entity, extracted_view, isf, msaa) in views.iter() {
         let isf = isf_assets.get(&**isf).unwrap();
 
-        // Prepare any new layouts
+        // Prepare any new layout descriptors
         if let None = isf_pipeline
             .isf_input_uniforms_layouts
             .get(&isf_inputs.uniform_size())
         {
             isf_pipeline.isf_input_uniforms_layouts.insert(
                 isf_inputs.uniform_size(),
-                render_device.create_bind_group_layout(
+                BindGroupLayoutDescriptor::new(
                     "isf_input_uniforms_layout",
                     &BindGroupLayoutEntries::single(
                         ShaderStages::FRAGMENT,
@@ -215,23 +206,19 @@ fn queue_isf(
             .isf_textures_bind_group_layouts
             .get(&image_count)
         {
-            isf_pipeline
-                .isf_textures_bind_group_layouts
-                .insert(image_count, {
-                    let mut entries = vec![];
-                    entries.push(
-                        sampler(SamplerBindingType::Filtering).build(0, ShaderStages::FRAGMENT),
-                    );
-                    for i in 0..image_count {
-                        entries.push(
-                            texture_2d(TextureSampleType::Float { filterable: true })
-                                .build((i + 1) as u32, ShaderStages::FRAGMENT),
-                        );
-                    }
+            let mut entries = vec![];
+            entries.push(sampler(SamplerBindingType::Filtering).build(0, ShaderStages::FRAGMENT));
+            for i in 0..image_count {
+                entries.push(
+                    texture_2d(TextureSampleType::Float { filterable: true })
+                        .build((i + 1) as u32, ShaderStages::FRAGMENT),
+                );
+            }
 
-                    render_device
-                        .create_bind_group_layout("isf_textures_bind_group_layout", &entries)
-                });
+            isf_pipeline.isf_textures_bind_group_layouts.insert(
+                image_count,
+                BindGroupLayoutDescriptor::new("isf_textures_bind_group_layout", &entries),
+            );
         }
 
         let mut pipeline_ids = IsfPipelineIds::default();
@@ -277,6 +264,7 @@ pub struct IsfBindGroups {
 fn prepare_isf_bind_groups(
     mut commands: Commands,
     pipeline: Res<IsfPipeline>,
+    pipeline_cache: Res<PipelineCache>,
     sampler: Res<DefaultImageSampler>,
     isf_inputs: Res<IsfInputs>,
     views: Query<(Entity, &IsfHandle)>,
@@ -295,9 +283,12 @@ fn prepare_isf_bind_groups(
                 usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
             });
 
+        let inputs_layout = pipeline_cache.get_bind_group_layout(
+            &pipeline.isf_input_uniforms_layouts[&isf_inputs.uniform_size()],
+        );
         let inputs_bind_group = render_device.create_bind_group(
             "isf_inputs_bind_group",
-            &pipeline.isf_input_uniforms_layouts[&isf_inputs.uniform_size()],
+            &inputs_layout,
             &[BindGroupEntry {
                 binding: 0,
                 resource: isf_inputs_uniform_buffer.as_entire_binding(),
@@ -347,6 +338,8 @@ fn prepare_isf_bind_groups(
         }
 
         let num_images = gpu_isf.isf.num_images();
+        let textures_layout = pipeline_cache
+            .get_bind_group_layout(&pipeline.isf_textures_bind_group_layouts[&num_images]);
         let mut textures_bind_groups = vec![];
         let dummy_image = gpu_images.get(&Handle::<Image>::default()).unwrap();
         // Passes
@@ -355,7 +348,7 @@ fn prepare_isf_bind_groups(
             let Some(pass) = pass else {
                 let textures_bind_group = render_device.create_bind_group(
                     "isf_textures_bind_group",
-                    &pipeline.isf_textures_bind_group_layouts[&num_images],
+                    &textures_layout,
                     &pass_bindings,
                 );
                 textures_bind_groups.push(textures_bind_group);
@@ -370,7 +363,7 @@ fn prepare_isf_bind_groups(
             });
             let textures_bind_group = render_device.create_bind_group(
                 "isf_textures_bind_group",
-                &pipeline.isf_textures_bind_group_layouts[&num_images],
+                &textures_layout,
                 &pass_bindings,
             );
             textures_bind_groups.push(textures_bind_group);
@@ -389,101 +382,84 @@ fn prepare_isf_bind_groups(
     }
 }
 
-#[derive(Debug, Hash, PartialEq, Eq, Clone, RenderLabel)]
-struct IsfLabel;
+fn isf_render_system(
+    view: ViewQuery<(&ViewTarget, &IsfBindGroups, &IsfPipelineIds)>,
+    mut ctx: RenderContext,
+    pipeline: Res<IsfPipeline>,
+    isf_render_targets: Res<IsfRenderTargets>,
+    gpu_images: Res<RenderAssets<GpuImage>>,
+    pipeline_cache: Res<PipelineCache>,
+) {
+    let (view_target, bind_groups, pipeline_ids) = view.into_inner();
 
-#[derive(Default)]
-struct IsfNode;
+    for (pass_index, pass) in isf_render_targets.iter().enumerate() {
+        let uniform = IsfUniform {
+            pass_index: pass_index as i32,
+            render_size: [0.0; 2],
+            time: 0.0,
+            time_delta: 0.0,
+            date: [0.0; 4],
+            frame_index: 0,
+            ..default()
+        };
 
-impl ViewNode for IsfNode {
-    type ViewQuery = (
-        &'static ViewTarget,
-        &'static IsfBindGroups,
-        &'static IsfPipelineIds,
-    );
+        let isf_uniform_buffer =
+            ctx.render_device()
+                .create_buffer_with_data(&BufferInitDescriptor {
+                    label: None,
+                    contents: &bytemuck::cast_slice(&[uniform]),
+                    usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
+                });
 
-    fn run(
-        &self,
-        _graph: &mut RenderGraphContext,
-        render_context: &mut RenderContext,
-        (view_target, bind_groups, pipeline_ids): QueryItem<Self::ViewQuery>,
-        world: &World,
-    ) -> Result<(), NodeRunError> {
-        let pipeline = world.resource::<IsfPipeline>();
-        let gpu_images = world.resource::<RenderAssets<GpuImage>>();
+        let uniforms_layout = pipeline_cache.get_bind_group_layout(&pipeline.isf_uniforms_layout);
+        let uniform_bind_group = ctx.render_device().create_bind_group(
+            "isf_inputs_bind_group",
+            &uniforms_layout,
+            &[BindGroupEntry {
+                binding: 0,
+                resource: isf_uniform_buffer.as_entire_binding(),
+            }],
+        );
 
-        let isf_render_targets = world.resource::<IsfRenderTargets>();
-        for (pass_index, pass) in isf_render_targets.iter().enumerate() {
-            let uniform = IsfUniform {
-                pass_index: pass_index as i32,
-                render_size: [0.0; 2],
-                time: 0.0,
-                time_delta: 0.0,
-                date: [0.0; 4],
-                frame_index: 0,
-                ..default()
-            };
+        let Some(render_pipeline) = pipeline_cache.get_render_pipeline(pipeline_ids[pass_index])
+        else {
+            warn!("Failed to get render pipeline");
+            return;
+        };
 
-            let isf_uniform_buffer =
-                render_context
-                    .render_device()
-                    .create_buffer_with_data(&BufferInitDescriptor {
-                        label: None,
-                        contents: &bytemuck::cast_slice(&[uniform]),
-                        usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
-                    });
-
-            let uniform_bind_group = render_context.render_device().create_bind_group(
-                "isf_inputs_bind_group",
-                &pipeline.isf_uniforms_layout,
-                &[BindGroupEntry {
-                    binding: 0,
-                    resource: isf_uniform_buffer.as_entire_binding(),
-                }],
-            );
-
-            let pipeline_cache = world.resource::<PipelineCache>();
-            let Some(pipeline) = pipeline_cache.get_render_pipeline(pipeline_ids[pass_index])
-            else {
-                warn!("Failed to get render pipeline");
-                return Ok(());
-            };
-
-            let color_attachment = match pass {
-                Some(pass) => RenderPassColorAttachment {
-                    view: &gpu_images.get(&pass.target).unwrap().texture_view,
-                    resolve_target: None,
-                    ops: if pass.clear {
-                        Operations {
-                            load: LoadOp::Load,
-                            store: StoreOp::Store,
-                        }
-                    } else {
-                        Operations {
-                            load: LoadOp::Load,
-                            store: StoreOp::Store,
-                        }
-                    },
-                    depth_slice: None,
+        let color_attachment = match pass {
+            Some(pass) => RenderPassColorAttachment {
+                view: &gpu_images.get(&pass.target).unwrap().texture_view,
+                resolve_target: None,
+                ops: if pass.clear {
+                    Operations {
+                        load: LoadOp::Load,
+                        store: StoreOp::Store,
+                    }
+                } else {
+                    Operations {
+                        load: LoadOp::Load,
+                        store: StoreOp::Store,
+                    }
                 },
-                None => view_target.get_color_attachment(),
-            };
-            let mut render_pass = render_context.begin_tracked_render_pass(RenderPassDescriptor {
-                label: Some("isf_pass"),
-                color_attachments: &[Some(color_attachment)],
-                depth_stencil_attachment: None,
-                timestamp_writes: None,
-                occlusion_query_set: None,
-            });
+                depth_slice: None,
+            },
+            None => view_target.get_color_attachment(),
+        };
+        let mut render_pass = ctx.begin_tracked_render_pass(RenderPassDescriptor {
+            label: Some("isf_pass"),
+            color_attachments: &[Some(color_attachment)],
+            depth_stencil_attachment: None,
+            timestamp_writes: None,
+            occlusion_query_set: None,
+            multiview_mask: None,
+        });
 
-            render_pass.set_render_pipeline(pipeline);
-            render_pass.set_bind_group(0, &uniform_bind_group, &[]);
-            render_pass.set_bind_group(1, &bind_groups.isf_inputs_bind_group, &[]);
-            render_pass.set_bind_group(2, &bind_groups.isf_textures_bind_groups[pass_index], &[]);
-            render_pass.draw(0..3, 0..1);
-        }
-
-        Ok(())
+        render_pass.set_render_pipeline(render_pipeline);
+        render_pass.set_bind_group(0, &uniform_bind_group, &[]);
+        render_pass.set_bind_group(1, &bind_groups.isf_inputs_bind_group, &[]);
+        render_pass.set_bind_group(2, &bind_groups.isf_textures_bind_groups[pass_index], &[]);
+        render_pass.draw(0..3, 0..1);
     }
 }
 
@@ -502,8 +478,8 @@ where
 
     fn render<'w>(
         _: &P,
-        _: ROQueryItem<'w, '_, Self::ViewQuery>,
-        _: Option<ROQueryItem<'w, '_, Self::ItemQuery>>,
+        _: bevy::ecs::query::ROQueryItem<'w, '_, Self::ViewQuery>,
+        _: Option<bevy::ecs::query::ROQueryItem<'w, '_, Self::ItemQuery>>,
         _: SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
@@ -522,17 +498,15 @@ pub struct ExtractedIsf {
 
 #[derive(Resource)]
 pub struct IsfPipeline {
-    isf_uniforms_layout: BindGroupLayout,
-    isf_input_uniforms_layouts: HashMap<usize, BindGroupLayout>,
-    isf_textures_bind_group_layouts: HashMap<usize, BindGroupLayout>,
+    isf_uniforms_layout: BindGroupLayoutDescriptor,
+    isf_input_uniforms_layouts: HashMap<usize, BindGroupLayoutDescriptor>,
+    isf_textures_bind_group_layouts: HashMap<usize, BindGroupLayoutDescriptor>,
     fullscreen_shader: Handle<Shader>,
 }
 
 impl FromWorld for IsfPipeline {
     fn from_world(world: &mut World) -> Self {
-        let render_device = world.resource::<RenderDevice>();
-
-        let isf_uniforms_layout = render_device.create_bind_group_layout(
+        let isf_uniforms_layout = BindGroupLayoutDescriptor::new(
             "isf_uniforms_layout",
             &BindGroupLayoutEntries::single(
                 ShaderStages::FRAGMENT,
@@ -570,7 +544,7 @@ impl SpecializedRenderPipeline for IsfPipeline {
                 self.isf_input_uniforms_layouts[&key.size].clone(),
                 self.isf_textures_bind_group_layouts[&key.textures].clone(),
             ],
-            push_constant_ranges: vec![],
+            immediate_size: 0,
             vertex: VertexState {
                 shader: self.fullscreen_shader.clone(),
                 shader_defs: Vec::new(),

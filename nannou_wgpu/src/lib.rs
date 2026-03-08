@@ -67,23 +67,23 @@ pub use wgpu::{
     DepthStencilState, Device, DeviceDescriptor, DeviceType, DownlevelCapabilities, DownlevelFlags,
     DynamicOffset, Error, Extent3d, Face, Features, FilterMode, FragmentState, FrontFace,
     ImageSubresourceRange, IndexFormat, Instance, Label, Limits, LoadOp, MAP_ALIGNMENT, MapMode,
-    MultisampleState, Operations, Origin3d, PUSH_CONSTANT_ALIGNMENT, PipelineLayout,
+    MipmapFilterMode, MultisampleState, Operations, Origin3d, PipelineLayout,
     PipelineLayoutDescriptor, PipelineStatisticsTypes, PollType, PolygonMode, PowerPreference,
-    PresentMode, PrimitiveState, PrimitiveTopology, PushConstantRange,
-    QUERY_RESOLVE_BUFFER_ALIGNMENT, QUERY_SET_MAX_QUERIES, QUERY_SIZE, QuerySet,
-    QuerySetDescriptor, QueryType, Queue, RenderBundle, RenderBundleDepthStencil,
-    RenderBundleDescriptor, RenderBundleEncoder, RenderBundleEncoderDescriptor, RenderPass,
-    RenderPassColorAttachment, RenderPassDepthStencilAttachment, RenderPassDescriptor,
-    RenderPipeline, RenderPipelineDescriptor, RequestAdapterOptions, RequestAdapterOptionsBase,
-    RequestDeviceError, Sampler, SamplerBorderColor, SamplerDescriptor, ShaderLocation,
-    ShaderModel, ShaderModule, ShaderModuleDescriptor, ShaderSource, ShaderStages,
-    StencilFaceState, StencilOperation, StencilState, StorageTextureAccess, Surface,
-    SurfaceConfiguration, SurfaceError, SurfaceStatus, SurfaceTexture, TexelCopyBufferInfo,
-    TexelCopyBufferLayout, TexelCopyTextureInfo, Texture as TextureHandle, TextureAspect,
-    TextureDescriptor, TextureDimension, TextureFormat, TextureFormatFeatureFlags,
-    TextureFormatFeatures, TextureSampleType, TextureUsages, TextureView as TextureViewHandle,
-    TextureViewDescriptor, TextureViewDimension, UncapturedErrorHandler, VERTEX_STRIDE_ALIGNMENT,
-    VertexAttribute, VertexBufferLayout, VertexFormat, VertexState, VertexStepMode, include_wgsl,
+    PresentMode, PrimitiveState, PrimitiveTopology, QUERY_RESOLVE_BUFFER_ALIGNMENT,
+    QUERY_SET_MAX_QUERIES, QUERY_SIZE, QuerySet, QuerySetDescriptor, QueryType, Queue,
+    RenderBundle, RenderBundleDepthStencil, RenderBundleDescriptor, RenderBundleEncoder,
+    RenderBundleEncoderDescriptor, RenderPass, RenderPassColorAttachment,
+    RenderPassDepthStencilAttachment, RenderPassDescriptor, RenderPipeline,
+    RenderPipelineDescriptor, RequestAdapterOptions, RequestAdapterOptionsBase, RequestDeviceError,
+    Sampler, SamplerBorderColor, SamplerDescriptor, ShaderLocation, ShaderModel, ShaderModule,
+    ShaderModuleDescriptor, ShaderSource, ShaderStages, StencilFaceState, StencilOperation,
+    StencilState, StorageTextureAccess, Surface, SurfaceConfiguration, SurfaceError, SurfaceStatus,
+    SurfaceTexture, TexelCopyBufferInfo, TexelCopyBufferLayout, TexelCopyTextureInfo,
+    Texture as TextureHandle, TextureAspect, TextureDescriptor, TextureDimension, TextureFormat,
+    TextureFormatFeatureFlags, TextureFormatFeatures, TextureSampleType, TextureUsages,
+    TextureView as TextureViewHandle, TextureViewDescriptor, TextureViewDimension,
+    UncapturedErrorHandler, VERTEX_ALIGNMENT, VertexAttribute, VertexBufferLayout, VertexFormat,
+    VertexState, VertexStepMode, include_wgsl,
     util::{self, BufferInitDescriptor},
     vertex_attr_array,
 };
@@ -132,6 +132,7 @@ pub fn default_device_descriptor() -> DeviceDescriptor<'static> {
         required_limits,
         memory_hints: MemoryHints::default(),
         trace: Trace::Off,
+        experimental_features: wgpu::ExperimentalFeatures::disabled(),
     }
 }
 
@@ -158,16 +159,16 @@ pub fn resolve_texture(
 }
 
 /// Shorthand for creating the pipeline layout from a slice of bind group layouts.
-pub fn create_pipeline_layout<'p>(
+pub fn create_pipeline_layout(
     device: &wgpu::Device,
-    label: Option<&'p str>,
+    label: Option<&str>,
     bind_group_layouts: &[&wgpu::BindGroupLayout],
-    push_constant_ranges: &'p [wgpu::PushConstantRange],
+    immediate_size: u32,
 ) -> wgpu::PipelineLayout {
     let descriptor = wgpu::PipelineLayoutDescriptor {
         label,
         bind_group_layouts,
-        push_constant_ranges,
+        immediate_size,
     };
     device.create_pipeline_layout(&descriptor)
 }
@@ -178,7 +179,7 @@ pub fn create_pipeline_layout<'p>(
 /// assists wgpu with validation.
 pub fn sampler_filtering(desc: &SamplerDescriptor) -> bool {
     match (desc.mag_filter, desc.min_filter, desc.mipmap_filter) {
-        (FilterMode::Nearest, FilterMode::Nearest, FilterMode::Nearest) => false,
+        (FilterMode::Nearest, FilterMode::Nearest, MipmapFilterMode::Nearest) => false,
         _ => true,
     }
 }

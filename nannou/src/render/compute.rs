@@ -1,21 +1,18 @@
 use crate::prelude::bevy_render::{MainWorld, extract_component::ExtractComponent};
 use crate::prelude::{AsBindGroup, CachedPipelineState};
 use bevy::{
-    core_pipeline::core_3d::graph::{Core3d, Node3d},
-    ecs::{query::QueryItem, system::StaticSystemParam},
+    core_pipeline::schedule::{Core3d, Core3dSystems},
+    ecs::system::StaticSystemParam,
     platform::collections::HashMap,
     prelude::*,
     render::{
         Render, RenderSystems,
         extract_component::ExtractComponentPlugin,
-        render_graph::{
-            NodeRunError, RenderGraphContext, RenderGraphExt, RenderLabel, ViewNode, ViewNodeRunner,
-        },
         render_resource::{
-            BindGroup, BindGroupLayout, CachedComputePipelineId, ComputePipelineDescriptor,
+            BindGroupLayoutDescriptor, CachedComputePipelineId, ComputePipelineDescriptor,
             PipelineCache, SpecializedComputePipeline, SpecializedComputePipelines,
         },
-        renderer::{RenderContext, RenderDevice},
+        renderer::{RenderContext, RenderDevice, ViewQuery},
     },
     shader::ShaderRef,
 };
@@ -64,17 +61,9 @@ where
             .insert_resource(ComputePipelineIds::<CM>(HashMap::default()))
             .init_resource::<NannouComputePipeline<CM>>()
             .init_resource::<SpecializedComputePipelines<NannouComputePipeline<CM>>>()
-            .add_render_graph_node::<ViewNodeRunner<NannouComputeNode<CM>>>(
+            .add_systems(
                 Core3d,
-                NannouComputeNodeLabel,
-            )
-            .add_render_graph_edges(
-                Core3d,
-                (
-                    Node3d::EndPrepasses,
-                    NannouComputeNodeLabel,
-                    Node3d::StartMainPass,
-                ),
+                nannou_compute_system::<CM>.in_set(Core3dSystems::Prepass),
             );
     }
 }
@@ -146,6 +135,7 @@ fn prepare_bind_group<CM>(
     mut commands: Commands,
     pipeline: Res<NannouComputePipeline<CM>>,
     render_device: Res<RenderDevice>,
+    pipeline_cache: Res<PipelineCache>,
     views_q: Query<(Entity, &ComputeModel<CM>)>,
     mut bind_group_param: StaticSystemParam<CM::Param>,
 ) where
@@ -154,7 +144,12 @@ fn prepare_bind_group<CM>(
     for (view, compute_model) in views_q.iter() {
         let bind_group = compute_model
             .0
-            .as_bind_group(&pipeline.layout, &render_device, &mut bind_group_param)
+            .as_bind_group(
+                &pipeline.layout_descriptor,
+                &render_device,
+                &pipeline_cache,
+                &mut bind_group_param,
+            )
             .expect("Failed to create bind group");
         commands
             .entity(view)
@@ -186,7 +181,7 @@ where
     CM: Compute,
 {
     shader: Handle<Shader>,
-    layout: BindGroupLayout,
+    layout_descriptor: BindGroupLayoutDescriptor,
     _compute_model: std::marker::PhantomData<CM>,
 }
 
@@ -205,7 +200,7 @@ where
         };
         NannouComputePipeline {
             shader: shader.clone(),
-            layout: CM::bind_group_layout(&render_device),
+            layout_descriptor: CM::bind_group_layout_descriptor(&render_device),
             _compute_model: std::marker::PhantomData,
         }
     }
@@ -225,8 +220,8 @@ where
     fn specialize(&self, key: Self::Key) -> ComputePipelineDescriptor {
         ComputePipelineDescriptor {
             label: Some("NannouComputePipeline".into()),
-            layout: vec![self.layout.clone()],
-            push_constant_ranges: Vec::new(),
+            layout: vec![self.layout_descriptor.clone()],
+            immediate_size: 0,
             shader: self.shader.clone(),
             shader_defs: vec![],
             entry_point: Some(Cow::from(key.shader_entry)),
@@ -235,51 +230,31 @@ where
     }
 }
 
-#[derive(Debug, Hash, PartialEq, Eq, Clone, RenderLabel)]
-struct NannouComputeNodeLabel;
-
-struct NannouComputeNode<CM>(std::marker::PhantomData<CM>);
-
-impl<CM> FromWorld for NannouComputeNode<CM>
-where
+fn nannou_compute_system<CM>(
+    view: ViewQuery<(&ComputeBindGroup, &ComputeState<CM::State>)>,
+    mut ctx: RenderContext,
+    pipeline_cache: Res<PipelineCache>,
+    pipeline_ids: Res<ComputePipelineIds<CM>>,
+) where
     CM: Compute,
 {
-    fn from_world(_world: &mut World) -> Self {
-        Self(std::marker::PhantomData)
-    }
+    let (bind_group, state) = view.into_inner();
+    let Some(pipeline_id) = pipeline_ids.get(&state.current) else {
+        return;
+    };
+    let Some(pipeline) = pipeline_cache.get_compute_pipeline(*pipeline_id) else {
+        return;
+    };
+    let mut pass = ctx
+        .command_encoder()
+        .begin_compute_pass(&ComputePassDescriptor::default());
+    pass.set_bind_group(0, &bind_group.0, &[]);
+    pass.set_pipeline(pipeline);
+    let (x, y, z) = CM::dispatch_size(&state.current);
+    pass.dispatch_workgroups(x, y, z);
 }
 
-impl<CM> ViewNode for NannouComputeNode<CM>
-where
-    CM: Compute,
-{
-    type ViewQuery = (&'static ComputeBindGroup, &'static ComputeState<CM::State>);
-
-    fn run<'w>(
-        &self,
-        _graph: &mut RenderGraphContext,
-        render_context: &mut RenderContext<'w>,
-        (bind_group, state): QueryItem<'w, '_, Self::ViewQuery>,
-        world: &'w World,
-    ) -> Result<(), NodeRunError> {
-        let pipeline_cache = world.resource::<PipelineCache>();
-        let pipeline_ids = world.resource::<ComputePipelineIds<CM>>();
-        let Some(pipeline_id) = pipeline_ids.get(&state.current) else {
-            return Ok(());
-        };
-        let Some(pipeline) = pipeline_cache.get_compute_pipeline(*pipeline_id) else {
-            return Ok(());
-        };
-        let mut pass = render_context
-            .command_encoder()
-            .begin_compute_pass(&ComputePassDescriptor::default());
-        pass.set_bind_group(0, &bind_group.0, &[]);
-        pass.set_pipeline(pipeline);
-        let (x, y, z) = CM::dispatch_size(&state.current);
-        pass.dispatch_workgroups(x, y, z);
-        Ok(())
-    }
-}
+use bevy::render::render_resource::BindGroup;
 
 pub trait Compute: AsBindGroup + Clone + Send + Sync + 'static {
     type State: Default + Eq + PartialEq + Hash + Clone + Send + Sync + 'static;

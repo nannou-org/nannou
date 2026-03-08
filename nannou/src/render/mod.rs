@@ -1,27 +1,21 @@
 use crate::{
     app::{ModelHolder, RenderFnRes},
-    frame::Frame,
+    frame::{ExtractedWindowsScaleFactor, Frame},
     prelude::bevy_render::extract_resource::extract_resource,
 };
 use bevy::{
     app::{App, Plugin},
-    core_pipeline::core_3d::graph::{Core3d, Node3d},
-    ecs::{
-        entity::Entity,
-        query::QueryItem,
-        world::{FromWorld, World},
-    },
+    core_pipeline::schedule::{Core3d, Core3dSystems},
+    ecs::entity::Entity,
+    prelude::{IntoScheduleConfigs, Res},
     render::{
         ExtractSchedule,
-        render_graph::{
-            NodeRunError, RenderGraphContext, RenderGraphExt, RenderLabel, ViewNode, ViewNodeRunner,
-        },
-        renderer::RenderContext,
-        view::{ExtractedView, ExtractedWindows, ViewTarget},
+        renderer::{RenderContext, RenderDevice, ViewQuery},
+        view::{ExtractedWindows, ViewTarget},
     },
     time::Time,
 };
-use std::{hash::Hash, ops::Deref};
+use std::ops::Deref;
 
 pub mod compute;
 
@@ -45,103 +39,70 @@ where
             return;
         };
 
-        render_app.add_systems(
-            ExtractSchedule,
-            (
-                extract_resource::<RenderFnRes<M>>,
-                extract_resource::<ModelHolder<M>>,
-            ),
-        );
-    }
-
-    fn finish(&self, app: &mut App) {
-        let Some(render_app) = app.get_sub_app_mut(bevy::render::RenderApp) else {
-            return;
-        };
-
         render_app
-            .add_render_graph_node::<ViewNodeRunner<NannouRenderNode<M>>>(
-                Core3d,
-                NannouRenderNodeLabel,
-            )
-            .add_render_graph_edges(
-                Core3d,
+            .add_systems(
+                ExtractSchedule,
                 (
-                    Node3d::MainTransparentPass,
-                    NannouRenderNodeLabel,
-                    Node3d::EndMainPass,
+                    extract_resource::<RenderFnRes<M>, ()>,
+                    extract_resource::<ModelHolder<M>, ()>,
                 ),
+            )
+            .add_systems(
+                Core3d,
+                nannou_render_system::<M>.in_set(Core3dSystems::MainPass),
             );
     }
 }
 
-pub struct RenderApp<'w> {
-    world: &'w World,
+pub struct RenderApp {
+    elapsed_secs: f32,
+    delta_secs: f32,
 }
 
-impl<'w> RenderApp<'w> {
-    pub fn new(world: &'w World) -> Self {
-        Self { world }
-    }
-
+impl RenderApp {
     /// Get the elapsed seconds since startup.
     pub fn time(&self) -> f32 {
-        let time = self.world.resource::<Time>();
-        time.elapsed_secs()
+        self.elapsed_secs
     }
 
     /// Get the elapsed seconds since the last frame.
     pub fn time_delta(&self) -> f32 {
-        let time = self.world.resource::<Time>();
-        time.delta_secs()
+        self.delta_secs
     }
 }
 
-#[derive(Debug, Hash, PartialEq, Eq, Clone, RenderLabel)]
-struct NannouRenderNodeLabel;
-
-pub(crate) struct NannouRenderNode<M>(std::marker::PhantomData<M>);
-
-impl<M> FromWorld for NannouRenderNode<M>
-where
+fn nannou_render_system<M>(
+    view: ViewQuery<(Entity, &ViewTarget)>,
+    mut ctx: RenderContext,
+    render_fn: Option<Res<RenderFnRes<M>>>,
+    model: Option<Res<ModelHolder<M>>>,
+    extracted_windows: Res<ExtractedWindows>,
+    render_device: Res<RenderDevice>,
+    scale_factors: Res<ExtractedWindowsScaleFactor>,
+    time: Res<Time>,
+) where
     M: Send + Sync + Clone + 'static,
 {
-    fn from_world(_: &mut World) -> Self {
-        Self(std::marker::PhantomData)
-    }
-}
+    let (Some(render_fn_res), Some(model)) = (render_fn, model) else {
+        return;
+    };
+    let Some(render_fn) = &**render_fn_res else {
+        return;
+    };
 
-impl<M> ViewNode for NannouRenderNode<M>
-where
-    M: Send + Sync + Clone + 'static,
-{
-    type ViewQuery = (Entity, &'static ViewTarget, &'static ExtractedView);
+    let (view_entity, view_target) = view.into_inner();
+    let render_app = RenderApp {
+        elapsed_secs: time.elapsed_secs(),
+        delta_secs: time.delta_secs(),
+    };
+    let frame = Frame::new(
+        &render_device,
+        &scale_factors,
+        view_entity,
+        view_target,
+        &extracted_windows,
+        &mut ctx,
+    );
 
-    fn run<'w>(
-        &self,
-        _graph: &mut RenderGraphContext,
-        render_context: &mut RenderContext<'w>,
-        (view_entity, view_target, _extracted_view): QueryItem<'w, '_, Self::ViewQuery>,
-        world: &'w World,
-    ) -> Result<(), NodeRunError> {
-        let render_fn = world.resource::<RenderFnRes<M>>();
-        let Some(render_fn) = render_fn.as_ref() else {
-            return Ok(());
-        };
-
-        let extracted_windows = world.resource::<ExtractedWindows>();
-        let model = world.resource::<ModelHolder<M>>();
-        let render_app = RenderApp::new(world);
-        let frame = Frame::new(
-            world,
-            view_entity,
-            view_target,
-            extracted_windows,
-            render_context,
-        );
-
-        render_fn(&render_app, &model.deref(), frame);
-
-        Ok(())
-    }
+    render_fn(&render_app, &model.deref(), frame);
 }

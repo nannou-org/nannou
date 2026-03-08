@@ -2,9 +2,9 @@ use crate::render::IsfInputsUniform;
 use bevy::prelude::*;
 use bevy::reflect::utility::NonGenericTypeInfoCell;
 use bevy::reflect::{
-    ApplyError, DynamicStruct, FieldIter, FromType, GetTypeRegistration, NamedField,
-    ReflectFromPtr, ReflectKind, ReflectMut, ReflectOwned, ReflectRef, StructInfo, TypeInfo,
-    TypeRegistration, Typed,
+    ApplyError, FromType, GetTypeRegistration, NamedField, ReflectFromPtr, ReflectKind, ReflectMut,
+    ReflectOwned, ReflectRef, TypeInfo, TypeRegistration, Typed,
+    structs::{DynamicStruct, FieldIter, StructInfo},
 };
 use bevy::render::extract_resource::ExtractResource;
 use bytemuck::{Pod, Zeroable};
@@ -254,6 +254,10 @@ impl Struct for IsfInputs {
         self.keys().nth(index).map(|s| s.as_str())
     }
 
+    fn index_of_name(&self, name: &str) -> Option<usize> {
+        self.keys().position(|k| k == name)
+    }
+
     fn field_len(&self) -> usize {
         self.len()
     }
@@ -279,8 +283,7 @@ impl PartialReflect for IsfInputs {
 
     fn try_apply(&mut self, value: &dyn PartialReflect) -> Result<(), ApplyError> {
         if let ReflectRef::Struct(struct_value) = value.reflect_ref() {
-            for (i, value) in struct_value.iter_fields().enumerate() {
-                let name = struct_value.name_at(i).unwrap();
+            for (name, value) in struct_value.iter_fields() {
                 if let Some(v) = self.field_mut(name) {
                     v.try_apply(value)?;
                 }
@@ -405,8 +408,7 @@ pub fn struct_partial_eq(a: &IsfInputs, b: &dyn PartialReflect) -> Option<bool> 
         return Some(false);
     }
 
-    for (i, value) in struct_value.iter_fields().enumerate() {
-        let name = struct_value.name_at(i).unwrap();
+    for (name, value) in struct_value.iter_fields() {
         if let Some(field_value) = a.get(name) {
             let eq_result = field_value.reflect_partial_eq(value);
             if let failed @ (Some(false) | None) = eq_result {

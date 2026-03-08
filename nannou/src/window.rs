@@ -13,6 +13,7 @@ use std::{
 use crate::prelude::{MonitorSelection, render::NannouCamera};
 use crate::{App, geom::Point2, glam::Vec2, prelude::WindowResizeConstraints};
 use bevy::{
+    camera::Hdr,
     camera::RenderTarget,
     camera::visibility::RenderLayers,
     input::mouse::MouseWheel,
@@ -20,10 +21,7 @@ use bevy::{
     render::{
         extract_component::ExtractComponent,
         renderer::{RenderDevice, RenderQueue},
-        view::{
-            Hdr,
-            screenshot::{Screenshot, save_to_disk},
-        },
+        view::screenshot::{Screenshot, save_to_disk},
     },
     window::{CursorGrabMode, CursorIcon, PrimaryWindow, WindowLevel, WindowMode, WindowRef},
 };
@@ -478,34 +476,34 @@ where
 
         if let Some(camera) = self.camera {
             // Update the camera's render target to be the window.
+            self.app
+                .component_world_mut()
+                .entity_mut(camera)
+                .insert(RenderTarget::Window(WindowRef::Entity(entity)));
             let mut q = self
                 .app
                 .component_world_mut()
-                .query::<(&mut Camera, Option<&mut RenderLayers>)>();
-            if let Ok((mut camera, layers)) = q.get_mut(&mut self.app.component_world_mut(), camera)
-            {
-                camera.target = RenderTarget::Window(WindowRef::Entity(entity));
-                if let None = layers {
-                    self.app
-                        .component_world_mut()
-                        .entity_mut(self.camera.unwrap())
-                        .insert(layer.clone());
-                }
+                .query::<Option<&RenderLayers>>();
+            if let Ok(None) = q.get(&*self.app.component_world_mut(), camera) {
+                self.app
+                    .component_world_mut()
+                    .entity_mut(camera)
+                    .insert(layer.clone());
             }
         } else {
             info!("No camera provided for window, creating a default camera");
-            let entity = self
+            let cam_entity = self
                 .app
                 .component_world_mut()
                 .spawn((
                     Camera {
-                        target: RenderTarget::Window(WindowRef::Entity(entity)),
                         clear_color: self
                             .clear_color
                             .map(ClearColorConfig::Custom)
                             .unwrap_or(ClearColorConfig::None),
                         ..default()
                     },
+                    RenderTarget::Window(WindowRef::Entity(entity)),
                     Transform::from_xyz(0.0, 0.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
                     Projection::Orthographic(OrthographicProjection::default_3d()),
                     layer.clone(),
@@ -515,7 +513,7 @@ where
             if self.hdr {
                 self.app
                     .component_world_mut()
-                    .entity_mut(entity)
+                    .entity_mut(cam_entity)
                     .insert(Hdr);
             }
         }
@@ -994,10 +992,10 @@ impl<'a, 'w> Window<'a, 'w> {
         let mut msaa_q = self
             .app
             .component_world_mut()
-            .query_filtered::<(&Camera, &Msaa), With<NannouCamera>>();
-        for (camera, msaa) in msaa_q.iter(&*self.app.component_world()) {
-            if let RenderTarget::Window(WindowRef::Entity(entity)) = camera.target {
-                if entity == self.entity {
+            .query_filtered::<(&RenderTarget, &Msaa), With<NannouCamera>>();
+        for (render_target, msaa) in msaa_q.iter(&*self.app.component_world()) {
+            if let RenderTarget::Window(WindowRef::Entity(entity)) = render_target {
+                if *entity == self.entity {
                     return msaa.samples();
                 }
             }
