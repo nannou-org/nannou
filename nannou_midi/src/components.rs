@@ -45,9 +45,7 @@ pub struct MidiOutputStream {
 
 impl MidiOutputStream {
     pub(crate) fn new() -> Self {
-        Self {
-            outbox: Vec::new(),
-        }
+        Self { outbox: Vec::new() }
     }
 
     pub fn send(&mut self, msg: MidiMessage) {

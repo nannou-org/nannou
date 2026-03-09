@@ -5,12 +5,12 @@ use bevy::asset::RenderAssetUsages;
 use bevy::prelude::*;
 use bevy::render::render_resource::{Extent3d, TextureDimension};
 use flume::{Receiver, Sender};
+use nokhwa::Camera;
 use nokhwa::pixel_format::RgbFormat;
 use nokhwa::utils::{
     ApiBackend, CameraFormat, CameraIndex, FrameFormat, RequestedFormat, RequestedFormatType,
     Resolution,
 };
-use nokhwa::Camera;
 
 use crate::components::*;
 use crate::events::*;
@@ -158,12 +158,12 @@ fn enumerate_webcam_devices(
                     commands
                         .entity(stream_entity)
                         .remove::<(WebcamCapture, WebcamStream)>();
-                    commands.entity(stream_entity).trigger(|e| {
-                        WebcamDisconnected {
+                    commands
+                        .entity(stream_entity)
+                        .trigger(|e| WebcamDisconnected {
                             entity: e,
                             reason: "device removed".to_string(),
-                        }
-                    });
+                        });
                 }
             }
             commands
@@ -191,17 +191,15 @@ fn open_webcams(
                 None => {
                     let msg = "no available webcam device found";
                     warn!("{msg}");
+                    commands.entity(stream_entity).insert(WebcamError {
+                        message: msg.to_string(),
+                    });
                     commands
                         .entity(stream_entity)
-                        .insert(WebcamError {
-                            message: msg.to_string(),
-                        });
-                    commands.entity(stream_entity).trigger(|e| {
-                        WebcamDisconnected {
+                        .trigger(|e| WebcamDisconnected {
                             entity: e,
                             reason: msg.to_string(),
-                        }
-                    });
+                        });
                     continue;
                 }
             }
@@ -212,33 +210,29 @@ fn open_webcams(
             .any(|c| c.device_entity == device_entity)
         {
             let msg = "device already in use by another stream";
+            commands.entity(stream_entity).insert(WebcamError {
+                message: msg.to_string(),
+            });
             commands
                 .entity(stream_entity)
-                .insert(WebcamError {
-                    message: msg.to_string(),
-                });
-            commands.entity(stream_entity).trigger(|e| {
-                WebcamDisconnected {
+                .trigger(|e| WebcamDisconnected {
                     entity: e,
                     reason: msg.to_string(),
-                }
-            });
+                });
             continue;
         }
 
         let Ok((_, native_index)) = devices.get(device_entity) else {
             let msg = "referenced device entity not found";
+            commands.entity(stream_entity).insert(WebcamError {
+                message: msg.to_string(),
+            });
             commands
                 .entity(stream_entity)
-                .insert(WebcamError {
-                    message: msg.to_string(),
-                });
-            commands.entity(stream_entity).trigger(|e| {
-                WebcamDisconnected {
+                .trigger(|e| WebcamDisconnected {
                     entity: e,
                     reason: msg.to_string(),
-                }
-            });
+                });
             continue;
         };
 
@@ -264,11 +258,9 @@ fn open_webcams(
             Ok(c) => c,
             Err(err) => {
                 let msg = format!("failed to create camera: {err}");
-                commands
-                    .entity(stream_entity)
-                    .insert(WebcamError {
-                        message: msg.clone(),
-                    });
+                commands.entity(stream_entity).insert(WebcamError {
+                    message: msg.clone(),
+                });
                 let reason = msg;
                 commands
                     .entity(stream_entity)
@@ -282,20 +274,16 @@ fn open_webcams(
                 let resolution = stream.resolution;
                 let framerate = stream.framerate;
                 commands.entity(stream_entity).insert((capture, stream));
-                commands
-                    .entity(stream_entity)
-                    .trigger(|e| WebcamConnected {
-                        entity: e,
-                        resolution,
-                        framerate,
-                    });
+                commands.entity(stream_entity).trigger(|e| WebcamConnected {
+                    entity: e,
+                    resolution,
+                    framerate,
+                });
             }
             Err(msg) => {
-                commands
-                    .entity(stream_entity)
-                    .insert(WebcamError {
-                        message: msg.clone(),
-                    });
+                commands.entity(stream_entity).insert(WebcamError {
+                    message: msg.clone(),
+                });
                 let reason = msg;
                 commands
                     .entity(stream_entity)
@@ -384,10 +372,7 @@ fn upload_native_frames(
         if stream.resolution != new_resolution {
             warn!(
                 "camera resolution changed from {}x{} to {}x{}",
-                stream.resolution.x,
-                stream.resolution.y,
-                new_resolution.x,
-                new_resolution.y,
+                stream.resolution.x, stream.resolution.y, new_resolution.x, new_resolution.y,
             );
             stream.resolution = new_resolution;
         }

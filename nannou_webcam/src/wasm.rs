@@ -58,7 +58,12 @@ struct WasmStreamDeviceIndex(u32);
 pub(crate) fn init(app: &mut App) {
     app.add_systems(
         PreUpdate,
-        (enumerate_wasm_devices, open_webcams_wasm, upload_wasm_frames).chain(),
+        (
+            enumerate_wasm_devices,
+            open_webcams_wasm,
+            upload_wasm_frames,
+        )
+            .chain(),
     );
 
     app.add_observer(on_webcam_removed_wasm);
@@ -106,17 +111,15 @@ fn open_webcams_wasm(
                 Ok((_, idx)) => idx.0,
                 Err(_) => {
                     let msg = "device entity not found";
+                    commands.entity(stream_entity).insert(WebcamError {
+                        message: msg.to_string(),
+                    });
                     commands
                         .entity(stream_entity)
-                        .insert(WebcamError {
-                            message: msg.to_string(),
-                        });
-                    commands.entity(stream_entity).trigger(|e| {
-                        WebcamDisconnected {
+                        .trigger(|e| WebcamDisconnected {
                             entity: e,
                             reason: msg.to_string(),
-                        }
-                    });
+                        });
                     continue;
                 }
             }
@@ -164,13 +167,11 @@ fn open_webcams_wasm(
         request_camera(device_index, width, height, fps);
 
         let resolution = UVec2::new(1, 1);
-        commands
-            .entity(stream_entity)
-            .trigger(|e| WebcamConnected {
-                entity: e,
-                resolution,
-                framerate: 0,
-            });
+        commands.entity(stream_entity).trigger(|e| WebcamConnected {
+            entity: e,
+            resolution,
+            framerate: 0,
+        });
     }
 }
 

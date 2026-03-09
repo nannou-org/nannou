@@ -91,9 +91,9 @@ fn enumerate_midi_ports(
     let mut matched_entities = Vec::new();
 
     for (name, native_port) in input_ports {
-        let already_exists = existing_ports.iter().any(|(_, n, p)| {
-            n.as_str() == name && p.direction == MidiPortDirection::Input
-        });
+        let already_exists = existing_ports
+            .iter()
+            .any(|(_, n, p)| n.as_str() == name && p.direction == MidiPortDirection::Input);
         if !already_exists {
             let entity = commands
                 .spawn((
@@ -118,9 +118,9 @@ fn enumerate_midi_ports(
     }
 
     for (name, native_port) in output_ports {
-        let already_exists = existing_ports.iter().any(|(_, n, p)| {
-            n.as_str() == name && p.direction == MidiPortDirection::Output
-        });
+        let already_exists = existing_ports
+            .iter()
+            .any(|(_, n, p)| n.as_str() == name && p.direction == MidiPortDirection::Output);
         if !already_exists {
             let entity = commands
                 .spawn((
