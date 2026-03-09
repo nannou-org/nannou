@@ -20,7 +20,7 @@ fn model(app: &App) -> Model {
 
 fn update(app: &App, model: &mut Model) {
     let mut images = app.assets_mut::<Image>();
-    let Some(image) = images.get_mut(&model.texture) else {
+    let Some(mut image) = images.get_mut(&model.texture) else {
         return;
     };
 
