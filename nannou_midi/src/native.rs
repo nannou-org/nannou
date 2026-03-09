@@ -60,7 +60,6 @@ fn enumerate_midi_ports(
     }
     timer.last_check = now;
 
-    // Enumerate input ports
     let input_ports = match midir::MidiInput::new("nannou_midi_enum") {
         Ok(midi_in) => {
             let ports = midi_in.ports();
@@ -75,7 +74,6 @@ fn enumerate_midi_ports(
         }
     };
 
-    // Enumerate output ports
     let output_ports = match midir::MidiOutput::new("nannou_midi_enum") {
         Ok(midi_out) => {
             let ports = midi_out.ports();
