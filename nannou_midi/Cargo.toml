@@ -1,19 +1,12 @@
-[workspace]
-
 [package]
 name = "nannou_midi"
-version = "0.1.0"
-edition = "2024"
-license = "MIT OR Apache-2.0"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
 
 [dependencies]
-crossbeam-channel = "0.5"
-
-[dependencies.bevy]
-git = "https://github.com/bevyengine/bevy"
-branch = "main"
-default-features = false
-features = ["bevy_log"]
+crossbeam-channel = { workspace = true }
+bevy = { workspace = true, features = ["bevy_log"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-midir = "0.10"
+midir = { workspace = true }

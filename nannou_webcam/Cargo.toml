@@ -1,0 +1,42 @@
+[package]
+name = "nannou_webcam"
+description = "webcam plugin for nannou/bevy"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+default = []
+
+[dependencies]
+flume = { workspace = true }
+bevy = { workspace = true, features = [
+  "bevy_asset",
+  "bevy_camera",
+  "bevy_core_pipeline",
+  "bevy_image",
+  "bevy_log",
+  "bevy_render",
+] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+nokhwa = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+console_error_panic_hook = { workspace = true }
+getrandom = { workspace = true, features = ["wasm_js"] }
+wasm-bindgen = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies.web-sys]
+workspace = true
+features = [
+  'Document',
+  'Element',
+  'HtmlElement',
+  'Location',
+  'Node',
+  'Window',
+]
+
+[lib]
+path = "src/lib.rs"

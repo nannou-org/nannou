@@ -18,7 +18,8 @@ bevy = { workspace = true, default-features = false, features = [
 lyon.workspace = true
 nannou_core = { path = "../nannou_core" }
 notosans = { workspace = true, optional = true }
-rusttype = { workspace = true, features = ["gpu_cache"] }
+parley.workspace = true
+skrifa.workspace = true
 rayon.workspace = true
 uuid.workspace = true
 bitflags.workspace = true

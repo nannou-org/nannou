@@ -3,7 +3,9 @@ members = [
     "nannou_derive",
     "nannou_draw",
     "nannou_isf",
+    "nannou_midi",
     "nannou_video",
+    "nannou_webcam",
     "examples",
     "generative_design",
     "guide/book_tests",
@@ -35,11 +37,13 @@ bevy = { git = "https://github.com/bevyengine/bevy.git", branch = "main", defaul
 #bevy-inspector-egui = "0.35"
 bitflags = "2.9"
 bytemuck = "1.22"
+crossbeam-channel = "0.5"
 cpal = "0.13"
 dasp_sample = "0.11"
 ether-dream = "~0.2.5"
 evalexpr = "12"
 find_folder = "0.3"
+flume = "0.11"
 futures = "0.3"
 glam = { version = "0.32",  default-features = false }
 hound = "3.4"
@@ -49,16 +53,19 @@ image = { version = "0.25", default-features = false }
 isf = "0.1.0"
 lasy = "0.4"
 lyon = "1.0"
+midir = "0.10"
+nokhwa = { version = "0.10", features = ["input-native", "camera-sync-impl"] }
 noise = "0.7"
 notosans = "0.1"
 num-traits = {version = "0.2", default-features = false }
+parley = { version = "0.7.0", default-features = false, features = ["std", "system"] }
 pennereq = "0.3"
 quote = "1"
 rand = {version = "0.9.0", default-features = false }
 rayon = "1.10"
 ringbuf = "0.4"
 rosc = "0.11"
-rusttype = "0.8"
+skrifa = "0.37.0"
 semver = "1"
 serde = "1"
 serde_json = "1"
@@ -72,5 +79,9 @@ usvg = "0.4"
 uuid = "1.8"
 video-rs = "0.11"
 walkdir = "2"
+wasm-bindgen = "0.2"
+web-sys = "0.3"
+console_error_panic_hook = "0.1"
+getrandom = { version = "0.3", default-features = false }
 wgpu = "28"
 wikipedia = "0.5"

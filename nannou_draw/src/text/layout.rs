@@ -1,6 +1,6 @@
 //! Items related to the styling of text.
 
-use crate::text::{Align, Font, FontSize, Justify, Scalar, Wrap};
+use crate::text::{Align, FontSize, Justify, Scalar, Wrap};
 
 /// A context for building a text layout.
 #[derive(Clone, Debug, Default)]
@@ -9,7 +9,7 @@ pub struct Builder {
     pub line_wrap: Option<Option<Wrap>>,
     pub font_size: Option<FontSize>,
     pub justify: Option<Justify>,
-    pub font: Option<Option<Font>>,
+    pub font_family: Option<Option<String>>,
     pub y_align: Option<Align>,
 }
 
@@ -20,7 +20,7 @@ pub struct Layout {
     pub line_wrap: Option<Wrap>,
     pub justify: Justify,
     pub font_size: FontSize,
-    pub font: Option<Font>,
+    pub font_family: Option<String>,
     pub y_align: Align,
 }
 
@@ -66,9 +66,9 @@ impl Builder {
         self.line_wrap(Some(Wrap::Character))
     }
 
-    /// A method for specifying the `Font` used for displaying the `Text`.
-    pub fn font(mut self, font: Font) -> Self {
-        self.font = Some(Some(font));
+    /// A method for specifying the font family used for displaying the text.
+    pub fn font_family(mut self, family: impl Into<String>) -> Self {
+        self.font_family = Some(Some(family.into()));
         self
     }
 
@@ -124,7 +124,7 @@ impl Builder {
 
     /// Set all the parameters via an existing `Layout`
     pub fn layout(mut self, layout: &Layout) -> Self {
-        self.font = Some(layout.font.clone());
+        self.font_family = Some(layout.font_family.clone());
         self.line_spacing(layout.line_spacing)
             .line_wrap(layout.line_wrap)
             .justify(layout.justify)
@@ -139,7 +139,7 @@ impl Builder {
             line_wrap: self.line_wrap.unwrap_or(DEFAULT_LINE_WRAP),
             justify: self.justify.unwrap_or(DEFAULT_JUSTIFY),
             font_size: self.font_size.unwrap_or(DEFAULT_FONT_SIZE),
-            font: self.font.unwrap_or(None),
+            font_family: self.font_family.unwrap_or(None),
             y_align: self.y_align.unwrap_or(DEFAULT_Y_ALIGN),
         }
     }
@@ -152,7 +152,7 @@ impl Default for Layout {
             line_wrap: DEFAULT_LINE_WRAP,
             justify: DEFAULT_JUSTIFY,
             font_size: DEFAULT_FONT_SIZE,
-            font: None,
+            font_family: None,
             y_align: DEFAULT_Y_ALIGN,
         }
     }
