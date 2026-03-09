@@ -67,7 +67,7 @@ fn model(app: &App) -> Model {
     // Create the render pipeline.
     let bind_group_layout = wgpu::BindGroupLayoutBuilder::new().build(&device);
     let bind_group = wgpu::BindGroupBuilder::new().build(&device, &bind_group_layout);
-    let pipeline_layout = wgpu::create_pipeline_layout(&device, None, &[&bind_group_layout], &[]);
+    let pipeline_layout = wgpu::create_pipeline_layout(&device, None, &[&bind_group_layout], 0);
     let render_pipeline = wgpu::RenderPipelineBuilder::from_layout(&pipeline_layout, &vs_mod)
         .fragment_shader(&fs_mod)
         .color_format(format)

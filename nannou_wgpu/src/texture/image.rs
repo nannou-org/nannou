@@ -23,7 +23,7 @@ pub trait Pixel: image::Pixel {
 /// An `ImageReadMapping` may only be created via `RowPaddedBuffer::read()`.
 pub struct ImageReadMapping<'buffer> {
     buffer: &'buffer wgpu::RowPaddedBuffer,
-    view: wgpu::BufferView<'buffer>,
+    view: wgpu::BufferView,
 }
 
 /// Workaround for the fact that `image::SubImage` requires a `Deref` impl on the wrapped image.

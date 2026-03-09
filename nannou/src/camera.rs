@@ -1,14 +1,15 @@
+use crate::App;
 use crate::prelude::{
     ClearColorConfig, Entity, OrthographicProjection, Vec3, default, render::NannouCamera,
 };
-use crate::{App, prelude::camera::RenderTarget};
+use bevy::camera::RenderTarget;
 use bevy::{
+    camera::Hdr,
     camera::{self, visibility::RenderLayers},
     core_pipeline::tonemapping::Tonemapping,
     math::UVec2,
     post_process::bloom::{Bloom, BloomPrefilter},
     prelude::{Projection, Transform, Vec2},
-    render::view::Hdr,
     window::WindowRef,
 };
 
@@ -26,6 +27,7 @@ pub struct CameraComponents {
     pub tonemapping: Tonemapping,
     pub bloom_settings: Option<Bloom>,
     pub render_layers: RenderLayers,
+    pub render_target: Option<RenderTarget>,
 }
 
 pub struct Builder<'a, 'w> {
@@ -97,7 +99,7 @@ pub trait SetCamera: Sized {
 
     fn window(self, window: Entity) -> Self {
         self.map_camera(|mut camera| {
-            camera.camera.target = RenderTarget::Window(WindowRef::Entity(window));
+            camera.render_target = Some(RenderTarget::Window(WindowRef::Entity(window)));
             camera
         })
     }
@@ -226,6 +228,12 @@ impl<'a, 'w> Builder<'a, 'w> {
                 .entity_mut(entity)
                 .insert(hdr);
         }
+        if let Some(render_target) = self.camera.render_target {
+            self.app
+                .component_world_mut()
+                .entity_mut(entity)
+                .insert(render_target);
+        }
         entity
     }
 }
@@ -262,9 +270,18 @@ impl<'a, 'w> SetCamera for Camera<'a, 'w> {
             &Tonemapping,
             &RenderLayers,
             Option<&Bloom>,
+            Option<&RenderTarget>,
         )>();
-        let (transform, camera, hdr, projection, tonemapping, render_layers, bloom_settings) =
-            camera_q.get(&mut world, self.entity).unwrap();
+        let (
+            transform,
+            camera,
+            hdr,
+            projection,
+            tonemapping,
+            render_layers,
+            bloom_settings,
+            render_target,
+        ) = camera_q.get(&mut world, self.entity).unwrap();
         let camera = CameraComponents {
             transform: transform.clone(),
             camera: camera.clone(),
@@ -273,6 +290,7 @@ impl<'a, 'w> SetCamera for Camera<'a, 'w> {
             tonemapping: tonemapping.clone(),
             render_layers: render_layers.clone(),
             bloom_settings: bloom_settings.cloned(),
+            render_target: render_target.cloned(),
         };
         let mut camera = f(camera);
         if let Some(bloom_settings) = camera.bloom_settings.take() {
@@ -280,6 +298,9 @@ impl<'a, 'w> SetCamera for Camera<'a, 'w> {
         }
         if let Some(hdr) = camera.hdr.take() {
             world.entity_mut(self.entity).insert(hdr);
+        }
+        if let Some(render_target) = camera.render_target.take() {
+            world.entity_mut(self.entity).insert(render_target);
         }
         world.entity_mut(self.entity).insert({
             let CameraComponents {

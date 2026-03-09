@@ -18,9 +18,10 @@ bevy = { workspace = true, default-features = false, features = [
     "jpeg",
     "zstd_rust",
 ]}
-bevy-inspector-egui = { workspace = true, optional = true }
-bevy_egui = { workspace = true, optional = true }
-bevy_common_assets = { workspace = true, optional = true }
+# TODO: waiting on bevy 0.19 support
+#bevy-inspector-egui = { workspace = true, optional = true }
+#bevy_egui = { workspace = true, optional = true }
+#bevy_common_assets = { workspace = true, optional = true }
 nannou_derive = { path = "../nannou_derive" }
 nannou_draw = { path = "../nannou_draw" }
 nannou_isf = { path = "../nannou_isf", optional = true }
@@ -52,9 +53,10 @@ default = [
     "x11",
     "webgl2",
 ]
-config_json = ["bevy_common_assets/json"]
-config_toml = ["bevy_common_assets/toml"]
-egui = ["bevy_egui", "bevy-inspector-egui"]
+# TODO: waiting on bevy 0.19 support
+#config_json = ["bevy_common_assets/json"]
+#config_toml = ["bevy_common_assets/toml"]
+#egui = ["bevy_egui", "bevy-inspector-egui"]
 hot_reload = ["bevy/file_watcher", "bevy/multi_threaded"]
 isf = ["nannou_isf"]
 nightly = ["nannou_draw/nightly"]

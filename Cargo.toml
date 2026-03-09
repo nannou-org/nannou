@@ -28,10 +28,11 @@ repository = "https://github.com/nannou-org/nannou.git"
 
 [workspace.dependencies]
 audrey = "0.3"
-bevy = { version = "0.17", default-features = false }
-bevy_common_assets = "0.14"
-bevy_egui = "0.38"
-bevy-inspector-egui = "0.35"
+bevy = { git = "https://github.com/bevyengine/bevy.git", branch = "main", default-features = false }
+# TODO: waiting on bevy 0.19 support
+#bevy_common_assets = "0.14"
+#bevy_egui = "0.38"
+#bevy-inspector-egui = "0.35"
 bitflags = "2.9"
 bytemuck = "1.22"
 cpal = "0.13"
@@ -40,7 +41,7 @@ ether-dream = "~0.2.5"
 evalexpr = "12"
 find_folder = "0.3"
 futures = "0.3"
-glam = { version = "0.30",  default-features = false }
+glam = { version = "0.32",  default-features = false }
 hound = "3.4"
 hrtf = "0.8"
 ilda-idtf = "0.1"
@@ -71,5 +72,5 @@ usvg = "0.4"
 uuid = "1.8"
 video-rs = "0.11"
 walkdir = "2"
-wgpu = "26"
+wgpu = "28"
 wikipedia = "0.5"

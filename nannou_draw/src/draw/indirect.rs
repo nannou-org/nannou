@@ -1,6 +1,6 @@
 //! A shader that renders a mesh multiple times in one draw call.
 
-use crate::render::{ShaderModelAsset, ShaderStorageBufferHandle};
+use crate::render::{ShaderBufferHandle, ShaderModelAsset};
 use crate::{
     draw::{Draw, DrawCommand, drawing::Drawing, primitive::Primitive},
     render::{PreparedShaderModel, ShaderModel, queue_shader_model},
@@ -21,7 +21,7 @@ use bevy::{
             AddRenderCommand, PhaseItem, RenderCommand, RenderCommandResult, SetItemPipeline,
             TrackedRenderPass,
         },
-        storage::{GpuShaderStorageBuffer, ShaderStorageBuffer},
+        storage::{GpuShaderBuffer, ShaderBuffer},
     },
 };
 use std::{hash::Hash, marker::PhantomData};
@@ -32,7 +32,7 @@ where
 {
     draw: &'a Draw<SM>,
     primitive_index: Option<usize>,
-    indirect_buffer: Option<Handle<ShaderStorageBuffer>>,
+    indirect_buffer: Option<Handle<ShaderBuffer>>,
 }
 
 impl<'a, SM> Drop for Indirect<'a, SM>
@@ -75,16 +75,12 @@ where
         self
     }
 
-    pub fn buffer(mut self, ssbo: Handle<ShaderStorageBuffer>) -> Indirect<'a, SM> {
+    pub fn buffer(mut self, ssbo: Handle<ShaderBuffer>) -> Indirect<'a, SM> {
         self.indirect_buffer = Some(ssbo);
         self
     }
 
-    fn insert_indirect_draw_command(
-        &self,
-        index: usize,
-        indirect_buffer: Handle<ShaderStorageBuffer>,
-    ) {
+    fn insert_indirect_draw_command(&self, index: usize, indirect_buffer: Handle<ShaderBuffer>) {
         let mut state = self.draw.state.write().unwrap();
         let primitive = state.drawing.remove(&index).unwrap();
         state
@@ -172,16 +168,16 @@ impl<P: PhaseItem> RenderCommand<P> for DrawMeshIndirect {
         SRes<RenderAssets<RenderMesh>>,
         SRes<RenderMeshInstances>,
         SRes<MeshAllocator>,
-        SRes<RenderAssets<GpuShaderStorageBuffer>>,
+        SRes<RenderAssets<GpuShaderBuffer>>,
     );
     type ViewQuery = ();
-    type ItemQuery = Read<ShaderStorageBufferHandle>;
+    type ItemQuery = Read<ShaderBufferHandle>;
 
     #[inline]
     fn render<'w>(
         item: &P,
         _view: (),
-        indirect_buffer: Option<&'w ShaderStorageBufferHandle>,
+        indirect_buffer: Option<&'w ShaderBufferHandle>,
         (meshes, render_mesh_instances, mesh_allocator, ssbos): SystemParamItem<
             'w,
             '_,
@@ -195,7 +191,7 @@ impl<P: PhaseItem> RenderCommand<P> for DrawMeshIndirect {
         else {
             return RenderCommandResult::Skip;
         };
-        let Some(gpu_mesh) = meshes.into_inner().get(mesh_instance.mesh_asset_id) else {
+        let Some(gpu_mesh) = meshes.into_inner().get(mesh_instance.mesh_asset_id()) else {
             return RenderCommandResult::Skip;
         };
         let Some(indirect_buffer) = indirect_buffer else {
@@ -205,7 +201,7 @@ impl<P: PhaseItem> RenderCommand<P> for DrawMeshIndirect {
             return RenderCommandResult::Skip;
         };
         let Some(vertex_buffer_slice) =
-            mesh_allocator.mesh_vertex_slice(&mesh_instance.mesh_asset_id)
+            mesh_allocator.mesh_vertex_slice(&mesh_instance.mesh_asset_id())
         else {
             return RenderCommandResult::Skip;
         };
@@ -215,12 +211,12 @@ impl<P: PhaseItem> RenderCommand<P> for DrawMeshIndirect {
         match &gpu_mesh.buffer_info {
             RenderMeshBufferInfo::Indexed { index_format, .. } => {
                 let Some(index_buffer_slice) =
-                    mesh_allocator.mesh_index_slice(&mesh_instance.mesh_asset_id)
+                    mesh_allocator.mesh_index_slice(&mesh_instance.mesh_asset_id())
                 else {
                     return RenderCommandResult::Skip;
                 };
 
-                pass.set_index_buffer(index_buffer_slice.buffer.slice(..), 0, *index_format);
+                pass.set_index_buffer(index_buffer_slice.buffer.slice(..), *index_format);
                 pass.draw_indexed_indirect(&indirect_buffer.buffer, 0);
             }
             RenderMeshBufferInfo::NonIndexed => {

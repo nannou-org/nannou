@@ -497,7 +497,7 @@ impl<'a> IntoPipelineLayoutDescriptor<'a> for &'a [&'a wgpu::BindGroupLayout] {
         wgpu::PipelineLayoutDescriptor {
             label: Some("nannou render pipeline layout"),
             bind_group_layouts: self,
-            push_constant_ranges: &[],
+            immediate_size: 0,
         }
     }
 }
@@ -561,7 +561,7 @@ fn build(
         depth_stencil,
         multisample,
         fragment,
-        multiview: None,
+        multiview_mask: None,
         cache: None,
     };
 

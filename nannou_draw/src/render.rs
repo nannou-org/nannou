@@ -11,7 +11,7 @@ use bevy::{
         RenderTarget,
         visibility::{NoFrustumCulling, RenderLayers, add_visibility_class},
     },
-    core_pipeline::core_3d::Transparent3d,
+    core_pipeline::core_3d::{Transparent3d, TransparentSortingInfo3d},
     ecs::{
         query::{QueryFilter, QueryItem},
         system::{
@@ -39,12 +39,12 @@ use bevy::{
         },
         render_resource::{
             AsBindGroup, AsBindGroupError, AsBindGroupShaderType, BindGroup, BindGroupId,
-            BindGroupLayout, BindingResources, BlendState, PipelineCache, PolygonMode,
+            BindGroupLayoutDescriptor, BindingResources, BlendState, PipelineCache, PolygonMode,
             RenderPipelineDescriptor, ShaderType, SpecializedMeshPipeline,
             SpecializedMeshPipelineError, SpecializedMeshPipelines,
         },
         renderer::RenderDevice,
-        storage::ShaderStorageBuffer,
+        storage::ShaderBuffer,
         sync_world::MainEntity,
         texture::GpuImage,
         view::ExtractedView,
@@ -120,7 +120,7 @@ impl Plugin for NannouRenderPlugin {
             ExtractComponentPlugin::<InstancedMesh>::default(),
             ExtractComponentPlugin::<DrawIndex>::default(),
             ExtractComponentPlugin::<InstanceRange>::default(),
-            ExtractComponentPlugin::<ShaderStorageBufferHandle>::default(),
+            ExtractComponentPlugin::<ShaderBufferHandle>::default(),
             NannouShaderModelPlugin::<DefaultNannouShaderModel>::default(),
         ))
         .add_systems(First, clear_previous_frame)
@@ -181,17 +181,25 @@ impl<SM: ShaderModel> PreparedShaderModel<SM> {
 impl<SM: ShaderModel> RenderAsset for PreparedShaderModel<SM> {
     type SourceAsset = SM;
 
-    type Param = (SRes<RenderDevice>, SRes<ShaderModelPipeline<SM>>, SM::Param);
+    type Param = (
+        SRes<RenderDevice>,
+        SRes<ShaderModelPipeline<SM>>,
+        SRes<PipelineCache>,
+        SM::Param,
+    );
 
     fn prepare_asset(
         shader_model: Self::SourceAsset,
         _asset_id: AssetId<Self::SourceAsset>,
-        (render_device, pipeline, shader_model_param): &mut SystemParamItem<Self::Param>,
+        (render_device, pipeline, pipeline_cache, shader_model_param): &mut SystemParamItem<
+            Self::Param,
+        >,
         _previous_asset: Option<&Self>,
     ) -> Result<Self, PrepareAssetError<Self::SourceAsset>> {
         match shader_model.as_bind_group(
-            &pipeline.shader_model_layout,
+            &pipeline.shader_model_layout_descriptor,
             render_device,
+            pipeline_cache,
             shader_model_param,
         ) {
             Ok(prepared) => Ok(PreparedShaderModel {
@@ -363,7 +371,7 @@ pub(crate) fn queue_shader_model<SM, QF, RC>(
             else {
                 continue;
             };
-            let Some(mesh) = meshes.get(mesh_instance.mesh_asset_id) else {
+            let Some(mesh) = meshes.get(mesh_instance.mesh_asset_id()) else {
                 continue;
             };
             let mesh_key =
@@ -377,6 +385,7 @@ pub(crate) fn queue_shader_model<SM, QF, RC>(
                 .unwrap();
 
             phase.add(Transparent3d {
+                sorting_info: TransparentSortingInfo3d::AlwaysOnTop,
                 distance: draw_idx.0 as f32,
                 pipeline,
                 entity: (entity, *main_entity),
@@ -392,7 +401,7 @@ pub(crate) fn queue_shader_model<SM, QF, RC>(
 #[derive(Resource)]
 pub struct ShaderModelPipeline<SM> {
     mesh_pipeline: MeshPipeline,
-    shader_model_layout: BindGroupLayout,
+    shader_model_layout_descriptor: BindGroupLayoutDescriptor,
     vertex_shader: Option<Handle<Shader>>,
     fragment_shader: Option<Handle<Shader>>,
     marker: PhantomData<SM>,
@@ -405,7 +414,7 @@ impl<SM: ShaderModel> FromWorld for ShaderModelPipeline<SM> {
 
         ShaderModelPipeline {
             mesh_pipeline: world.resource::<MeshPipeline>().clone(),
-            shader_model_layout: SM::bind_group_layout(render_device),
+            shader_model_layout_descriptor: SM::bind_group_layout_descriptor(render_device),
             vertex_shader: match <SM as ShaderModel>::vertex_shader() {
                 ShaderRef::Default => Some(DEFAULT_NANNOU_SHADER_HANDLE),
                 ShaderRef::Handle(handle) => Some(handle),
@@ -489,13 +498,14 @@ where
             ));
         }
 
-        descriptor
-            .layout
-            .insert(MATERIAL_BIND_GROUP_INDEX, self.shader_model_layout.clone());
+        descriptor.set_layout(
+            MATERIAL_BIND_GROUP_INDEX,
+            self.shader_model_layout_descriptor.clone(),
+        );
 
         let pipeline = ShaderModelPipeline {
             mesh_pipeline: self.mesh_pipeline.clone(),
-            shader_model_layout: self.shader_model_layout.clone(),
+            shader_model_layout_descriptor: self.shader_model_layout_descriptor.clone(),
             vertex_shader: self.vertex_shader.clone(),
             fragment_shader: self.fragment_shader.clone(),
             marker: Default::default(),
@@ -559,28 +569,30 @@ fn update_shader_model<SM>(
 fn update_draw_mesh(
     mut commands: Commands,
     draw_q: Query<&Draw>,
-    mut cameras_q: Query<(&mut Camera, &RenderLayers), With<NannouCamera>>,
+    mut cameras_q: Query<(&mut Camera, &RenderTarget, &RenderLayers), With<NannouCamera>>,
     windows: Query<(&Window, Has<PrimaryWindow>)>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
     for draw in draw_q.iter() {
-        let Some((mut window_camera, window_layers)) = cameras_q.iter_mut().find(|(camera, _)| {
-            if let RenderTarget::Window(WindowRef::Primary) = camera.target {
-                let Ok((_, is_primary)) = windows.get(draw.window) else {
-                    return false;
-                };
-                if is_primary {
-                    return true;
+        let Some((mut window_camera, _, window_layers)) =
+            cameras_q.iter_mut().find(|(_, render_target, _)| {
+                if let RenderTarget::Window(WindowRef::Primary) = render_target {
+                    let Ok((_, is_primary)) = windows.get(draw.window) else {
+                        return false;
+                    };
+                    if is_primary {
+                        return true;
+                    }
                 }
-            }
-            if let RenderTarget::Window(WindowRef::Entity(window)) = camera.target {
-                if window == draw.window {
-                    return true;
+                if let RenderTarget::Window(WindowRef::Entity(window)) = render_target {
+                    if *window == draw.window {
+                        return true;
+                    }
                 }
-            }
 
-            false
-        }) else {
+                false
+            })
+        else {
             bevy::log::debug!("No camera found for window {:?}", draw.window);
             continue;
         };
@@ -703,7 +715,7 @@ fn update_draw_mesh(
                         last_shader_model.expect("No shader model set for instanced draw command");
                     commands.spawn((
                         IndirectMesh,
-                        ShaderStorageBufferHandle(indirect_buffer),
+                        ShaderBufferHandle(indirect_buffer),
                         UntypedShaderModelId(model_id),
                         Mesh3d(mesh.clone()),
                         Transform::default(),
@@ -817,13 +829,11 @@ impl NannouCamera {
     pub fn for_window(window: Entity) -> impl Bundle {
         (
             Self,
-            Camera {
-                target: RenderTarget::Window(WindowRef::Entity(window)),
-                ..default()
-            },
+            Camera::default(),
+            RenderTarget::Window(WindowRef::Entity(window)),
         )
     }
 }
 
 #[derive(Component, ExtractComponent, Clone)]
-pub struct ShaderStorageBufferHandle(pub Handle<ShaderStorageBuffer>);
+pub struct ShaderBufferHandle(pub Handle<ShaderBuffer>);

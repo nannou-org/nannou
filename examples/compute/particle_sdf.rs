@@ -1,5 +1,5 @@
 use bevy::asset::RenderAssetUsages;
-use nannou::prelude::bevy_render::storage::ShaderStorageBuffer;
+use nannou::prelude::bevy_render::storage::ShaderBuffer;
 use nannou::prelude::*;
 
 const WORKGROUP_SIZE: u32 = 64;
@@ -19,8 +19,8 @@ pub enum Shape {
 }
 
 struct Model {
-    particles: Handle<ShaderStorageBuffer>,
-    indirect_params: Handle<ShaderStorageBuffer>,
+    particles: Handle<ShaderBuffer>,
+    indirect_params: Handle<ShaderBuffer>,
     circle_radius: f32,
     size: u32,
     buffer_size: u32,
@@ -79,7 +79,7 @@ impl Default for State {
 #[derive(AsBindGroup, Clone)]
 struct ComputeModel {
     #[storage(0, visibility(compute))]
-    particles: Handle<ShaderStorageBuffer>,
+    particles: Handle<ShaderBuffer>,
     #[uniform(1)]
     circle_center: Vec4,
     #[uniform(2)]
@@ -89,7 +89,7 @@ struct ComputeModel {
     #[uniform(4)]
     resolution: UVec2,
     #[storage(5, visibility(compute))]
-    indirect_params: Handle<ShaderStorageBuffer>,
+    indirect_params: Handle<ShaderBuffer>,
 }
 
 impl Compute for ComputeModel {
@@ -123,7 +123,7 @@ impl Compute for ComputeModel {
 )]
 struct ShaderModel {
     #[storage(0, read_only, visibility(vertex))]
-    particles: Handle<ShaderStorageBuffer>,
+    particles: Handle<ShaderBuffer>,
 }
 
 fn model(app: &App) -> Model {
@@ -237,9 +237,9 @@ fn view(app: &App, model: &Model) {
         .buffer(model.indirect_params.clone());
 }
 
-fn create_particle_buffer(app: &App, size: u32) -> Handle<ShaderStorageBuffer> {
+fn create_particle_buffer(app: &App, size: u32) -> Handle<ShaderBuffer> {
     let particle_size = Particle::min_size().get() as usize;
-    let mut particles = ShaderStorageBuffer::with_size(
+    let mut particles = ShaderBuffer::with_size(
         size as usize * particle_size * 2,
         RenderAssetUsages::RENDER_WORLD,
     );
@@ -249,8 +249,8 @@ fn create_particle_buffer(app: &App, size: u32) -> Handle<ShaderStorageBuffer> {
     particles
 }
 
-fn create_indirect_params_buffer(app: &App, size: u32) -> Handle<ShaderStorageBuffer> {
-    let mut indirect_params = ShaderStorageBuffer::from(DrawIndirectArgs {
+fn create_indirect_params_buffer(app: &App, size: u32) -> Handle<ShaderBuffer> {
+    let mut indirect_params = ShaderBuffer::from(DrawIndirectArgs {
         index_count: 6, // Hardcoded for now, 2 triangles
         instance_count: size,
         first_index: 0,

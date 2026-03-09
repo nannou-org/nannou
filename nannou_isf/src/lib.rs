@@ -4,8 +4,9 @@ use crate::render::{IsfRenderPlugin, IsfRenderTargets};
 use bevy::prelude::*;
 use bevy::render::extract_component::ExtractComponentPlugin;
 use bevy::render::extract_resource::ExtractResourcePlugin;
-use bevy_inspector_egui::inspector_egui_impls::InspectorEguiImpl;
-use bevy_inspector_egui::quick::ResourceInspectorPlugin;
+// TODO: waiting on bevy 0.19 support for bevy-inspector-egui
+//use bevy_inspector_egui::inspector_egui_impls::InspectorEguiImpl;
+//use bevy_inspector_egui::quick::ResourceInspectorPlugin;
 
 mod asset;
 mod inputs;
@@ -24,7 +25,8 @@ impl Plugin for NannouIsfPlugin {
             .add_plugins((
                 IsfRenderPlugin,
                 IsfAssetPlugin,
-                ResourceInspectorPlugin::<IsfInputs>::default(),
+                // TODO: waiting on bevy 0.19 support for bevy-inspector-egui
+                //ResourceInspectorPlugin::<IsfInputs>::default(),
                 ExtractComponentPlugin::<IsfHandle>::default(),
                 ExtractResourcePlugin::<IsfInputs>::default(),
                 ExtractResourcePlugin::<IsfRenderTargets>::default(),
@@ -35,9 +37,10 @@ impl Plugin for NannouIsfPlugin {
             .register_type::<IsfInputValue>()
             .register_asset_reflect::<Image>();
 
-        let type_registry = app.world().resource::<AppTypeRegistry>();
-        let mut type_registry = type_registry.write();
-        type_registry.register_type_data::<Handle<Image>, InspectorEguiImpl>();
+        // TODO: waiting on bevy 0.19 support for bevy-inspector-egui
+        //let type_registry = app.world().resource::<AppTypeRegistry>();
+        //let mut type_registry = type_registry.write();
+        //type_registry.register_type_data::<Handle<Image>, InspectorEguiImpl>();
     }
 }
 

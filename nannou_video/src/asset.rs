@@ -91,7 +91,7 @@ impl DerefMut for Video {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, TypePath)]
 struct VideoLoader;
 
 #[derive(Default, Serialize, Deserialize)]
@@ -110,7 +110,7 @@ impl AssetLoader for VideoLoader {
         settings: &Self::Settings,
         load_context: &mut LoadContext<'_>,
     ) -> Result<Self::Asset, Self::Error> {
-        let path = load_context.asset_path().path();
+        let path = load_context.path().path();
         // TODO: support web loading
         let base_path = FileAssetReader::get_base_path().join("assets");
         let path = base_path.join(path);

@@ -2,7 +2,7 @@
 #![allow(dead_code)]
 
 use bevy::asset::RenderAssetUsages;
-use nannou::prelude::bevy_render::storage::ShaderStorageBuffer;
+use nannou::prelude::bevy_render::storage::ShaderBuffer;
 use nannou::prelude::*;
 
 const NUM_PARTICLES: u32 = 100000;
@@ -23,7 +23,7 @@ pub enum Shape {
 }
 
 struct Model {
-    particles: Handle<ShaderStorageBuffer>,
+    particles: Handle<ShaderBuffer>,
     shape: Shape,
     attract_strength: f32,
 }
@@ -54,7 +54,7 @@ enum State {
 #[derive(AsBindGroup, Clone)]
 struct ComputeModel {
     #[storage(0, visibility(compute))]
-    particles: Handle<ShaderStorageBuffer>,
+    particles: Handle<ShaderBuffer>,
     #[uniform(1)]
     mouse: Vec2,
     #[uniform(2)]
@@ -88,7 +88,7 @@ impl Compute for ComputeModel {
 )]
 struct ShaderModel {
     #[storage(0, read_only, visibility(vertex))]
-    particles: Handle<ShaderStorageBuffer>,
+    particles: Handle<ShaderBuffer>,
 }
 
 fn model(app: &App) -> Model {
@@ -101,7 +101,7 @@ fn model(app: &App) -> Model {
 
     // Create a buffer to store the particles.
     let particle_size = Particle::min_size().get() as usize;
-    let mut particles = ShaderStorageBuffer::with_size(
+    let mut particles = ShaderBuffer::with_size(
         NUM_PARTICLES as usize * particle_size * 2,
         RenderAssetUsages::RENDER_WORLD,
     );
