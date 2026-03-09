@@ -47,10 +47,15 @@ jobs:
         libwayland-dev
         libxkbcommon-dev
         libvulkan-dev
-        libx264-dev
         libclang-dev
-        libffmpeg-compat59
-        ffmpeg
+        libavcodec-dev
+        libavformat-dev
+        libavutil-dev
+        libavfilter-dev
+        libavdevice-dev
+        libswscale-dev
+        libswresample-dev
+        pkg-config
     - name: Install mdbook
       if: matrix.name == 'book'
       run: cargo install mdbook --locked
