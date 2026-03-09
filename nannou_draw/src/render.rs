@@ -120,7 +120,7 @@ impl Plugin for NannouRenderPlugin {
             ExtractComponentPlugin::<InstancedMesh>::default(),
             ExtractComponentPlugin::<DrawIndex>::default(),
             ExtractComponentPlugin::<InstanceRange>::default(),
-            ExtractComponentPlugin::<ShaderStorageBufferHandle>::default(),
+            ExtractComponentPlugin::<ShaderBufferHandle>::default(),
             NannouShaderModelPlugin::<DefaultNannouShaderModel>::default(),
         ))
         .add_systems(First, clear_previous_frame)
@@ -715,7 +715,7 @@ fn update_draw_mesh(
                         last_shader_model.expect("No shader model set for instanced draw command");
                     commands.spawn((
                         IndirectMesh,
-                        ShaderStorageBufferHandle(indirect_buffer),
+                        ShaderBufferHandle(indirect_buffer),
                         UntypedShaderModelId(model_id),
                         Mesh3d(mesh.clone()),
                         Transform::default(),
@@ -836,4 +836,4 @@ impl NannouCamera {
 }
 
 #[derive(Component, ExtractComponent, Clone)]
-pub struct ShaderStorageBufferHandle(pub Handle<ShaderBuffer>);
+pub struct ShaderBufferHandle(pub Handle<ShaderBuffer>);

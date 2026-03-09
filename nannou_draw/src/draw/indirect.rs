@@ -1,6 +1,6 @@
 //! A shader that renders a mesh multiple times in one draw call.
 
-use crate::render::{ShaderModelAsset, ShaderStorageBufferHandle};
+use crate::render::{ShaderBufferHandle, ShaderModelAsset};
 use crate::{
     draw::{Draw, DrawCommand, drawing::Drawing, primitive::Primitive},
     render::{PreparedShaderModel, ShaderModel, queue_shader_model},
@@ -171,13 +171,13 @@ impl<P: PhaseItem> RenderCommand<P> for DrawMeshIndirect {
         SRes<RenderAssets<GpuShaderBuffer>>,
     );
     type ViewQuery = ();
-    type ItemQuery = Read<ShaderStorageBufferHandle>;
+    type ItemQuery = Read<ShaderBufferHandle>;
 
     #[inline]
     fn render<'w>(
         item: &P,
         _view: (),
-        indirect_buffer: Option<&'w ShaderStorageBufferHandle>,
+        indirect_buffer: Option<&'w ShaderBufferHandle>,
         (meshes, render_mesh_instances, mesh_allocator, ssbos): SystemParamItem<
             'w,
             '_,
