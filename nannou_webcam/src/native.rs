@@ -339,7 +339,7 @@ fn open_camera_stream(
 
     let (sender, receiver) = flume::bounded(2);
     let handle = thread::Builder::new()
-        .name("bevy_webcam_capture".to_string())
+        .name("nannou_webcam_capture".to_string())
         .spawn(move || capture_frames(camera, sender))
         .map_err(|e| format!("failed to spawn capture thread: {e}"))?;
 
