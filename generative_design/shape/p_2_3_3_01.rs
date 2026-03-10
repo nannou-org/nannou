@@ -73,8 +73,8 @@ fn model(app: &App) -> Model {
 }
 
 fn update(app: &App, model: &mut Model) {
-    if app.mouse_buttons().just_pressed(MouseButton::Left) {
-        model.distance = pt2(model.x, model.y).distance(pt2(app.mouse().x, app.mouse().x));
+    if app.mouse_buttons().pressed(MouseButton::Left) {
+        model.distance = pt2(model.x, model.y).distance(pt2(app.mouse().x, app.mouse().y));
         model.font_size = model.font_size_min + model.distance as u32 / 2;
 
         let win_rect = app.window_rect();
@@ -92,7 +92,7 @@ fn update(app: &App, model: &mut Model) {
             .w();
 
         if model.distance > model.step_size {
-            model.angle = (app.mouse().x - model.y).atan2(app.mouse().x - model.x);
+            model.angle = (app.mouse().y - model.y).atan2(app.mouse().x - model.x);
             model.counter += 1;
             if model.counter >= model.letters.len() {
                 model.counter = 0;
@@ -107,7 +107,9 @@ fn update(app: &App, model: &mut Model) {
 fn view(app: &App, model: &Model) {
     let draw = app.draw();
 
-    draw.background().color(WHITE);
+    if app.elapsed_frames() == 0 {
+        draw.background().color(WHITE);
+    }
 
     if model.distance > model.step_size {
         let draw = app
@@ -130,7 +132,7 @@ fn view(app: &App, model: &Model) {
 
 fn mouse_pressed(app: &App, model: &mut Model, _button: MouseButton) {
     model.x = app.mouse().x;
-    model.y = app.mouse().x;
+    model.y = app.mouse().y;
 }
 
 fn key_pressed(_app: &App, model: &mut Model, key: KeyCode) {
