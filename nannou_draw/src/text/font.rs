@@ -25,7 +25,7 @@ impl Default for SharedTextCx {
         // Register embedded notosans.
         #[cfg(feature = "notosans")]
         {
-            font.collection.register_fonts(notosans::REGULAR_TTF.into());
+            font.collection.register_fonts(notosans::REGULAR_TTF.to_vec().into(), None);
         }
 
         SharedTextCx(Arc::new(Mutex::new(NannouTextCxInner {
