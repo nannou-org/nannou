@@ -7,61 +7,20 @@ use crate::components::*;
 use crate::events::*;
 
 /// Wrapper providing `Sync` for midir types that are `Send` but not `Sync`.
-/// On Linux (ALSA backend), raw pointers in the ALSA types inhibit `Sync`,
-/// so we use a `Mutex`. On other platforms, the wrapper is transparent.
-mod midi_sync {
-    #[cfg(target_os = "linux")]
-    mod inner {
-        use std::sync::{Mutex, MutexGuard};
+/// Some backends (e.g. ALSA) contain raw pointers that inhibit auto-`Sync`.
+/// `Mutex<T: Send>` is `Sync`, and the lock is never contended since these
+/// components are only accessed from bevy's main schedule.
+pub(crate) struct MidiSync<T>(std::sync::Mutex<T>);
 
-        pub struct MidiSync<T>(Mutex<T>);
-
-        impl<T> MidiSync<T> {
-            pub fn new(val: T) -> Self {
-                Self(Mutex::new(val))
-            }
-
-            pub fn lock(&self) -> MutexGuard<'_, T> {
-                self.0.lock().unwrap()
-            }
-
-            pub fn lock_mut(&self) -> MutexGuard<'_, T> {
-                self.0.lock().unwrap()
-            }
-        }
+impl<T> MidiSync<T> {
+    fn new(val: T) -> Self {
+        Self(std::sync::Mutex::new(val))
     }
 
-    #[cfg(not(target_os = "linux"))]
-    mod inner {
-        use std::cell::UnsafeCell;
-
-        pub struct MidiSync<T>(UnsafeCell<T>);
-
-        // SAFETY: Access is mediated by bevy's scheduler which ensures
-        // exclusive access when the component is queried mutably.
-        unsafe impl<T: Send> Sync for MidiSync<T> {}
-
-        impl<T> MidiSync<T> {
-            pub fn new(val: T) -> Self {
-                Self(UnsafeCell::new(val))
-            }
-
-            pub fn lock(&self) -> &T {
-                // SAFETY: No concurrent access — bevy guarantees single-writer.
-                unsafe { &*self.0.get() }
-            }
-
-            pub fn lock_mut(&self) -> &mut T {
-                // SAFETY: No concurrent access — bevy guarantees single-writer.
-                unsafe { &mut *self.0.get() }
-            }
-        }
+    fn lock(&self) -> std::sync::MutexGuard<'_, T> {
+        self.0.lock().unwrap()
     }
-
-    pub use inner::MidiSync;
 }
-
-use midi_sync::MidiSync;
 
 #[derive(Component)]
 pub(crate) struct NativeInputPort(pub MidiSync<midir::MidiInputPort>);
@@ -407,7 +366,7 @@ fn receive_midi_messages(mut inputs: Query<(&InputConnection, &mut MidiInputStre
 
 fn send_midi_messages(mut outputs: Query<(&OutputConnection, &mut MidiOutputStream)>) {
     for (conn, mut stream) in &mut outputs {
-        let connection = conn.connection.lock_mut();
+        let mut connection = conn.connection.lock();
         for msg in stream.outbox.drain(..) {
             if let Err(err) = connection.send(&msg.msg) {
                 warn!("failed to send MIDI message: {err}");

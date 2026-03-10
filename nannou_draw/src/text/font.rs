@@ -20,19 +20,21 @@ pub struct SharedTextCx(pub Arc<Mutex<NannouTextCxInner>>);
 
 impl Default for SharedTextCx {
     fn default() -> Self {
-        let mut font = FontContext::new();
-
-        // Register embedded notosans.
-        #[cfg(feature = "notosans")]
-        {
-            font.collection
-                .register_fonts(notosans::REGULAR_TTF.to_vec().into(), None);
-        }
-
-        SharedTextCx(Arc::new(Mutex::new(NannouTextCxInner {
+        let font = FontContext::new();
+        let inner = NannouTextCxInner {
             font,
             layout: LayoutContext::new(),
-        })))
+        };
+        let cx = SharedTextCx(Arc::new(Mutex::new(inner)));
+        #[cfg(feature = "notosans")]
+        {
+            cx.0.lock()
+                .unwrap()
+                .font
+                .collection
+                .register_fonts(notosans::REGULAR_TTF.to_vec().into(), None);
+        }
+        cx
     }
 }
 
