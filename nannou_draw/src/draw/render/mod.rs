@@ -3,6 +3,7 @@ use lyon::path::PathEvent;
 use lyon::tessellation::{FillTessellator, StrokeTessellator};
 
 use crate::draw;
+use crate::text::font::SharedTextCx;
 
 /// Draw API primitives that may be rendered via the **Renderer** type.
 pub trait RenderPrimitive {
@@ -22,6 +23,7 @@ pub struct RenderContext<'a> {
     pub stroke_tessellator: &'a mut StrokeTessellator,
     pub output_attachment_size: Vec2, // logical coords
     pub output_attachment_scale_factor: f32,
+    pub text_cx: &'a SharedTextCx,
 }
 
 /// The position and dimensions of the scissor.

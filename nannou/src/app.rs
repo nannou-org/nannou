@@ -9,6 +9,7 @@
 //! - [**LoopMode**](./enum.LoopMode.html) - describes the behaviour of the application event loop.
 #[cfg(not(target_arch = "wasm32"))]
 use bevy::asset::io::file::FileAssetReader;
+use bevy::asset::UnapprovedPathMode;
 use bevy::{
     app::AppExit,
     diagnostic::{DiagnosticsStore, FrameCount, FrameTimeDiagnosticsPlugin},
@@ -255,7 +256,12 @@ where
     pub fn new(model: ModelFn<M>) -> Self {
         let mut app = bevy::app::App::new();
         app.add_plugins((
-            DefaultPlugins.set(WindowPlugin {
+            DefaultPlugins
+                .set(AssetPlugin {
+                    unapproved_path_mode: UnapprovedPathMode::Allow,
+                    ..default()
+                })
+                .set(WindowPlugin {
                 #[cfg(not(target_arch = "wasm32"))]
                 // Don't spawn a  window by default, we'll handle this ourselves
                 primary_window: None,
@@ -689,6 +695,15 @@ impl<'w> App<'w> {
     pub fn resource_mut<T: Resource>(&self) -> std::cell::RefMut<'_, T> {
         let world = self.resource_world_mut();
         std::cell::RefMut::map(world, |world| world.resource_mut::<T>().into_inner())
+    }
+
+    /// Begin building a text layout for immediate measurement and glyph extraction.
+    ///
+    /// This is the `App`-level equivalent of `draw.text_layout()`. Use it in
+    /// update functions where a `Draw` handle is not available.
+    pub fn text<'b>(&self, s: &'b str) -> nannou_draw::text::Builder<'b> {
+        let text_cx = self.resource::<nannou_draw::text::font::SharedTextCx>();
+        nannou_draw::text::Builder::new(s, text_cx.clone())
     }
 
     /// Retrieve the path to the assets directory.

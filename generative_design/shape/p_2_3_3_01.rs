@@ -84,7 +84,8 @@ fn update(app: &App, model: &mut Model) {
             .nth(model.counter)
             .unwrap()
             .to_string();
-        model.step_size = text(letter)
+        model.step_size = app
+            .text(letter)
             .font_size(model.font_size)
             .build(win_rect)
             .bounding_rect()

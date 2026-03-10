@@ -183,6 +183,7 @@ where
             context: draw.context.clone(),
             shader_model: new_id.clone(),
             window: draw.window,
+            text_cx: draw.text_cx.clone(),
             _shader_model: Default::default(),
         };
 

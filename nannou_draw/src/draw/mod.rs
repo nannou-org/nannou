@@ -18,6 +18,7 @@ pub use self::{
 use crate::{
     draw::{indirect::Indirect, instanced::Instanced, mesh::MeshExt},
     render::{DefaultNannouShaderModel, ShaderModel},
+    text::font::SharedTextCx,
 };
 use bevy::{
     asset::UntypedAssetId,
@@ -77,6 +78,8 @@ where
     shader_model: UntypedAssetId,
     /// The window to which this [Draw] instance is associated.
     pub(crate) window: Entity,
+    /// The shared text context for layout and font operations.
+    pub(crate) text_cx: SharedTextCx,
     /// The type of shader model used by this [Draw] instance.
     _shader_model: PhantomData<SM>,
 }
@@ -238,7 +241,7 @@ impl<SM> Draw<SM>
 where
     SM: ShaderModel + Default,
 {
-    pub fn new(window: Entity) -> Self {
+    pub fn new(window: Entity, text_cx: SharedTextCx) -> Self {
         let mut state = State::default();
         let context = DrawContext::default();
         let model = SM::default();
@@ -253,6 +256,7 @@ where
             context,
             shader_model: model_id,
             window,
+            text_cx,
             _shader_model: PhantomData,
         }
     }
@@ -468,11 +472,13 @@ where
         let state = self.state.clone();
         let shader_model = self.shader_model.clone();
         let window = self.window;
+        let text_cx = self.text_cx.clone();
         Draw {
             state,
             context,
             shader_model,
             window,
+            text_cx,
             _shader_model: PhantomData,
         }
     }
@@ -493,6 +499,7 @@ where
         let context = DrawContext { transform };
         let state = self.state.clone();
         let window = self.window;
+        let text_cx = self.text_cx.clone();
         let model_id = UntypedAssetId::Uuid {
             type_id: TypeId::of::<SM2>(),
             uuid: Uuid::new_v4(),
@@ -509,6 +516,7 @@ where
             context,
             shader_model: model_id,
             window,
+            text_cx,
             _shader_model: PhantomData,
         }
     }
@@ -628,6 +636,16 @@ where
             primitive::text::Text::new(ctxt, s)
         };
         self.a(text)
+    }
+
+    /// Begin building a text layout for immediate measurement and glyph extraction.
+    ///
+    /// Unlike `draw.text()` which defers layout to the render pass, this method
+    /// returns a `text::Builder` that can be used to compute layout immediately
+    /// via `.build(rect)`. Useful for measuring text bounds or extracting glyph
+    /// outlines in view functions.
+    pub fn text_layout<'b>(&self, s: &'b str) -> crate::text::Builder<'b> {
+        crate::text::Builder::new(s, self.text_cx.clone())
     }
 
     /// Finish any drawings-in-progress and produce an iterator draining the inner draw commands

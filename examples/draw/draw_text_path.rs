@@ -21,7 +21,7 @@ fn view(app: &App) {
         .w_h(win_rect.w(), win_rect.top());
 
     // Draw the text.
-    let text = text("create\nwith\nnannou").font_size(128).build(win_rect);
+    let text = draw.text_layout("create\nwith\nnannou").font_size(128).build(win_rect);
 
     // Draw rects behind the lines.
     for line_rect in text.line_rects() {
@@ -35,7 +35,7 @@ fn view(app: &App) {
     }
 
     // Draw rects behind the glyphs.
-    for (_glyph, rect) in text.glyphs() {
+    for rect in text.glyphs() {
         let a = map_range(app.mouse().x, win_rect.bottom(), win_rect.top(), 0.0, 1.0);
         draw.rect().xy(rect.xy()).wh(rect.wh()).hsla(
             (rect.x() + rect.y()) / win_rect.w(),
