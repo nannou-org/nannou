@@ -62,7 +62,7 @@ fn model(app: &App) -> Model {
 fn view(app: &App, model: &Model) {
     let draw = app.draw();
     draw.background().color(BLACK);
-    let win_rect = app.main_window().rect().pad_left(20.0);
+    let win_rect = app.window_rect().pad_left(20.0);
     let text = draw
         .text_layout(&model.text_typed)
         .font_size(128)

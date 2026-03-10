@@ -1,12 +1,13 @@
-use bevy::prelude::*;
-
 use crate::draw::drawing::DrawingContext;
+use crate::draw::mesh::MeshExt;
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{self, dimension, orientation, position};
 use crate::draw::properties::{SetColor, SetDimensions, SetOrientation, SetPosition};
 use crate::draw::{self, Drawing};
 use crate::render::ShaderModel;
 use crate::text::{self, Align, FontSize, Justify, Layout, Scalar, Wrap};
+use bevy::prelude::*;
+use lyon::tessellation::{BuffersBuilder, FillOptions, VertexBuffers};
 
 /// Properties related to drawing the **Text** primitive.
 #[derive(Clone, Debug)]
@@ -282,10 +283,7 @@ impl draw::render::RenderPrimitive for Text {
             .color
             .unwrap_or_else(|| theme.fill(&draw::theme::Primitive::Text));
 
-        use crate::draw::mesh::MeshExt;
-        use lyon::tessellation::{BuffersBuilder, FillOptions, VertexBuffers};
-
-        let rect_center = bevy::math::Vec2::new(x, y);
+        let rect_center = Vec2::new(x, y);
         let pos_offset = text_obj.position_offset_value() + rect_center;
 
         let glyph_colors = &self.style.glyph_colors;

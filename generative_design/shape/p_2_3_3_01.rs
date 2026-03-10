@@ -77,7 +77,7 @@ fn update(app: &App, model: &mut Model) {
         model.distance = pt2(model.x, model.y).distance(pt2(app.mouse().x, app.mouse().x));
         model.font_size = model.font_size_min + model.distance as u32 / 2;
 
-        let win_rect = app.main_window().rect();
+        let win_rect = app.window_rect();
         let letter = &model
             .letters
             .chars()
@@ -85,7 +85,7 @@ fn update(app: &App, model: &mut Model) {
             .unwrap()
             .to_string();
         model.step_size = app
-            .text(letter)
+            .text_layout(letter)
             .font_size(model.font_size)
             .build(win_rect)
             .bounding_rect()
@@ -107,9 +107,7 @@ fn update(app: &App, model: &mut Model) {
 fn view(app: &App, model: &Model) {
     let draw = app.draw();
 
-    if app.elapsed_frames() == 0 {
-        draw.background().color(WHITE);
-    }
+    draw.background().color(WHITE);
 
     if model.distance > model.step_size {
         let draw = app
