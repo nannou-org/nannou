@@ -43,6 +43,7 @@ jobs:
         sudo apt-get update &&
         sudo apt-get install --no-install-recommends -y
         libasound2-dev
+        libfontconfig-dev
         libudev-dev
         libwayland-dev
         libxkbcommon-dev

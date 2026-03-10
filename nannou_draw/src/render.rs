@@ -21,12 +21,13 @@ use bevy::{
     },
     mesh::MeshVertexBufferLayoutRef,
     pbr::{
-        DrawMesh, MATERIAL_BIND_GROUP_INDEX, MeshPipeline, MeshPipelineKey, RenderMeshInstances,
-        SetMeshBindGroup, SetMeshViewBindGroup, SetMeshViewBindingArrayBindGroup,
+        DrawMesh, MATERIAL_BIND_GROUP_INDEX, MeshPipeline, MeshPipelineKey, MeshPipelineSet,
+        RenderMeshInstances, SetMeshBindGroup, SetMeshViewBindGroup,
+        SetMeshViewBindingArrayBindGroup,
     },
     prelude::{TypePath, *},
     render::{
-        RenderApp, RenderSystems,
+        RenderApp, RenderStartup, RenderSystems,
         extract_component::{ExtractComponent, ExtractComponentPlugin},
         extract_instances::{ExtractInstance, ExtractInstancesPlugin, ExtractedInstances},
         mesh::RenderMesh,
@@ -161,8 +162,10 @@ where
     }
 
     fn finish(&self, app: &mut App) {
-        app.sub_app_mut(RenderApp)
-            .init_resource::<ShaderModelPipeline<SM>>();
+        app.sub_app_mut(RenderApp).add_systems(
+            RenderStartup,
+            init_shader_model_pipeline::<SM>.after(MeshPipelineSet),
+        );
     }
 }
 
@@ -273,7 +276,7 @@ bitflags::bitflags! {
     }
 }
 
-#[derive(Asset, AsBindGroup, TypePath, Debug, Clone, Default)]
+#[derive(Asset, AsBindGroup, TypePath, Debug, Clone)]
 #[bind_group_data(NannouBindGroupData)]
 #[uniform(0, NannouShaderModelUniform)]
 pub struct NannouShaderModel {
@@ -283,6 +286,20 @@ pub struct NannouShaderModel {
     pub texture: Option<Handle<Image>>,
     pub polygon_mode: PolygonMode,
     pub blend: Option<BlendState>,
+}
+
+impl Default for NannouShaderModel {
+    fn default() -> Self {
+        Self {
+            color: Color::default(),
+            texture: None,
+            polygon_mode: PolygonMode::Fill,
+            blend: Some(BlendState {
+                color: blend::BLEND_NORMAL,
+                alpha: blend::BLEND_NORMAL,
+            }),
+        }
+    }
 }
 
 #[derive(Clone, Default, ShaderType)]
@@ -407,27 +424,27 @@ pub struct ShaderModelPipeline<SM> {
     marker: PhantomData<SM>,
 }
 
-impl<SM: ShaderModel> FromWorld for ShaderModelPipeline<SM> {
-    fn from_world(world: &mut World) -> Self {
-        let asset_server = world.resource::<AssetServer>();
-        let render_device = world.resource::<RenderDevice>();
-
-        ShaderModelPipeline {
-            mesh_pipeline: world.resource::<MeshPipeline>().clone(),
-            shader_model_layout_descriptor: SM::bind_group_layout_descriptor(render_device),
-            vertex_shader: match <SM as ShaderModel>::vertex_shader() {
-                ShaderRef::Default => Some(DEFAULT_NANNOU_SHADER_HANDLE),
-                ShaderRef::Handle(handle) => Some(handle),
-                ShaderRef::Path(path) => Some(asset_server.load(path)),
-            },
-            fragment_shader: match <SM as ShaderModel>::fragment_shader() {
-                ShaderRef::Default => Some(DEFAULT_NANNOU_SHADER_HANDLE),
-                ShaderRef::Handle(handle) => Some(handle),
-                ShaderRef::Path(path) => Some(asset_server.load(path)),
-            },
-            marker: PhantomData,
-        }
-    }
+fn init_shader_model_pipeline<SM: ShaderModel>(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    render_device: Res<RenderDevice>,
+    mesh_pipeline: Res<MeshPipeline>,
+) {
+    commands.insert_resource(ShaderModelPipeline::<SM> {
+        mesh_pipeline: mesh_pipeline.clone(),
+        shader_model_layout_descriptor: SM::bind_group_layout_descriptor(&render_device),
+        vertex_shader: match <SM as ShaderModel>::vertex_shader() {
+            ShaderRef::Default => Some(DEFAULT_NANNOU_SHADER_HANDLE),
+            ShaderRef::Handle(handle) => Some(handle),
+            ShaderRef::Path(path) => Some(asset_server.load(path)),
+        },
+        fragment_shader: match <SM as ShaderModel>::fragment_shader() {
+            ShaderRef::Default => Some(DEFAULT_NANNOU_SHADER_HANDLE),
+            ShaderRef::Handle(handle) => Some(handle),
+            ShaderRef::Path(path) => Some(asset_server.load(path)),
+        },
+        marker: PhantomData,
+    });
 }
 
 pub struct ShaderModelPipelineKey<SM: ShaderModel> {
@@ -572,6 +589,7 @@ fn update_draw_mesh(
     mut cameras_q: Query<(&mut Camera, &RenderTarget, &RenderLayers), With<NannouCamera>>,
     windows: Query<(&Window, Has<PrimaryWindow>)>,
     mut meshes: ResMut<Assets<Mesh>>,
+    text_cx: Res<crate::text::font::SharedTextCx>,
 ) {
     for draw in draw_q.iter() {
         let Some((mut window_camera, _, window_layers)) =
@@ -628,6 +646,7 @@ fn update_draw_mesh(
                         stroke_tessellator: &mut stroke_tessellator,
                         output_attachment_size: Vec2::new(window.width(), window.height()),
                         output_attachment_scale_factor: window.scale_factor(),
+                        text_cx: &text_cx,
                     };
 
                     // If no mesh is currently set, initialise a new one.
@@ -668,6 +687,7 @@ fn update_draw_mesh(
                         stroke_tessellator: &mut stroke_tessellator,
                         output_attachment_size: Vec2::new(window.width(), window.height()),
                         output_attachment_scale_factor: window.scale_factor(),
+                        text_cx: &text_cx,
                     };
 
                     // Render the primitive.
@@ -705,6 +725,7 @@ fn update_draw_mesh(
                         stroke_tessellator: &mut stroke_tessellator,
                         output_attachment_size: Vec2::new(window.width(), window.height()),
                         output_attachment_scale_factor: window.scale_factor(),
+                        text_cx: &text_cx,
                     };
 
                     // Render the primitive.

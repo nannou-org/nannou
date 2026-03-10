@@ -7,6 +7,7 @@
 //! - [**Proxy**](./struct.Proxy.html) - a handle to an **App** that may be used from a non-main
 //!   thread.
 //! - [**LoopMode**](./enum.LoopMode.html) - describes the behaviour of the application event loop.
+use bevy::asset::UnapprovedPathMode;
 #[cfg(not(target_arch = "wasm32"))]
 use bevy::asset::io::file::FileAssetReader;
 use bevy::{
@@ -255,7 +256,12 @@ where
     pub fn new(model: ModelFn<M>) -> Self {
         let mut app = bevy::app::App::new();
         app.add_plugins((
-            DefaultPlugins.set(WindowPlugin {
+            DefaultPlugins
+                .set(AssetPlugin {
+                    unapproved_path_mode: UnapprovedPathMode::Allow,
+                    ..default()
+                })
+                .set(WindowPlugin {
                 #[cfg(not(target_arch = "wasm32"))]
                 // Don't spawn a  window by default, we'll handle this ourselves
                 primary_window: None,
@@ -691,6 +697,14 @@ impl<'w> App<'w> {
         std::cell::RefMut::map(world, |world| world.resource_mut::<T>().into_inner())
     }
 
+    /// Build a text layout for measurement or glyph extraction.
+    ///
+    /// `App`-level equivalent of `draw.text_layout()`.
+    pub fn text_layout<'b>(&self, s: &'b str) -> nannou_draw::text::Builder<'b> {
+        let text_cx = self.resource::<nannou_draw::text::font::SharedTextCx>();
+        nannou_draw::text::Builder::new(s, text_cx.clone())
+    }
+
     /// Retrieve the path to the assets directory.
     #[cfg(not(target_arch = "wasm32"))]
     pub fn assets_path(&self) -> PathBuf {
@@ -974,7 +988,7 @@ impl<'w> App<'w> {
     pub fn elapsed_frames(&self) -> u64 {
         let world = self.component_world();
         let frame_count = world.resource::<FrameCount>();
-        frame_count.0 as u64
+        (frame_count.0 as u64).saturating_sub(1)
     }
 
     /// The number of frames that can currently be displayed a second

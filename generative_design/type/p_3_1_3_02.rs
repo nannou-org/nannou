@@ -121,7 +121,7 @@ fn view(app: &App, model: &Model) {
             }
             if model.draw_text {
                 let character = &c.to_string();
-                let text = text(character).font_size(18).build(win);
+                let text = draw.text_layout(character).font_size(18).build(win);
                 draw.path()
                     .fill()
                     .x_y(pos_x, inter_y)

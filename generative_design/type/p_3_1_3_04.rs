@@ -95,7 +95,7 @@ fn view(app: &App, model: &Model) {
         for (i, c) in model.alphabet.chars().enumerate() {
             let character = &c.to_string();
             let size = 10;
-            let text1 = text(character).font_size(size).build(win);
+            let text1 = draw.text_layout(character).font_size(size).build(win);
             draw.path()
                 .fill()
                 .x_y(
@@ -106,7 +106,7 @@ fn view(app: &App, model: &Model) {
                 .events(text1.path_events());
 
             let digit = &model.counters[i].to_string();
-            let text2 = text(digit).font_size(10).build(win);
+            let text2 = draw.text_layout(digit).font_size(10).build(win);
             draw.path()
                 .fill()
                 .x_y(
@@ -176,7 +176,7 @@ fn view(app: &App, model: &Model) {
             if model.draw_text {
                 let character = &c.to_string();
                 let size = 18;
-                let text = text(character).font_size(size).build(win);
+                let text = draw.text_layout(character).font_size(size).build(win);
                 draw.path()
                     .fill()
                     .x_y(inter_x, inter_y + (size as f32 / 2.0))

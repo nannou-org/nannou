@@ -1,35 +1,17 @@
-//! Text layout logic.
-//!
-//! Currently, this crate is used primarily by the `draw.text()` API but will also play an
-//! important role in future GUI work.
+//! Text layout and measurement via parley.
 
 use std::borrow::Cow;
 
 use bevy::prelude::*;
-pub use rusttype::gpu_cache::Cache as GlyphCache;
-pub use rusttype::{Glyph, GlyphId, GlyphIter, LayoutIter, Scale, ScaledGlyph};
-
 use nannou_core::geom;
+use parley::Alignment;
+use parley::style::{FontStack, StyleProperty};
 
-// Re-export all relevant rusttype types here.
 pub use self::layout::Layout;
 
-pub mod cursor;
 pub mod font;
 pub mod glyph;
 pub mod layout;
-pub mod line;
-pub mod rt {
-    //! Re-exported RustType geometric types.
-    pub use rusttype::{Point, Rect, Vector, gpu_cache, point, vector};
-}
-
-/// The RustType `FontCollection` type used by nannou.
-pub type FontCollection = rusttype::FontCollection<'static>;
-/// The RustType `Font` type used by nannou.
-pub type Font = rusttype::Font<'static>;
-/// The RustType `PositionedGlyph` type used by nannou.
-pub type PositionedGlyph = rusttype::PositionedGlyph<'static>;
 
 /// The type used for scalar values.
 pub type Scalar = nannou_core::geom::scalar::Default;
@@ -39,62 +21,6 @@ pub type Point = nannou_core::geom::Point2;
 
 /// The type used to specify `FontSize` in font points.
 pub type FontSize = u32;
-
-/// A context for building some **Text**.
-pub struct Builder<'a> {
-    text: Cow<'a, str>,
-    layout_builder: layout::Builder,
-}
-
-/// An instance of some multi-line text and its layout.
-#[derive(Clone)]
-pub struct Text<'a> {
-    text: Cow<'a, str>,
-    font: Font,
-    layout: Layout,
-    line_infos: Vec<line::Info>,
-    rect: geom::Rect,
-}
-
-/// An iterator yielding each line within the given `text` as a new `&str`, where the start and end
-/// indices into each line are provided by the given iterator.
-#[derive(Clone)]
-pub struct Lines<'a, I> {
-    text: &'a str,
-    ranges: I,
-}
-
-/// An alias for the line info iterator yielded by `Text::line_infos`.
-pub type TextLineInfos<'a> = line::Infos<'a, line::NextBreakFnPtr>;
-
-/// An alias for the line iterator yielded by `Text::lines`.
-pub type TextLines<'a> = Lines<
-    'a,
-    std::iter::Map<std::slice::Iter<'a, line::Info>, fn(&line::Info) -> std::ops::Range<usize>>,
->;
-
-/// An alias for the line rect iterator used internally within the `Text::line_rects` iterator.
-type LineRects<'a> = line::Rects<std::iter::Cloned<std::slice::Iter<'a, line::Info>>>;
-
-/// An alias for the line rect iterator yielded by `Text::line_rects`.
-#[derive(Clone)]
-pub struct TextLineRects<'a> {
-    line_rects: LineRects<'a>,
-    offset: Vec2,
-}
-
-/// An alias for the iterator yielded by `Text::lines_with_rects`.
-pub type TextLinesWithRects<'a> = std::iter::Zip<TextLines<'a>, TextLineRects<'a>>;
-
-/// An alias for the iterator yielded by `Text::glyphs_per_line`.
-pub type TextGlyphsPerLine<'a> = glyph::RectsPerLine<'a, TextLinesWithRects<'a>>;
-
-/// An alias for the iterator yielded by `Text::glyphs`.
-pub type TextGlyphs<'a> = std::iter::FlatMap<
-    TextGlyphsPerLine<'a>,
-    glyph::Rects<'a, 'a>,
-    fn(glyph::Rects<'a, 'a>) -> glyph::Rects<'a, 'a>,
->;
 
 /// Alignment along an axis.
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq, PartialOrd, Ord)]
@@ -113,10 +39,6 @@ pub enum Justify {
     Center,
     /// Align text to the end of the bounding `Rect`'s *x* axis.
     Right,
-    // /// Align wrapped text to both the start and end of the bounding `Rect`s *x* axis.
-    // ///
-    // /// Extra space is added between words in order to achieve this alignment.
-    // TODO: Full,
 }
 
 /// The way in which text should wrap around the width.
@@ -128,31 +50,31 @@ pub enum Wrap {
     Whitespace,
 }
 
-impl<'a> From<Cow<'a, str>> for Builder<'a> {
-    fn from(text: Cow<'a, str>) -> Self {
-        let layout_builder = Default::default();
-        Builder {
-            text,
-            layout_builder,
-        }
-    }
+/// A builder for laying out **Text** immediately.
+pub struct Builder<'a> {
+    text: Cow<'a, str>,
+    layout_builder: layout::Builder,
+    text_cx: font::SharedTextCx,
 }
 
-impl<'a> From<&'a str> for Builder<'a> {
-    fn from(s: &'a str) -> Self {
-        let text = Cow::Borrowed(s);
-        Self::from(text)
-    }
-}
-
-impl From<String> for Builder<'static> {
-    fn from(s: String) -> Self {
-        let text = Cow::Owned(s);
-        Self::from(text)
-    }
+/// Laid-out text ready for measurement and glyph extraction.
+pub struct Text {
+    string: String,
+    parley_layout: parley::Layout<Color>,
+    layout: Layout,
+    rect: geom::Rect,
 }
 
 impl<'a> Builder<'a> {
+    /// Create a new text builder.
+    pub fn new(s: &'a str, text_cx: font::SharedTextCx) -> Self {
+        Builder {
+            text: Cow::Borrowed(s),
+            layout_builder: Default::default(),
+            text_cx,
+        }
+    }
+
     /// Apply the given function to the inner text layout.
     fn map_layout<F>(mut self, map: F) -> Self
     where
@@ -168,36 +90,28 @@ impl<'a> Builder<'a> {
     }
 
     /// Specify whether or not text should be wrapped around some width and how to do so.
-    ///
-    /// The default value is `DEFAULT_LINE_WRAP`.
     pub fn line_wrap(self, line_wrap: Option<Wrap>) -> Self {
         self.map_layout(|l| l.line_wrap(line_wrap))
     }
 
     /// Specify that the **Text** should not wrap lines around the width.
-    ///
-    /// Shorthand for `builder.line_wrap(None)`.
     pub fn no_line_wrap(self) -> Self {
         self.map_layout(|l| l.no_line_wrap())
     }
 
     /// Line wrap the **Text** at the beginning of the first word that exceeds the width.
-    ///
-    /// Shorthand for `builder.line_wrap(Some(Wrap::Whitespace))`.
     pub fn wrap_by_word(self) -> Self {
         self.map_layout(|l| l.wrap_by_word())
     }
 
     /// Line wrap the **Text** at the beginning of the first character that exceeds the width.
-    ///
-    /// Shorthand for `builder.line_wrap(Some(Wrap::Character))`.
     pub fn wrap_by_character(self) -> Self {
         self.map_layout(|l| l.wrap_by_character())
     }
 
-    /// A method for specifying the `Font` used for displaying the `Text`.
-    pub fn font(self, font: Font) -> Self {
-        self.map_layout(|l| l.font(font))
+    /// Specify the font family used for displaying the text.
+    pub fn font_family(self, family: impl Into<String>) -> Self {
+        self.map_layout(|l| l.font_family(family))
     }
 
     /// Describe the end along the *x* axis to which the text should be aligned.
@@ -225,7 +139,7 @@ impl<'a> Builder<'a> {
         self.map_layout(|l| l.line_spacing(spacing))
     }
 
-    /// Specify how the whole text should be aligned along the y axis of its bounding rectangle
+    /// Specify how the whole text should be aligned along the y axis of its bounding rectangle.
     pub fn y_align(self, align: Align) -> Self {
         self.map_layout(|l| l.y_align(align))
     }
@@ -235,9 +149,7 @@ impl<'a> Builder<'a> {
         self.map_layout(|l| l.align_top())
     }
 
-    /// Align the middle of the text with the middle of the bounding rect along the y axis..
-    ///
-    /// This is the default behaviour.
+    /// Align the middle of the text with the middle of the bounding rect along the y axis.
     pub fn align_middle_y(self) -> Self {
         self.map_layout(|l| l.align_middle_y())
     }
@@ -247,318 +159,198 @@ impl<'a> Builder<'a> {
         self.map_layout(|l| l.align_bottom())
     }
 
-    /// Set all the parameters via an existing `Layout`
+    /// Set all the parameters via an existing `Layout`.
     pub fn layout(self, layout: &Layout) -> Self {
         self.map_layout(|l| l.layout(layout))
     }
 
-    /// Build the text.
-    ///
-    /// This iterates over the text in order to pre-calculates the text's multi-line information
-    /// using the `line::infos` function.
-    ///
-    /// The given `rect` will be used for applying the layout including text alignment, positioning
-    /// of text, multi-line wrapping, etc,
-    pub fn build(self, _rect: geom::Rect) -> Text<'a> {
-        //     let text = self.text;
-        //     let layout = self.layout_builder.build();
-        //     #[allow(unreachable_code)]
-        //     let font = layout.font.clone().unwrap_or_else(|| {
-        //         #[cfg(feature = "notosans")]
-        //         {
-        //             return font::default_notosans();
-        //         }
-        //         let assets = nannou_core::app::find_assets_path()
-        //             .expect("failed to detect the assets directory when searching for a default font");
-        //         font::default(&assets).expect("failed to detect a default font")
-        //     });
-        //     let max_width = rect.w();
-        //     let line_infos =
-        //         line::infos_maybe_wrapped(&text, &font, layout.font_size, layout.line_wrap, max_width)
-        //             .collect();
-        //     Text {
-        //         text,
-        //         font,
-        //         layout,
-        //         line_infos,
-        //         rect,
-        //     }
-        todo!(
-            "Attempted to build Text {:?}, but its not yet implemented",
-            self.text
-        )
+    /// Build the text layout within the given `rect`.
+    pub fn build(self, rect: geom::Rect) -> Text {
+        let layout = self.layout_builder.build();
+        let mut inner = self.text_cx.0.lock().unwrap();
+        Text::layout_with_inner(&mut inner, &self.text, &layout, rect)
     }
 }
 
-impl<'a> Text<'a> {
-    /// Produce an iterator yielding information about each line.
-    pub fn line_infos(&self) -> &[line::Info] {
-        &self.line_infos
+impl Text {
+    /// Compute a parley layout using an already-locked inner context.
+    pub(crate) fn layout_with_inner(
+        inner: &mut font::NannouTextCxInner,
+        text: &str,
+        layout: &Layout,
+        rect: geom::Rect,
+    ) -> Self {
+        let font_size = layout.font_size as f32;
+        let scale = 1.0;
+
+        let mut builder = inner
+            .layout
+            .ranged_builder(&mut inner.font, text, scale, true);
+
+        builder.push_default(StyleProperty::FontSize(font_size));
+
+        if let Some(ref family) = layout.font_family {
+            builder.push_default(StyleProperty::FontStack(FontStack::Single(
+                parley::style::FontFamily::Named(family.into()),
+            )));
+        }
+
+        if let Some(spacing) = (layout.line_spacing != 0.0).then_some(layout.line_spacing) {
+            builder.push_default(StyleProperty::LineHeight(
+                parley::style::LineHeight::Absolute(font_size + spacing),
+            ));
+        }
+
+        let mut parley_layout = builder.build(text);
+
+        let max_width = rect.w();
+        match layout.line_wrap {
+            None => parley_layout.break_all_lines(None),
+            Some(Wrap::Whitespace) | Some(Wrap::Character) => {
+                parley_layout.break_all_lines(Some(max_width));
+            }
+        }
+        let alignment = match layout.justify {
+            Justify::Left => Alignment::Start,
+            Justify::Center => Alignment::Center,
+            Justify::Right => Alignment::End,
+        };
+        parley_layout.align(
+            Some(max_width),
+            alignment,
+            parley::AlignmentOptions::default(),
+        );
+
+        Text {
+            string: text.to_string(),
+            parley_layout,
+            layout: layout.clone(),
+            rect,
+        }
     }
 
-    /// The full string of text as a slice.
-    pub fn text(&self) -> &str {
-        &self.text
-    }
-
-    /// The layout parameters for this text instance.
+    /// The layout parameters.
     pub fn layout(&self) -> &Layout {
         &self.layout
     }
 
-    /// The font used for this text instance.
-    pub fn font(&self) -> &Font {
-        &self.font
-    }
-
-    /// The number of lines in the text.
-    pub fn num_lines(&self) -> usize {
-        self.line_infos.len()
-    }
-
-    /// The rectangle used to layout and build the text instance.
-    ///
-    /// This is the same `Rect` that was passed to the `text::Builder::build` method.
+    /// The rectangle used to layout the text.
     pub fn layout_rect(&self) -> geom::Rect {
         self.rect
     }
 
-    /// The rectangle that describes the min and max bounds along each axis reached by the text.
-    pub fn bounding_rect(&self) -> geom::Rect {
-        let mut r = self.bounding_rect_by_lines();
-        let info = match self.line_infos.first() {
-            None => return geom::Rect::from_w_h(0.0, 0.0),
-            Some(info) => info,
-        };
-        let line_h = self.layout.font_size as Scalar;
-        r.y.end -= line_h - info.height;
-        r
-    }
-
-    /// The rectangle that describes the min and max bounds along each axis reached by the text.
-    ///
-    /// This is similar to `bounding_rect` but assumes that all lines have a height equal to
-    /// `font_size`, rather than using the exact height.
-    pub fn bounding_rect_by_lines(&self) -> geom::Rect {
-        let mut lrs = self.line_rects();
-        let lr = match lrs.next() {
-            None => return geom::Rect::from_w_h(0.0, 0.0),
-            Some(lr) => lr,
-        };
-        lrs.fold(lr, |acc, lr| {
-            let x = geom::Range::new(acc.x.start.min(lr.x.start), acc.x.end.max(lr.x.end));
-            let y = geom::Range::new(acc.y.start.min(lr.y.start), acc.y.end.max(lr.y.end));
-            geom::Rect { x, y }
-        })
-    }
-
-    /// The width of the widest line of text.
+    /// The width of the laid-out text.
     pub fn width(&self) -> Scalar {
-        self.line_infos
-            .iter()
-            .fold(0.0, |max, info| max.max(info.width))
+        self.parley_layout.width()
     }
 
-    /// The exact height of the full text accounting for font size and line spacing..
+    /// The height of the laid-out text.
     pub fn height(&self) -> Scalar {
-        let info = match self.line_infos.first() {
-            None => return 0.0,
-            Some(info) => info,
-        };
-        exact_height(
-            info.height,
-            self.num_lines(),
-            self.layout.font_size,
-            self.layout.line_spacing,
-        )
+        self.parley_layout.height()
     }
 
-    /// Determine the total height of a block of text with the given number of lines, font size and
-    /// `line_spacing` (the space that separates each line of text).
-    ///
-    /// The height of all lines of text are assumed to match the `font_size`. If looking for the exact
-    /// height, see the `exact_height` function.
-    pub fn height_by_lines(&self) -> Scalar {
-        height_by_lines(
-            self.num_lines(),
-            self.layout.font_size,
-            self.layout.line_spacing,
-        )
+    /// The number of lines in the text.
+    pub fn num_lines(&self) -> usize {
+        self.parley_layout.len()
     }
 
-    /// Produce an iterator yielding each wrapped line within the **Text**.
-    pub fn lines(&self) -> TextLines<'_> {
-        fn info_byte_range(info: &line::Info) -> std::ops::Range<usize> {
-            info.byte_range()
+    /// The bounding box of the text, positioned according to `y_align`.
+    pub fn bounding_rect(&self) -> geom::Rect {
+        let w = self.width();
+        let h = self.height();
+        if w == 0.0 && h == 0.0 {
+            return geom::Rect::from_w_h(0.0, 0.0);
         }
-        lines(&self.text, self.line_infos.iter().map(info_byte_range))
-    }
-
-    /// The bounding rectangle for each line.
-    pub fn line_rects(&self) -> TextLineRects<'_> {
         let offset = self.position_offset();
-        let line_rects = line::rects(
-            self.line_infos.iter().cloned(),
-            self.layout.font_size,
-            self.rect.w(),
-            self.layout.justify,
-            self.layout.line_spacing,
-        );
-        TextLineRects { line_rects, offset }
+        // Convert parley top-down to nannou y-up.
+        let x = geom::Range::new(offset.x, offset.x + w);
+        let y = geom::Range::new(offset.y - h, offset.y);
+        geom::Rect { x, y }
     }
 
-    /// Produce an iterator yielding all lines of text alongside their bounding rects.
-    pub fn lines_with_rects(&self) -> TextLinesWithRects<'_> {
-        self.lines().zip(self.line_rects())
+    /// Per-line bounding rects in nannou coordinate space.
+    pub fn line_rects(&self) -> Vec<geom::Rect> {
+        let offset = self.position_offset();
+        self.parley_layout
+            .lines()
+            .map(|line| {
+                let metrics = line.metrics();
+                let top = offset.y - metrics.baseline + metrics.ascent;
+                let bottom = offset.y - metrics.baseline - metrics.descent;
+                let line_x = offset.x + metrics.offset;
+                let line_w = metrics.advance - metrics.trailing_whitespace;
+                let x = geom::Range::new(line_x, line_x + line_w);
+                let y = geom::Range::new(bottom, top);
+                geom::Rect { x, y }
+            })
+            .collect()
     }
 
-    /// Produce an iterator yielding iterators yielding every glyph alongside its bounding rect for
-    /// each line.
-    pub fn glyphs_per_line(&self) -> TextGlyphsPerLine<'_> {
-        glyph::rects_per_line(self.lines_with_rects(), &self.font, self.layout.font_size)
+    /// The text content of each line.
+    pub fn lines(&self) -> Vec<&str> {
+        self.parley_layout
+            .lines()
+            .map(|line| {
+                let range = line.text_range();
+                &self.string[range]
+            })
+            .collect()
     }
 
-    /// Produce an iterator yielding every glyph alongside its bounding rect.
-    ///
-    /// This is the "flattened" version of the `glyphs_per_line` method.
-    pub fn glyphs(&self) -> TextGlyphs<'_> {
-        self.glyphs_per_line().flat_map(std::convert::identity)
-    }
-
-    /// Produce an iterator yielding the path events for every glyph in every line.
-    pub fn path_events<'b>(&'b self) -> impl 'b + Iterator<Item = lyon::path::PathEvent> {
-        use lyon::path::PathEvent;
-
-        // Translate the given lyon point by the given vector.
-        fn trans_lyon_point(p: &lyon::math::Point, v: Vec2) -> lyon::math::Point {
-            lyon::math::point(p.x + v.x, p.y + v.y)
-        }
-
-        // Translate the given path event in 2D space.
-        fn trans_path_event(e: &PathEvent, v: Vec2) -> PathEvent {
-            match *e {
-                PathEvent::Begin { ref at } => PathEvent::Begin {
-                    at: trans_lyon_point(at, v),
-                },
-                PathEvent::Line { ref from, ref to } => PathEvent::Line {
-                    from: trans_lyon_point(from, v),
-                    to: trans_lyon_point(to, v),
-                },
-                PathEvent::Quadratic {
-                    ref from,
-                    ref ctrl,
-                    ref to,
-                } => PathEvent::Quadratic {
-                    from: trans_lyon_point(from, v),
-                    ctrl: trans_lyon_point(ctrl, v),
-                    to: trans_lyon_point(to, v),
-                },
-                PathEvent::Cubic {
-                    ref from,
-                    ref ctrl1,
-                    ref ctrl2,
-                    ref to,
-                } => PathEvent::Cubic {
-                    from: trans_lyon_point(from, v),
-                    ctrl1: trans_lyon_point(ctrl1, v),
-                    ctrl2: trans_lyon_point(ctrl2, v),
-                    to: trans_lyon_point(to, v),
-                },
-                PathEvent::End {
-                    ref last,
-                    ref first,
-                    ref close,
-                } => PathEvent::End {
-                    last: trans_lyon_point(last, v),
-                    first: trans_lyon_point(first, v),
-                    close: *close,
-                },
+    /// Per-glyph bounding rects (one per glyph cluster).
+    pub fn glyphs(&self) -> Vec<geom::Rect> {
+        let offset = self.position_offset();
+        let mut rects = Vec::new();
+        for line in self.parley_layout.lines() {
+            let baseline = line.metrics().baseline;
+            for item in line.items() {
+                let parley::PositionedLayoutItem::GlyphRun(glyph_run) = item else {
+                    continue;
+                };
+                let run_metrics = glyph_run.run().metrics();
+                for glyph in glyph_run.positioned_glyphs() {
+                    let gx = offset.x + glyph.x;
+                    let gy = offset.y - baseline;
+                    let x = geom::Range::new(gx, gx + glyph.advance);
+                    let y = geom::Range::new(gy - run_metrics.descent, gy + run_metrics.ascent);
+                    rects.push(geom::Rect { x, y });
+                }
             }
         }
-
-        self.glyphs().flat_map(|(g, r)| {
-            glyph::path_events(g)
-                .into_iter()
-                .flat_map(|es| es)
-                .map(move |e| trans_path_event(&e, r.bottom_left().into()))
-        })
+        rects
     }
 
-    /// Produce an iterator yielding positioned rusttype glyphs ready for caching.
-    ///
-    /// The window dimensions (in logical space) and scale_factor are required to transform glyph
-    /// positions into rusttype's pixel-space, ready for caching into the rusttype glyph cache
-    /// pixel buffer.
-    pub fn rt_glyphs<'b: 'a>(
-        &'b self,
-        window_size: Vec2,
-        scale_factor: Scalar,
-    ) -> impl 'a + 'b + Iterator<Item = PositionedGlyph> {
-        rt_positioned_glyphs(
-            self.lines_with_rects(),
-            &self.font,
-            self.layout.font_size,
-            window_size,
-            scale_factor,
-        )
+    /// Path events for every glyph, relative to the center of the layout rect.
+    pub fn path_events(&self) -> Vec<lyon::path::PathEvent> {
+        glyph::text_path_events(&self.parley_layout, self.position_offset())
     }
 
-    /// Converts this `Text` instance into an instance that owns the inner text string.
-    pub fn into_owned(self) -> Text<'static> {
-        let Text {
-            text,
-            font,
-            layout,
-            line_infos,
-            rect,
-        } = self;
-        let text = Cow::Owned(text.into_owned());
-        Text {
-            text,
-            font,
-            layout,
-            line_infos,
-            rect,
-        }
+    pub(crate) fn parley_layout(&self) -> &parley::Layout<Color> {
+        &self.parley_layout
     }
 
+    pub(crate) fn position_offset_value(&self) -> Vec2 {
+        self.position_offset()
+    }
+
+    /// Offset to convert parley's top-left y-down layout into nannou's
+    /// center-origin y-up coordinates, accounting for `y_align`.
     fn position_offset(&self) -> Vec2 {
-        position_offset(
-            self.num_lines(),
-            self.layout.font_size,
-            self.layout.line_spacing,
-            self.rect,
-            self.layout.y_align,
-        )
-    }
-}
-
-impl<'a, I> Iterator for Lines<'a, I>
-where
-    I: Iterator<Item = std::ops::Range<usize>>,
-{
-    type Item = &'a str;
-    fn next(&mut self) -> Option<Self::Item> {
-        let Lines {
-            text,
-            ref mut ranges,
-        } = *self;
-        ranges.next().map(|range| &text[range])
-    }
-}
-
-impl<'a> Iterator for TextLineRects<'a> {
-    type Item = geom::Rect;
-    fn next(&mut self) -> Option<Self::Item> {
-        self.line_rects.next().map(|r| r.shift(self.offset.into()))
+        let text_h = self.height();
+        let rect_h = self.rect.h();
+        let rect_w = self.rect.w();
+        let y_offset = match self.layout.y_align {
+            Align::End => rect_h / 2.0,
+            Align::Middle => text_h / 2.0,
+            Align::Start => -rect_h / 2.0 + text_h,
+        };
+        let x_offset = -rect_w / 2.0;
+        Vec2::new(x_offset, y_offset)
     }
 }
 
 /// Determine the total height of a block of text with the given number of lines, font size and
 /// `line_spacing` (the space that separates each line of text).
-///
-/// The height of all lines of text are assumed to match the `font_size`. If looking for the exact
-/// height, see the `exact_height` function.
 pub fn height_by_lines(num_lines: usize, font_size: FontSize, line_spacing: Scalar) -> Scalar {
     if num_lines > 0 {
         num_lines as Scalar * font_size as Scalar + (num_lines - 1) as Scalar * line_spacing
@@ -567,42 +359,7 @@ pub fn height_by_lines(num_lines: usize, font_size: FontSize, line_spacing: Scal
     }
 }
 
-/// Determine the exact height of a block of text.
-///
-/// The `first_line_height` can be retrieved via its `line::Info` which can be retrieved via the
-/// first element of a `line_infos` iterator.
-pub fn exact_height(
-    first_line_height: Scalar,
-    num_lines: usize,
-    font_size: FontSize,
-    line_spacing: Scalar,
-) -> Scalar {
-    if num_lines > 0 {
-        let lt_num_lines = num_lines - 1;
-        let other_lines_height = lt_num_lines as Scalar * font_size as Scalar;
-        let space_height = lt_num_lines as Scalar * line_spacing;
-        first_line_height + other_lines_height + space_height
-    } else {
-        0.0
-    }
-}
-
-/// Produce an iterator yielding each line within the given `text` as a new `&str`, where the
-/// start and end indices into each line are provided by the given iterator.
-pub fn lines<I>(text: &str, ranges: I) -> Lines<'_, I>
-where
-    I: Iterator<Item = std::ops::Range<usize>>,
-{
-    Lines {
-        text: text,
-        ranges: ranges,
-    }
-}
-
 /// The position offset required to shift the associated text into the given bounding rectangle.
-///
-/// This function assumes the `max_width` used to produce the `line_infos` is equal to the given
-/// `bounding_rect` max width.
 pub fn position_offset(
     num_lines: usize,
     font_size: FontSize,
@@ -612,7 +369,6 @@ pub fn position_offset(
 ) -> Vec2 {
     let x_offset = bounding_rect.x.start;
     let y_offset = {
-        // Calculate the `y` `Range` of the first line `Rect`.
         let total_text_height = height_by_lines(num_lines, font_size, line_spacing);
         let total_text_y_range = geom::Range::new(0.0, total_text_height);
         let total_text_y = match y_align {
@@ -623,63 +379,4 @@ pub fn position_offset(
         total_text_y.end
     };
     geom::vec2(x_offset, y_offset)
-}
-
-/// Produce the position of each glyph ready for the rusttype glyph cache.
-///
-/// Window dimensions are expected in logical coordinates.
-pub fn rt_positioned_glyphs<'a, I>(
-    lines_with_rects: I,
-    font: &'a Font,
-    font_size: FontSize,
-    window_size: Vec2,
-    scale_factor: Scalar,
-) -> impl 'a + Iterator<Item = PositionedGlyph>
-where
-    I: IntoIterator<Item = (&'a str, geom::Rect)>,
-    I::IntoIter: 'a,
-{
-    // Functions for converting nannou coordinates to rusttype pixel coordinates.
-    let trans_x = move |x: Scalar| (x + window_size.x / 2.0) * scale_factor as Scalar;
-    let trans_y = move |y: Scalar| ((-y) + window_size.y / 2.0) * scale_factor as Scalar;
-
-    // Clear the existing glyphs and fill the buffer with glyphs for this Text.
-    let scale = f32_pt_to_scale(font_size as f32 * scale_factor);
-    lines_with_rects
-        .into_iter()
-        .flat_map(move |(line, line_rect)| {
-            let (x, y) = (
-                trans_x(line_rect.left()) as f32,
-                trans_y(line_rect.bottom()) as f32,
-            );
-            let point = rt::Point { x, y };
-            font.layout(line, scale, point).map(|g| g.standalone())
-        })
-}
-
-/// Converts the given font size in "points" to its font size in pixels.
-/// This is useful for when the font size is not an integer.
-pub fn f32_pt_to_px(font_size_in_points: f32) -> f32 {
-    font_size_in_points * 4.0 / 3.0
-}
-
-/// Converts the given font size in "points" to a uniform `rusttype::Scale`.
-/// This is useful for when the font size is not an integer.
-pub fn f32_pt_to_scale(font_size_in_points: f32) -> Scale {
-    Scale::uniform(f32_pt_to_px(font_size_in_points))
-}
-
-/// Converts the given font size in "points" to its font size in pixels.
-pub fn pt_to_px(font_size_in_points: FontSize) -> f32 {
-    f32_pt_to_px(font_size_in_points as f32)
-}
-
-/// Converts the given font size in "points" to a uniform `rusttype::Scale`.
-pub fn pt_to_scale(font_size_in_points: FontSize) -> Scale {
-    Scale::uniform(pt_to_px(font_size_in_points))
-}
-
-/// Begin building a **Text** instance.
-pub fn text(s: &str) -> Builder<'_> {
-    Builder::from(s)
 }

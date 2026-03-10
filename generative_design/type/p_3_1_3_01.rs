@@ -17,7 +17,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use nannou::prelude::text::text;
 /**
  * analysing and sorting the letters of a text
  * changing the letters alpha value in relation to frequency
@@ -109,7 +108,7 @@ fn view(app: &App, model: &Model) {
         let inter_y = nannou::geom::range::Range::new(pos_y, sort_y).lerp(m);
 
         let character = &c.to_string();
-        let text = text(character).font_size(18).build(win);
+        let text = draw.text_layout(character).font_size(18).build(win);
         draw.path()
             .fill()
             .x_y(pos_x, inter_y)
