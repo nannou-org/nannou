@@ -697,11 +697,10 @@ impl<'w> App<'w> {
         std::cell::RefMut::map(world, |world| world.resource_mut::<T>().into_inner())
     }
 
-    /// Begin building a text layout for immediate measurement and glyph extraction.
+    /// Build a text layout for measurement or glyph extraction.
     ///
-    /// This is the `App`-level equivalent of `draw.text_layout()`. Use it in
-    /// update functions where a `Draw` handle is not available.
-    pub fn text<'b>(&self, s: &'b str) -> nannou_draw::text::Builder<'b> {
+    /// `App`-level equivalent of `draw.text_layout()`.
+    pub fn text_layout<'b>(&self, s: &'b str) -> nannou_draw::text::Builder<'b> {
         let text_cx = self.resource::<nannou_draw::text::font::SharedTextCx>();
         nannou_draw::text::Builder::new(s, text_cx.clone())
     }

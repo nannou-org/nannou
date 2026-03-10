@@ -1,7 +1,4 @@
-//! Font loading and management.
-//!
-//! Fonts are loaded via bevy's asset system and registered into the shared
-//! `SharedTextCx` resource which wraps parley's `FontContext` and `LayoutContext`.
+//! Font loading and shared text context.
 
 use std::sync::{Arc, Mutex};
 
@@ -11,13 +8,13 @@ use bevy::prelude::*;
 use parley::FontContext;
 use parley::LayoutContext;
 
-/// The inner text context containing both the font database and layout scratch space.
+/// Font database and layout scratch space.
 pub struct NannouTextCxInner {
     pub font: FontContext,
     pub layout: LayoutContext<Color>,
 }
 
-/// A combined text context resource wrapped in `Arc<Mutex<>>` so it can be shared with `Draw`.
+/// Shared text context resource for use by `Draw` and `App`.
 #[derive(Resource, Clone)]
 pub struct SharedTextCx(pub Arc<Mutex<NannouTextCxInner>>);
 
@@ -25,7 +22,7 @@ impl Default for SharedTextCx {
     fn default() -> Self {
         let font = FontContext::new();
 
-        // Register embedded notosans if the feature is enabled.
+        // Register embedded notosans.
         #[cfg(feature = "notosans")]
         {
             font.collection
@@ -39,7 +36,7 @@ impl Default for SharedTextCx {
     }
 }
 
-/// System that watches for loaded bevy font assets and registers them into our font collection.
+/// Sync bevy font assets into our font collection.
 pub fn sync_bevy_fonts_to_nannou(
     text_cx: Res<SharedTextCx>,
     mut events: MessageReader<AssetEvent<bevy::text::Font>>,

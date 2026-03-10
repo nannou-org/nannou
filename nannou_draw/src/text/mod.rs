@@ -1,8 +1,4 @@
-//! Text layout logic.
-//!
-//! Currently, this crate is used primarily by the `draw.text()` API and
-//! the immediate-mode `draw.text_layout()` / `app.text()` APIs for
-//! text measurement and glyph outline extraction.
+//! Text layout and measurement via parley.
 
 use std::borrow::Cow;
 
@@ -54,23 +50,23 @@ pub enum Wrap {
     Whitespace,
 }
 
-/// A context for building some **Text** with immediate layout.
+/// A builder for laying out **Text** immediately.
 pub struct Builder<'a> {
     text: Cow<'a, str>,
     layout_builder: layout::Builder,
     text_cx: font::SharedTextCx,
 }
 
-/// An instance of laid-out text backed by parley.
+/// Laid-out text ready for measurement and glyph extraction.
 pub struct Text {
-    text_string: String,
+    string: String,
     parley_layout: parley::Layout<Color>,
     layout: Layout,
     rect: geom::Rect,
 }
 
 impl<'a> Builder<'a> {
-    /// Create a new text builder with the given string and shared text context.
+    /// Create a new text builder.
     pub fn new(s: &'a str, text_cx: font::SharedTextCx) -> Self {
         Builder {
             text: Cow::Borrowed(s),
@@ -113,7 +109,7 @@ impl<'a> Builder<'a> {
         self.map_layout(|l| l.wrap_by_character())
     }
 
-    /// A method for specifying the font family used for displaying the text.
+    /// Specify the font family used for displaying the text.
     pub fn font_family(self, family: impl Into<String>) -> Self {
         self.map_layout(|l| l.font_family(family))
     }
@@ -168,10 +164,7 @@ impl<'a> Builder<'a> {
         self.map_layout(|l| l.layout(layout))
     }
 
-    /// Build the text layout.
-    ///
-    /// This locks the shared text context, computes the parley layout within the
-    /// given `rect`, and returns a `Text` with measurement and glyph methods.
+    /// Build the text layout within the given `rect`.
     pub fn build(self, rect: geom::Rect) -> Text {
         let layout = self.layout_builder.build();
         let mut inner = self.text_cx.0.lock().unwrap();
@@ -180,7 +173,7 @@ impl<'a> Builder<'a> {
 }
 
 impl Text {
-    /// Internal: compute a parley layout using an already-locked inner context.
+    /// Compute a parley layout using an already-locked inner context.
     pub(crate) fn layout_with_inner(
         inner: &mut font::NannouTextCxInner,
         text: &str,
@@ -210,24 +203,13 @@ impl Text {
 
         let mut parley_layout = builder.build(text);
 
-        // Break lines according to wrap mode.
         let max_width = rect.w();
         match layout.line_wrap {
-            None => {
-                // No wrapping: use infinite width.
-                parley_layout.break_all_lines(None);
-            }
-            Some(Wrap::Whitespace) => {
-                parley_layout.break_all_lines(Some(max_width));
-            }
-            Some(Wrap::Character) => {
-                // Parley doesn't have a separate character-wrap mode in break_all_lines.
-                // We use the same width-based breaking.
+            None => parley_layout.break_all_lines(None),
+            Some(Wrap::Whitespace) | Some(Wrap::Character) => {
                 parley_layout.break_all_lines(Some(max_width));
             }
         }
-
-        // Align horizontally.
         let alignment = match layout.justify {
             Justify::Left => Alignment::Start,
             Justify::Center => Alignment::Center,
@@ -240,19 +222,19 @@ impl Text {
         );
 
         Text {
-            text_string: text.to_string(),
+            string: text.to_string(),
             parley_layout,
             layout: layout.clone(),
             rect,
         }
     }
 
-    /// The layout parameters for this text instance.
+    /// The layout parameters.
     pub fn layout(&self) -> &Layout {
         &self.layout
     }
 
-    /// The rectangle used to layout and build the text instance.
+    /// The rectangle used to layout the text.
     pub fn layout_rect(&self) -> geom::Rect {
         self.rect
     }
@@ -272,8 +254,7 @@ impl Text {
         self.parley_layout.len()
     }
 
-    /// The rectangle that describes the bounding box of the text,
-    /// positioned within the layout rect according to y_align.
+    /// The bounding box of the text, positioned according to `y_align`.
     pub fn bounding_rect(&self) -> geom::Rect {
         let w = self.width();
         let h = self.height();
@@ -281,24 +262,21 @@ impl Text {
             return geom::Rect::from_w_h(0.0, 0.0);
         }
         let offset = self.position_offset();
-        // Parley layout is top-down; bounding rect in nannou coords.
+        // Convert parley top-down to nannou y-up.
         let x = geom::Range::new(offset.x, offset.x + w);
         let y = geom::Range::new(offset.y - h, offset.y);
         geom::Rect { x, y }
     }
 
-    /// Iterate over line rects, each positioned in nannou coordinate space.
+    /// Per-line bounding rects in nannou coordinate space.
     pub fn line_rects(&self) -> Vec<geom::Rect> {
         let offset = self.position_offset();
         self.parley_layout
             .lines()
             .map(|line| {
                 let metrics = line.metrics();
-                // Parley: y increases downward. We flip to nannou y-up.
                 let top = offset.y - metrics.baseline + metrics.ascent;
                 let bottom = offset.y - metrics.baseline - metrics.descent;
-                // metrics.offset accounts for alignment (e.g. center/right).
-                // Exclude trailing whitespace from the line width.
                 let line_x = offset.x + metrics.offset;
                 let line_w = metrics.advance - metrics.trailing_whitespace;
                 let x = geom::Range::new(line_x, line_x + line_w);
@@ -308,18 +286,18 @@ impl Text {
             .collect()
     }
 
-    /// Iterate over lines, yielding the text content of each line.
+    /// The text content of each line.
     pub fn lines(&self) -> Vec<&str> {
         self.parley_layout
             .lines()
             .map(|line| {
                 let range = line.text_range();
-                &self.text_string[range]
+                &self.string[range]
             })
             .collect()
     }
 
-    /// Iterate over glyph rects (one per glyph cluster).
+    /// Per-glyph bounding rects (one per glyph cluster).
     pub fn glyphs(&self) -> Vec<geom::Rect> {
         let offset = self.position_offset();
         let mut rects = Vec::new();
@@ -329,16 +307,12 @@ impl Text {
                 let parley::PositionedLayoutItem::GlyphRun(glyph_run) = item else {
                     continue;
                 };
-                let run = glyph_run.run();
-                let font_size = run.font_size();
-                let run_metrics = run.metrics();
-                let glyph_height = run_metrics.ascent + run_metrics.descent;
+                let run_metrics = glyph_run.run().metrics();
                 for glyph in glyph_run.positioned_glyphs() {
                     let gx = offset.x + glyph.x;
                     let gy = offset.y - baseline;
                     let x = geom::Range::new(gx, gx + glyph.advance);
                     let y = geom::Range::new(gy - run_metrics.descent, gy + run_metrics.ascent);
-                    let _ = (font_size, glyph_height); // suppress unused
                     rects.push(geom::Rect { x, y });
                 }
             }
@@ -346,32 +320,34 @@ impl Text {
         rects
     }
 
-    /// Produce an iterator yielding the path events for every glyph in every line.
+    /// Path events for every glyph, relative to the center of the layout rect.
     pub fn path_events(&self) -> Vec<lyon::path::PathEvent> {
         glyph::text_path_events(&self.parley_layout, self.position_offset())
     }
 
-    /// Compute the position offset to place parley's top-down layout
-    /// into nannou's y-up coordinate system, accounting for y_align.
+    pub(crate) fn parley_layout(&self) -> &parley::Layout<Color> {
+        &self.parley_layout
+    }
+
+    pub(crate) fn position_offset_value(&self) -> Vec2 {
+        self.position_offset()
+    }
+
+    /// Offset to convert parley's top-left y-down layout into nannou's
+    /// center-origin y-up coordinates, accounting for `y_align`.
     fn position_offset(&self) -> Vec2 {
         let text_h = self.height();
+        let rect_h = self.rect.h();
+        let rect_w = self.rect.w();
         let y_offset = match self.layout.y_align {
-            Align::End => {
-                // Top-align: top of text at top of rect.
-                self.rect.top()
-            }
-            Align::Middle => {
-                // Middle-align: center text vertically in rect.
-                self.rect.y.middle() + text_h / 2.0
-            }
-            Align::Start => {
-                // Bottom-align: bottom of text at bottom of rect.
-                self.rect.bottom() + text_h
-            }
+            Align::End => rect_h / 2.0,
+            Align::Middle => text_h / 2.0,
+            Align::Start => -rect_h / 2.0 + text_h,
         };
-        let x_offset = self.rect.left();
+        let x_offset = -rect_w / 2.0;
         Vec2::new(x_offset, y_offset)
     }
+
 }
 
 /// Determine the total height of a block of text with the given number of lines, font size and

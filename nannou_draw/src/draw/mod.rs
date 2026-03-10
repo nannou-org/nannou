@@ -78,7 +78,7 @@ where
     shader_model: UntypedAssetId,
     /// The window to which this [Draw] instance is associated.
     pub(crate) window: Entity,
-    /// The shared text context for layout and font operations.
+    /// Shared text context.
     pub(crate) text_cx: SharedTextCx,
     /// The type of shader model used by this [Draw] instance.
     _shader_model: PhantomData<SM>,
@@ -638,12 +638,10 @@ where
         self.a(text)
     }
 
-    /// Begin building a text layout for immediate measurement and glyph extraction.
+    /// Build a text layout immediately for measurement or glyph extraction.
     ///
-    /// Unlike `draw.text()` which defers layout to the render pass, this method
-    /// returns a `text::Builder` that can be used to compute layout immediately
-    /// via `.build(rect)`. Useful for measuring text bounds or extracting glyph
-    /// outlines in view functions.
+    /// Unlike `draw.text()` which defers layout to the render pass, this
+    /// returns a `text::Builder` whose `.build(rect)` computes layout eagerly.
     pub fn text_layout<'b>(&self, s: &'b str) -> crate::text::Builder<'b> {
         crate::text::Builder::new(s, self.text_cx.clone())
     }

@@ -276,7 +276,7 @@ bitflags::bitflags! {
     }
 }
 
-#[derive(Asset, AsBindGroup, TypePath, Debug, Clone, Default)]
+#[derive(Asset, AsBindGroup, TypePath, Debug, Clone)]
 #[bind_group_data(NannouBindGroupData)]
 #[uniform(0, NannouShaderModelUniform)]
 pub struct NannouShaderModel {
@@ -286,6 +286,20 @@ pub struct NannouShaderModel {
     pub texture: Option<Handle<Image>>,
     pub polygon_mode: PolygonMode,
     pub blend: Option<BlendState>,
+}
+
+impl Default for NannouShaderModel {
+    fn default() -> Self {
+        Self {
+            color: Color::default(),
+            texture: None,
+            polygon_mode: PolygonMode::Fill,
+            blend: Some(BlendState {
+                color: blend::BLEND_NORMAL,
+                alpha: blend::BLEND_NORMAL,
+            }),
+        }
+    }
 }
 
 #[derive(Clone, Default, ShaderType)]

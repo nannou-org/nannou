@@ -253,77 +253,79 @@ impl draw::render::RenderPrimitive for Text {
             ..
         } = ctxt;
 
-        // Extract the text string from the shared text buffer.
         let s = &text_buffer[self.text.clone()];
         if s.is_empty() {
             return;
         }
 
-        // Build the layout using the shared text context.
         let layout_params = self.style.layout.build();
-
-        // Compute a bounding rect from the spatial properties.
         let w = self.spatial.dimensions.x.unwrap_or(output_attachment_size.x);
         let h = self.spatial.dimensions.y.unwrap_or(output_attachment_size.y);
         let x = self.spatial.position.point.x;
         let y = self.spatial.position.point.y;
         let rect = nannou_core::geom::Rect::from_x_y_w_h(x, y, w, h);
 
-        // Lock the text context and build the parley layout.
         let mut inner = text_cx.0.lock().unwrap();
         let text_obj = text::Text::layout_with_inner(&mut inner, s, &layout_params, rect);
         drop(inner);
 
-        // Get the path events for every glyph.
-        let path_events = text_obj.path_events();
-        if path_events.is_empty() {
-            return;
-        }
-
-        // Default color.
         let default_color = self
             .style
             .color
             .unwrap_or_else(|| theme.fill(&draw::theme::Primitive::Text));
 
-        let color_arr: [f32; 4] = LinearRgba::from(default_color).to_f32_array();
-
-        // Tessellate the glyph outlines into the mesh.
+        use crate::draw::mesh::MeshExt;
         use lyon::tessellation::{BuffersBuilder, FillOptions, VertexBuffers};
 
-        let mut buffers: VertexBuffers<[f32; 3], u32> = VertexBuffers::new();
-        {
-            let mut builder =
-                BuffersBuilder::new(&mut buffers, |vertex: lyon::tessellation::FillVertex| {
-                    let p = vertex.position();
-                    let transformed = *transform * Vec4::new(p.x, p.y, 0.0, 1.0);
-                    [transformed.x, transformed.y, transformed.z]
-                });
+        let rect_center = bevy::math::Vec2::new(x, y);
+        let pos_offset = text_obj.position_offset_value() + rect_center;
 
-            let _ = fill_tessellator.tessellate(
-                path_events.iter().copied(),
-                &FillOptions::default(),
-                &mut builder,
-            );
-        }
+        let glyph_colors = &self.style.glyph_colors;
+        let per_glyph =
+            text::glyph::per_glyph_path_events(text_obj.parley_layout(), pos_offset);
 
-        if buffers.vertices.is_empty() {
-            return;
-        }
+        for (i, glyph_events) in per_glyph.iter().enumerate() {
+            if glyph_events.is_empty() {
+                continue;
+            }
 
-        // Append the tessellated vertices and indices to the mesh.
-        use crate::draw::mesh::MeshExt;
-        let base_idx = mesh.points().len() as u32;
+            let color = glyph_colors
+                .get(i)
+                .copied()
+                .unwrap_or(default_color);
+            let color_arr: [f32; 4] = LinearRgba::from(color).to_f32_array();
 
-        mesh.points_mut().extend(buffers.vertices.iter());
-        mesh.normals_mut()
-            .extend(std::iter::repeat_n([0.0, 0.0, 1.0], buffers.vertices.len()));
-        mesh.colors_mut()
-            .extend(std::iter::repeat_n(color_arr, buffers.vertices.len()));
-        mesh.tex_coords_mut()
-            .extend(std::iter::repeat_n([0.0, 0.0], buffers.vertices.len()));
-        for idx in &buffers.indices {
-            mesh.push_index(idx + base_idx);
+            let mut buffers: VertexBuffers<[f32; 3], u32> = VertexBuffers::new();
+            {
+                let mut builder =
+                    BuffersBuilder::new(&mut buffers, |vertex: lyon::tessellation::FillVertex| {
+                        let p = vertex.position();
+                        let transformed = *transform * Vec4::new(p.x, p.y, 0.0, 1.0);
+                        [transformed.x, transformed.y, transformed.z]
+                    });
+
+                let _ = fill_tessellator.tessellate(
+                    glyph_events.iter().copied(),
+                    &FillOptions::default(),
+                    &mut builder,
+                );
+            }
+
+            if buffers.vertices.is_empty() {
+                continue;
+            }
+
+            let base_idx = mesh.points().len() as u32;
+            mesh.points_mut().extend(buffers.vertices.iter());
+            mesh.normals_mut()
+                .extend(std::iter::repeat_n([0.0, 0.0, 1.0], buffers.vertices.len()));
+            mesh.colors_mut()
+                .extend(std::iter::repeat_n(color_arr, buffers.vertices.len()));
+            mesh.tex_coords_mut()
+                .extend(std::iter::repeat_n([0.0, 0.0], buffers.vertices.len()));
+            for idx in &buffers.indices {
+                mesh.push_index(idx + base_idx);
+            }
         }
     }
 }
