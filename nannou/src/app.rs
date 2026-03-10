@@ -988,7 +988,7 @@ impl<'w> App<'w> {
     pub fn elapsed_frames(&self) -> u64 {
         let world = self.component_world();
         let frame_count = world.resource::<FrameCount>();
-        frame_count.0 as u64
+        (frame_count.0 as u64).saturating_sub(1)
     }
 
     /// The number of frames that can currently be displayed a second
