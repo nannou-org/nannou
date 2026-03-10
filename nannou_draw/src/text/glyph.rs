@@ -86,10 +86,7 @@ impl OutlinePen for LyonOutlinePen {
 }
 
 /// Extract lyon path events for all glyphs in a parley layout.
-pub fn text_path_events(
-    parley_layout: &parley::Layout<Color>,
-    pos_offset: Vec2,
-) -> Vec<PathEvent> {
+pub fn text_path_events(parley_layout: &parley::Layout<Color>, pos_offset: Vec2) -> Vec<PathEvent> {
     let mut all_events = Vec::new();
 
     for line in parley_layout.lines() {
@@ -127,8 +124,7 @@ pub fn text_path_events(
                 let gy = pos_offset.y - baseline;
                 let origin = lyon::math::point(gx, gy);
                 let mut pen = LyonOutlinePen::new(origin, scale, false);
-                let settings =
-                    DrawSettings::unhinted(Size::unscaled(), LocationRef::default());
+                let settings = DrawSettings::unhinted(Size::unscaled(), LocationRef::default());
                 let _ = outline_glyph.draw(settings, &mut pen);
 
                 all_events.extend(pen.events);
@@ -183,8 +179,7 @@ pub fn per_glyph_path_events(
                 let origin = lyon::math::point(gx, gy);
 
                 let mut pen = LyonOutlinePen::new(origin, scale, false);
-                let settings =
-                    DrawSettings::unhinted(Size::unscaled(), LocationRef::default());
+                let settings = DrawSettings::unhinted(Size::unscaled(), LocationRef::default());
                 let _ = outline_glyph.draw(settings, &mut pen);
 
                 per_glyph.push(pen.events);

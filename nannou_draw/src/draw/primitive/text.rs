@@ -259,8 +259,16 @@ impl draw::render::RenderPrimitive for Text {
         }
 
         let layout_params = self.style.layout.build();
-        let w = self.spatial.dimensions.x.unwrap_or(output_attachment_size.x);
-        let h = self.spatial.dimensions.y.unwrap_or(output_attachment_size.y);
+        let w = self
+            .spatial
+            .dimensions
+            .x
+            .unwrap_or(output_attachment_size.x);
+        let h = self
+            .spatial
+            .dimensions
+            .y
+            .unwrap_or(output_attachment_size.y);
         let x = self.spatial.position.point.x;
         let y = self.spatial.position.point.y;
         let rect = nannou_core::geom::Rect::from_x_y_w_h(x, y, w, h);
@@ -281,18 +289,14 @@ impl draw::render::RenderPrimitive for Text {
         let pos_offset = text_obj.position_offset_value() + rect_center;
 
         let glyph_colors = &self.style.glyph_colors;
-        let per_glyph =
-            text::glyph::per_glyph_path_events(text_obj.parley_layout(), pos_offset);
+        let per_glyph = text::glyph::per_glyph_path_events(text_obj.parley_layout(), pos_offset);
 
         for (i, glyph_events) in per_glyph.iter().enumerate() {
             if glyph_events.is_empty() {
                 continue;
             }
 
-            let color = glyph_colors
-                .get(i)
-                .copied()
-                .unwrap_or(default_color);
+            let color = glyph_colors.get(i).copied().unwrap_or(default_color);
             let color_arr: [f32; 4] = LinearRgba::from(color).to_f32_array();
 
             let mut buffers: VertexBuffers<[f32; 3], u32> = VertexBuffers::new();

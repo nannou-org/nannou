@@ -7,9 +7,9 @@
 //! - [**Proxy**](./struct.Proxy.html) - a handle to an **App** that may be used from a non-main
 //!   thread.
 //! - [**LoopMode**](./enum.LoopMode.html) - describes the behaviour of the application event loop.
+use bevy::asset::UnapprovedPathMode;
 #[cfg(not(target_arch = "wasm32"))]
 use bevy::asset::io::file::FileAssetReader;
-use bevy::asset::UnapprovedPathMode;
 use bevy::{
     app::AppExit,
     diagnostic::{DiagnosticsStore, FrameCount, FrameTimeDiagnosticsPlugin},

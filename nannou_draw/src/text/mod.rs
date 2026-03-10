@@ -4,8 +4,8 @@ use std::borrow::Cow;
 
 use bevy::prelude::*;
 use nannou_core::geom;
-use parley::style::{FontStack, StyleProperty};
 use parley::Alignment;
+use parley::style::{FontStack, StyleProperty};
 
 pub use self::layout::Layout;
 
@@ -347,7 +347,6 @@ impl Text {
         let x_offset = -rect_w / 2.0;
         Vec2::new(x_offset, y_offset)
     }
-
 }
 
 /// Determine the total height of a block of text with the given number of lines, font size and
@@ -381,4 +380,3 @@ pub fn position_offset(
     };
     geom::vec2(x_offset, y_offset)
 }
-
