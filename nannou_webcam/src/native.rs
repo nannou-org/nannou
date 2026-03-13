@@ -84,7 +84,8 @@ fn nokhwa_initialize_blocking() {
 }
 
 fn query_device_formats(index: &CameraIndex) -> Vec<WebcamSupportedFormat> {
-    let requested = RequestedFormat::new::<RgbFormat>(RequestedFormatType::None);
+    let requested =
+        RequestedFormat::new::<RgbFormat>(RequestedFormatType::AbsoluteHighestFrameRate);
     let mut camera = match Camera::new(index.clone(), requested) {
         Ok(c) => c,
         Err(err) => {
