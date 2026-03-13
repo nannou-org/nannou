@@ -89,7 +89,7 @@ fn query_device_formats(index: &CameraIndex) -> Vec<WebcamSupportedFormat> {
     let mut camera = match Camera::new(index.clone(), requested) {
         Ok(c) => c,
         Err(err) => {
-            warn!("failed to query device formats: {err}");
+            debug!("failed to query device formats: {err}");
             return Vec::new();
         }
     };
@@ -103,7 +103,7 @@ fn query_device_formats(index: &CameraIndex) -> Vec<WebcamSupportedFormat> {
             })
             .collect(),
         Err(err) => {
-            warn!("failed to query compatible formats: {err}");
+            debug!("failed to query compatible formats: {err}");
             Vec::new()
         }
     }
@@ -187,7 +187,11 @@ fn open_webcams(
             device
         } else {
             let in_use: Vec<Entity> = active_captures.iter().map(|c| c.device_entity).collect();
-            match devices.iter().find(|(e, _)| !in_use.contains(e)) {
+            match devices
+                .iter()
+                .filter(|(e, _)| !in_use.contains(e))
+                .min_by_key(|(_, idx)| idx.0.clone())
+            {
                 Some((e, _)) => e,
                 None => {
                     let msg = "no available webcam device found";
