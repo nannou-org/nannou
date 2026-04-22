@@ -11,5 +11,4 @@ bevy = { workspace = true, default-features = false, features = [
 ]}
 video-rs.workspace = true
 thiserror.workspace = true
-rayon.workspace = true
 serde = { workspace = true, features = ["derive"] }
