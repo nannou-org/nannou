@@ -3220,6 +3220,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0cc23270f6e1808e30a928bdc84dea0b9b4136a8bc82338574f23baf47bbd280"
 
 [[package]]
+name = "gloo-events"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "27c26fb45f7c385ba980f5fa87ac677e363949e065a083722697ef1b2cc91e41"
+dependencies = [
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
 name = "glow"
 version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4576,9 +4586,16 @@ name = "nannou_video"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "flume",
+ "gloo-events",
+ "js-sys",
  "serde",
+ "tempfile",
  "thiserror 2.0.17",
  "video-rs",
+ "wasm-bindgen",
+ "web-sys",
+ "wgpu-types",
 ]
 
 [[package]]

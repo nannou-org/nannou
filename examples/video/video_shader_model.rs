@@ -1,20 +1,20 @@
+use bevy::prelude::App;
+use bevy::prelude::*;
+use nannou::NannouPlugin;
 use nannou::prelude::*;
 
 fn main() {
-    nannou::app(model)
-        // Register our custom shader model to make it available for use in our drawing
-        .shader_model::<VideoShaderModel>()
-        .run();
+    let mut app = App::new();
+    app.add_plugins((
+        DefaultPlugins,
+        NannouPlugin,
+        NannouShaderModelPlugin::<VideoShaderModel>::default(),
+    ))
+    .add_systems(Startup, setup)
+    .add_systems(Update, update)
+    .run();
 }
 
-#[derive(Reflect)]
-struct Model {
-    window: Entity,
-    camera: Entity,
-    video: Handle<Video>,
-}
-
-// This struct defines the data that will be passed to your shader
 #[shader_model(fragment = "video_model.wgsl")]
 struct VideoShaderModel {
     #[texture(0)]
@@ -22,38 +22,18 @@ struct VideoShaderModel {
     texture: Handle<Image>,
 }
 
-fn model(app: &App) -> Model {
-    let camera = app.new_camera().build();
-    let window = app
-        .new_window()
-        .camera(camera)
-        .primary()
-        .size_pixels(1024, 512)
-        .view(view)
-        .build();
-
-    let video = app
-        .asset_server()
-        .load("video/file_example_MP4_640_3MG.mp4");
-    Model {
-        window,
-        camera,
-        video,
-    }
+fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+    commands.spawn(render::NannouCamera);
+    let video: Handle<Video> = asset_server.load("video/file_example_MP4_640_3MG.mp4");
+    commands.spawn(VideoPlayer::new(video).with_mode(PlaybackMode::Loop));
 }
 
-fn view(app: &App, model: &Model) {
-    let assets = app.assets();
-    let Some(video) = assets.get(&model.video) else {
-        return;
-    };
-
-    let draw = app
-        .draw()
-        // Initialize our draw instance with our custom shader model
-        .shader_model(VideoShaderModel {
-            texture: video.texture.clone(),
+fn update(draw: Single<&Draw>, players: Query<&VideoOutput>) {
+    draw.background().color(DIM_GRAY);
+    for output in &players {
+        let draw = draw.shader_model(VideoShaderModel {
+            texture: output.image.clone(),
         });
-
-    draw.rect().w_h(640.0, 400.0);
+        draw.rect().w_h(640.0, 400.0);
+    }
 }

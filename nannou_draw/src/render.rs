@@ -141,7 +141,7 @@ where
         app.init_asset::<SM>()
             .add_plugins((
                 ExtractInstancesPlugin::<ShaderModelAsset<SM>>::extract_visible(),
-                RenderAssetPlugin::<PreparedShaderModel<SM>>::default(),
+                RenderAssetPlugin::<PreparedShaderModel<SM>, GpuImage>::default(),
                 IndirectShaderModelPlugin::<SM>::default(),
                 InstancedShaderModelPlugin::<SM>::default(),
             ))
