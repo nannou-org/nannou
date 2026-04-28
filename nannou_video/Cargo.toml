@@ -9,7 +9,33 @@ bevy = { workspace = true, default-features = false, features = [
     "bevy_log",
     "bevy_render",
 ]}
-video-rs.workspace = true
 thiserror.workspace = true
-rayon.workspace = true
+flume.workspace = true
 serde = { workspace = true, features = ["derive"] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+video-rs.workspace = true
+tempfile.workspace = true
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+bevy = { workspace = true, default-features = false, features = [
+    "bevy_asset",
+    "bevy_log",
+    "bevy_render",
+    "webgpu",
+]}
+wasm-bindgen.workspace = true
+js-sys = "0.3"
+gloo-events = "0.2"
+wgpu-types = { version = "28.0", features = ["web"] }
+web-sys = { workspace = true, features = [
+    "Blob",
+    "BlobPropertyBag",
+    "Document",
+    "EventTarget",
+    "HtmlMediaElement",
+    "HtmlVideoElement",
+    "MediaError",
+    "Url",
+    "Window",
+]}

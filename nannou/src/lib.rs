@@ -49,7 +49,6 @@ impl Plugin for NannouPlugin {
         }
         #[cfg(feature = "video")]
         {
-            bevy::prelude::info!("Adding video plugin");
             app.add_plugins(nannou_video::NannouVideoPlugin);
         }
     }

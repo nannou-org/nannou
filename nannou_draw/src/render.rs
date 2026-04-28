@@ -6,7 +6,7 @@ use crate::draw::{
     render::{RenderContext, RenderPrimitive},
 };
 use bevy::{
-    asset::{Asset, UntypedAssetId, load_internal_asset, uuid_handle},
+    asset::{Asset, AssetEventSystems, UntypedAssetId, load_internal_asset, uuid_handle},
     camera::{
         RenderTarget,
         visibility::{NoFrustumCulling, RenderLayers, add_visibility_class},
@@ -147,7 +147,9 @@ where
             ))
             .add_systems(
                 PostUpdate,
-                update_shader_model::<SM>.after(update_draw_mesh),
+                update_shader_model::<SM>
+                    .after(update_draw_mesh)
+                    .before(AssetEventSystems),
             );
 
         app.sub_app_mut(RenderApp)
