@@ -6,7 +6,7 @@ use crate::draw::{
     render::{RenderContext, RenderPrimitive},
 };
 use bevy::{
-    asset::{Asset, UntypedAssetId, load_internal_asset, uuid_handle},
+    asset::{Asset, AssetEventSystems, UntypedAssetId, load_internal_asset, uuid_handle},
     camera::{
         RenderTarget,
         visibility::{NoFrustumCulling, RenderLayers, add_visibility_class},
@@ -141,13 +141,15 @@ where
         app.init_asset::<SM>()
             .add_plugins((
                 ExtractInstancesPlugin::<ShaderModelAsset<SM>>::extract_visible(),
-                RenderAssetPlugin::<PreparedShaderModel<SM>, GpuImage>::default(),
+                RenderAssetPlugin::<PreparedShaderModel<SM>>::default(),
                 IndirectShaderModelPlugin::<SM>::default(),
                 InstancedShaderModelPlugin::<SM>::default(),
             ))
             .add_systems(
                 PostUpdate,
-                update_shader_model::<SM>.after(update_draw_mesh),
+                update_shader_model::<SM>
+                    .after(update_draw_mesh)
+                    .before(AssetEventSystems),
             );
 
         app.sub_app_mut(RenderApp)

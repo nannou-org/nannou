@@ -5,7 +5,7 @@ use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
 use crate::asset::Video;
 use crate::components::{SeekTo, VideoOutput, VideoPlayer};
 use crate::events::{VideoEnded, VideoFailed, VideoLoaded, VideoLooped, VideoSeeked};
-use crate::worker::{FrameEvent, PlayerCommand, VideoWorker, WorkerConfig, spawn_worker};
+use crate::worker::{FrameEvent, FramePayload, PlayerCommand, VideoWorker, WorkerConfig, spawn_worker};
 
 #[derive(Component)]
 pub(crate) struct PendingVideo;
@@ -94,14 +94,11 @@ pub(crate) fn drain_frames(
     mut players: Query<(Entity, &VideoWorker, &mut VideoOutput)>,
 ) {
     for (entity, worker, mut output) in &mut players {
+        let mut latest_frame: Option<FramePayload> = None;
         while let Ok(event) = worker.frame_rx.try_recv() {
             match event {
                 FrameEvent::Frame(payload) => {
-                    if let Some(mut image) = images.get_mut(&output.image) {
-                        write_frame(&mut image, payload.size, payload.pixels);
-                    }
-                    output.size = payload.size;
-                    output.position_seconds = payload.pts_seconds;
+                    latest_frame = Some(payload);
                 }
                 FrameEvent::Ended => {
                     commands
@@ -119,6 +116,13 @@ pub(crate) fn drain_frames(
                         .trigger(|e| VideoFailed { entity: e, reason });
                 }
             }
+        }
+        if let Some(payload) = latest_frame {
+            if let Some(mut image) = images.get_mut(&output.image) {
+                write_frame(&mut image, payload.size, payload.pixels);
+            }
+            output.size = payload.size;
+            output.position_seconds = payload.pts_seconds;
         }
     }
 }

@@ -224,8 +224,13 @@ fn worker_main(
             pixels: std::mem::take(&mut rgba),
             size: UVec2::new(width, height),
         };
+        let before_send = Instant::now();
         if frame_tx.send(FrameEvent::Frame(payload)).is_err() {
             return;
+        }
+        if before_send.elapsed() > Duration::from_millis(5) {
+            start_wall = Instant::now();
+            start_pts = pts_seconds;
         }
     }
 }
