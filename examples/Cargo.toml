@@ -119,9 +119,6 @@ path = "draw/draw_text_path.rs"
 name = "draw_texture"
 path = "draw/draw_texture.rs"
 [[example]]
-name = "test_static_tex"
-path = "draw/test_static_tex.rs"
-[[example]]
 name = "draw_texture_sampler"
 path = "draw/draw_texture_sampler.rs"
 [[example]]

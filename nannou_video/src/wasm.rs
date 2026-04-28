@@ -1,8 +1,3 @@
-//! WASM backend: per-[`VideoPlayer`](crate::VideoPlayer) `HtmlVideoElement`, DOM events
-//! routed to nannou entity events, and a render-world GPU copy via wgpu's
-//! `copy_external_image_to_texture`. Design mirrors `bevy_web_video` (Apache-2.0 / MIT),
-//! adapted to our `VideoPlayer`/`VideoOutput` component shape and Bevy 0.19 / wgpu 28.
-
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -147,7 +142,7 @@ pub(crate) fn attach_players(
             }
         };
 
-        element.set_muted(true); // autoplay works without user gesture when muted
+        element.set_muted(true);
         element.set_loop(matches!(player.mode, PlaybackMode::Loop));
         element.set_playback_rate(player.speed as f64);
         element.set_cross_origin(Some("anonymous"));
@@ -155,7 +150,6 @@ pub(crate) fn attach_players(
             let _ = element.play();
         }
 
-        // 1x1 placeholder; real dimensions arrive via `loadedmetadata`.
         let mut image = Image::new_fill(
             Extent3d {
                 width: 1,
@@ -349,13 +343,6 @@ pub(crate) fn drain_events(
             }
         }
     }
-
-    // Advance the current playback position from the <video> element's currentTime.
-    for mut output in &mut outputs {
-        // Can't resolve entity from VideoOutput alone; skipped here. Position is updated
-        // below by `sync_positions`.
-        let _ = &mut output;
-    }
 }
 
 pub(crate) fn sync_positions(
@@ -390,11 +377,8 @@ fn resize_target(images: &mut Assets<Image>, id: AssetId<Image>, size: UVec2) {
         height: size.y,
         depth_or_array_layers: 1,
     };
-    // Drop the CPU-side buffer; the copy is GPU-to-GPU.
     image.data = None;
 }
-
-// ------------- Render world -------------
 
 #[derive(Default)]
 pub(crate) struct RenderElements {

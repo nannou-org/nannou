@@ -9,11 +9,7 @@ pub struct VideoPlayer {
     pub mode: PlaybackMode,
     pub speed: f32,
     pub paused: bool,
-    /// Hardware acceleration policy. Applied once when the worker is created; changing this
-    /// after the worker is spawned has no effect. Ignored on wasm (the browser decides).
     pub hw_accel: HwAccelPolicy,
-    /// Decode-side resize. Applied once when the worker is created; changing this after the
-    /// worker is spawned has no effect. Ignored on wasm.
     pub resize: VideoResize,
 }
 
@@ -70,9 +66,6 @@ pub struct VideoOutput {
     pub position_seconds: f64,
 }
 
-/// One-shot seek request. Insert on an entity that has a [`VideoPlayer`]; the plugin consumes
-/// it on the next tick, forwards the seek to the backend, and triggers
-/// [`crate::VideoSeeked`].
 #[derive(Component, Reflect, Debug, Clone, Copy)]
 #[reflect(Component)]
 pub struct SeekTo(pub f64);
@@ -81,11 +74,8 @@ pub struct SeekTo(pub f64);
 pub enum VideoResize {
     #[default]
     None,
-    /// Resize to the exact dimensions, ignoring aspect ratio.
     Exact(UVec2),
-    /// Resize to the largest dimensions that fit, preserving aspect ratio.
     Fit(UVec2),
-    /// Like `Fit` but rounds to even dimensions — required by many codecs.
     FitEven(UVec2),
 }
 
@@ -106,7 +96,6 @@ impl VideoResize {
 pub enum HwAccelPolicy {
     #[default]
     Disabled,
-    /// Pick the first available accelerator from a per-platform preference list.
     Auto,
     VideoToolbox,
     Cuda,

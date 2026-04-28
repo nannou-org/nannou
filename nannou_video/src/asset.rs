@@ -27,8 +27,6 @@ pub struct Video {
     pub frame_rate: f32,
     pub duration_seconds: Option<f64>,
     pub frame_count: Option<u64>,
-    /// FFmpeg demuxer options applied when the asset was probed. Re-applied by each
-    /// [`VideoPlayer`](crate::VideoPlayer) worker when it opens its own decoder. Native only.
     #[cfg(not(target_arch = "wasm32"))]
     pub(crate) options: HashMap<String, String>,
 }
@@ -38,19 +36,13 @@ pub struct Video {
 pub enum VideoSource {
     File(PathBuf),
     Url(Url),
-    /// Bytes delivered through the asset `Reader` (http, embedded, custom source) and spilled
-    /// to a temp file so ffmpeg can open them. The `Arc` keeps the file alive for every
-    /// [`Video`] clone and worker decoder that references it.
     TempFile(Arc<NamedTempFile>),
 }
 
 #[cfg(target_arch = "wasm32")]
 #[derive(Debug, Clone)]
 pub enum VideoSource {
-    /// URL or path used as the `src` attribute on the underlying `<video>` element —
-    /// `http://`, `https://`, `blob:`, or a page-relative path.
     Url(String),
-    /// Raw bytes. A blob URL is created per player when the element is attached.
     Bytes(Arc<Vec<u8>>),
 }
 
@@ -67,9 +59,7 @@ impl VideoSource {
 
 #[derive(Default, Clone, Serialize, Deserialize)]
 pub struct VideoLoaderSettings {
-    /// Well-known preset for the ffmpeg demuxer. Native only; ignored on wasm.
     pub preset: NetworkPreset,
-    /// Additional raw ffmpeg demuxer options, merged on top of [`Self::preset`]. Native only.
     pub extra_options: HashMap<String, String>,
 }
 
@@ -77,11 +67,8 @@ pub struct VideoLoaderSettings {
 pub enum NetworkPreset {
     #[default]
     None,
-    /// Prefer TCP over UDP when reading an RTSP stream.
     RtspOverTcp,
-    /// Like [`Self::RtspOverTcp`] but with reduced socket/I/O timeouts (16 s).
     RtspOverTcpWithSaneTimeouts,
-    /// Fragmented MP4 output compatible with Media Source Extensions.
     FragmentedMov,
 }
 
@@ -113,11 +100,6 @@ pub(crate) fn merge_options(
 
 #[cfg(not(target_arch = "wasm32"))]
 impl Video {
-    /// Probe the given source to build a [`Video`] asset without going through the asset loader.
-    ///
-    /// Use this for live sources the asset loader can't handle — Bevy's `WebAssetReader`
-    /// buffers the full response before calling the loader, which hangs on infinite streams
-    /// (RTSP, HLS live, MSE). Pass those straight to ffmpeg via [`VideoSource::Url`] instead.
     pub fn probe(
         source: VideoSource,
         settings: &VideoLoaderSettings,
@@ -158,9 +140,6 @@ impl Video {
 
 #[cfg(target_arch = "wasm32")]
 impl Video {
-    /// Build a [`Video`] asset from a source without going through the asset loader. On wasm
-    /// the browser performs the actual probing asynchronously; `size`/`frame_rate`/`duration`
-    /// stay zero/`None` until `loadedmetadata` fires on the underlying `<video>` element.
     pub fn probe(
         source: VideoSource,
         _settings: &VideoLoaderSettings,
@@ -191,9 +170,6 @@ impl AssetLoader for VideoLoader {
         settings: &Self::Settings,
         load_context: &mut LoadContext<'_>,
     ) -> Result<Self::Asset, Self::Error> {
-        // ffmpeg needs a path or URL, not a byte stream. Take the fast path when the asset
-        // lives on the local filesystem; otherwise spill the Reader (http, embedded, custom)
-        // to a temp file the decoder can open.
         let rel_path = load_context.path().path();
         let file_path = FileAssetReader::get_base_path().join("assets").join(rel_path);
         let source = if file_path.is_file() {

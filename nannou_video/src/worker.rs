@@ -235,7 +235,6 @@ fn worker_main(
     }
 }
 
-/// Apply a command; returns `true` if the worker should stop.
 fn apply_command(
     cmd: PlayerCommand,
     decoder: &mut video_rs::Decoder,
@@ -264,8 +263,6 @@ fn apply_command(
     false
 }
 
-/// Block for a command that would restart playback after EOF in `Once` mode.
-/// Returns `true` if the worker should stop.
 fn wait_for_restart(
     cmd_rx: &Receiver<PlayerCommand>,
     decoder: &mut video_rs::Decoder,
