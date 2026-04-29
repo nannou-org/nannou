@@ -3,7 +3,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use bevy::prelude::*;
-use flume::{Receiver, Sender, TryRecvError};
+use flume::{Receiver, Sender, TryRecvError, TrySendError};
 use video_rs::hwaccel::HardwareAccelerationDeviceType;
 use video_rs::options::Options;
 use video_rs::resize::Resize;
@@ -47,15 +47,12 @@ pub(crate) enum FrameEvent {
 pub(crate) struct VideoWorker {
     pub cmd_tx: Sender<PlayerCommand>,
     pub frame_rx: Receiver<FrameEvent>,
-    handle: Option<thread::JoinHandle<()>>,
+    _handle: Option<thread::JoinHandle<()>>,
 }
 
 impl Drop for VideoWorker {
     fn drop(&mut self) {
         let _ = self.cmd_tx.send(PlayerCommand::Stop);
-        if let Some(h) = self.handle.take() {
-            let _ = h.join();
-        }
     }
 }
 
@@ -69,8 +66,20 @@ pub(crate) fn spawn_worker(config: WorkerConfig) -> VideoWorker {
     VideoWorker {
         cmd_tx,
         frame_rx,
-        handle: Some(handle),
+        _handle: Some(handle),
     }
+}
+
+struct WorkerState {
+    paused: bool,
+    speed: f32,
+    mode: PlaybackMode,
+    first_frame: bool,
+    start_wall: Instant,
+    start_pts: f64,
+    need_keyframe: bool,
+    last_pts: f64,
+    consecutive_errors: u32,
 }
 
 fn worker_main(
@@ -80,7 +89,7 @@ fn worker_main(
 ) {
     let WorkerConfig {
         source,
-        mut mode,
+        mode,
         hw_accel,
         resize,
         options,
@@ -104,46 +113,48 @@ fn worker_main(
     let time_base = decoder.time_base();
     let tb_num = time_base.numerator() as f64;
     let tb_den = time_base.denominator() as f64;
-
-    let mut paused = false;
-    let mut speed: f32 = 1.0;
-    let mut start_wall = Instant::now();
-    let mut start_pts: f64 = 0.0;
-    let mut first_frame = true;
+    let mut state = WorkerState {
+        paused: false,
+        speed: 1.0,
+        mode,
+        first_frame: true,
+        start_wall: Instant::now(),
+        start_pts: 0.0,
+        need_keyframe: false,
+        last_pts: 0.0,
+        consecutive_errors: 0,
+    };
     let mut rgba = Vec::new();
 
     loop {
-        loop {
-            match cmd_rx.try_recv() {
-                Ok(cmd) => {
-                    if apply_command(
-                        cmd,
-                        &mut decoder,
-                        &mut paused,
-                        &mut speed,
-                        &mut mode,
-                        &mut first_frame,
-                    ) {
-                        return;
-                    }
-                }
-                Err(TryRecvError::Empty) => break,
-                Err(TryRecvError::Disconnected) => return,
-            }
+        if drain_commands(&cmd_rx, &mut decoder, &mut state) {
+            return;
         }
 
-        if paused {
+        if state.paused {
             match cmd_rx.recv() {
                 Ok(cmd) => {
-                    if apply_command(
-                        cmd,
-                        &mut decoder,
-                        &mut paused,
-                        &mut speed,
-                        &mut mode,
-                        &mut first_frame,
-                    ) {
+                    if apply_command(cmd, &mut decoder, &mut state) {
                         return;
+                    }
+                    // After receiving a command while paused, drain any remaining
+                    // commands so batched updates (Pause+SetSpeed+SetMode) settle.
+                    if drain_commands(&cmd_rx, &mut decoder, &mut state) {
+                        return;
+                    }
+                    // If still paused after draining and a seek occurred, decode
+                    // one frame so the display updates to the new position.
+                    if state.paused && state.need_keyframe {
+                        state.need_keyframe = false;
+                        if let Some(payload) = decode_one_frame(
+                            &mut decoder,
+                            &mut state,
+                            &mut rgba,
+                            tb_num,
+                            tb_den,
+                        ) {
+                            let _ = frame_tx.try_send(FrameEvent::Frame(payload));
+                        }
                     }
                 }
                 Err(_) => return,
@@ -152,36 +163,23 @@ fn worker_main(
         }
 
         let frame = match decoder.decode_raw() {
-            Ok(f) => f,
+            Ok(f) => {
+                state.consecutive_errors = 0;
+                f
+            }
             Err(VideoRsError::DecodeExhausted) => {
-                match mode {
-                    PlaybackMode::Loop => {
-                        let _ = decoder.seek_to_start();
-                        first_frame = true;
-                        if frame_tx.send(FrameEvent::Looped).is_err() {
-                            return;
-                        }
-                    }
-                    PlaybackMode::Once => {
-                        if frame_tx.send(FrameEvent::Ended).is_err() {
-                            return;
-                        }
-                        if wait_for_restart(
-                            &cmd_rx,
-                            &mut decoder,
-                            &mut paused,
-                            &mut speed,
-                            &mut mode,
-                            &mut first_frame,
-                        ) {
-                            return;
-                        }
-                    }
+                if handle_eof(&cmd_rx, &mut decoder, &mut state, &frame_tx) {
+                    return;
                 }
                 continue;
             }
-            Err(e) => {
-                let _ = frame_tx.send(FrameEvent::Error(format!("{}", e)));
+            Err(_e) => {
+                state.consecutive_errors += 1;
+                if state.consecutive_errors > 3 {
+                    if handle_eof(&cmd_rx, &mut decoder, &mut state, &frame_tx) {
+                        return;
+                    }
+                }
                 continue;
             }
         };
@@ -190,6 +188,7 @@ fn worker_main(
             .pts()
             .map(|p| p as f64 * tb_num / tb_den)
             .unwrap_or(0.0);
+        state.last_pts = pts_seconds;
 
         let width = frame.width();
         let height = frame.height();
@@ -207,13 +206,13 @@ fn worker_main(
             }
         }
 
-        if first_frame {
-            start_wall = Instant::now();
-            start_pts = pts_seconds;
-            first_frame = false;
+        if state.first_frame {
+            state.start_wall = Instant::now();
+            state.start_pts = pts_seconds;
+            state.first_frame = false;
         } else {
-            let target = (pts_seconds - start_pts) / speed.max(0.001) as f64;
-            let elapsed = start_wall.elapsed().as_secs_f64();
+            let target = (pts_seconds - state.start_pts) / state.speed.max(0.001) as f64;
+            let elapsed = state.start_wall.elapsed().as_secs_f64();
             if target > elapsed {
                 thread::sleep(Duration::from_secs_f64(target - elapsed));
             }
@@ -224,13 +223,103 @@ fn worker_main(
             pixels: std::mem::take(&mut rgba),
             size: UVec2::new(width, height),
         };
-        let before_send = Instant::now();
-        if frame_tx.send(FrameEvent::Frame(payload)).is_err() {
-            return;
+
+        // Non-blocking send: if the channel is full, drop the frame rather than
+        // blocking the worker (which would prevent command processing).
+        match frame_tx.try_send(FrameEvent::Frame(payload)) {
+            Ok(_) => {}
+            Err(TrySendError::Full(_)) => {
+                state.start_wall = Instant::now();
+                state.start_pts = pts_seconds;
+            }
+            Err(TrySendError::Disconnected(_)) => return,
         }
-        if before_send.elapsed() > Duration::from_millis(5) {
-            start_wall = Instant::now();
-            start_pts = pts_seconds;
+    }
+}
+
+fn decode_one_frame(
+    decoder: &mut video_rs::Decoder,
+    state: &mut WorkerState,
+    rgba: &mut Vec<u8>,
+    tb_num: f64,
+    tb_den: f64,
+) -> Option<FramePayload> {
+    let frame = decoder.decode_raw().ok()?;
+
+    let pts_seconds = frame
+        .pts()
+        .map(|p| p as f64 * tb_num / tb_den)
+        .unwrap_or(0.0);
+
+    let width = frame.width();
+    let height = frame.height();
+    let stride = frame.stride(0);
+    let src = frame.data(0);
+    let row_rgb = (width as usize) * 3;
+    let required = (width as usize) * (height as usize) * 4;
+    rgba.clear();
+    rgba.reserve(required);
+    for y in 0..height as usize {
+        let row_start = y * stride;
+        let row = &src[row_start..row_start + row_rgb];
+        for rgb in row.chunks_exact(3) {
+            rgba.extend_from_slice(&[rgb[0], rgb[1], rgb[2], 255]);
+        }
+    }
+
+    state.start_wall = Instant::now();
+    state.start_pts = pts_seconds;
+    state.first_frame = false;
+
+    Some(FramePayload {
+        pts_seconds,
+        pixels: std::mem::take(rgba),
+        size: UVec2::new(width, height),
+    })
+}
+
+fn handle_eof(
+    cmd_rx: &Receiver<PlayerCommand>,
+    decoder: &mut video_rs::Decoder,
+    state: &mut WorkerState,
+    frame_tx: &Sender<FrameEvent>,
+) -> bool {
+    state.consecutive_errors = 0;
+    match state.mode {
+        PlaybackMode::Loop => {
+            let _ = decoder.seek_to_frame(0);
+            let _ = decoder.seek(0);
+            state.first_frame = true;
+            match frame_tx.try_send(FrameEvent::Looped) {
+                Err(TrySendError::Disconnected(_)) => return true,
+                _ => {}
+            }
+            false
+        }
+        PlaybackMode::Once => {
+            match frame_tx.try_send(FrameEvent::Ended) {
+                Err(TrySendError::Disconnected(_)) => return true,
+                _ => {}
+            }
+            wait_for_restart(cmd_rx, decoder, state)
+        }
+    }
+}
+
+fn drain_commands(
+    cmd_rx: &Receiver<PlayerCommand>,
+    decoder: &mut video_rs::Decoder,
+    state: &mut WorkerState,
+) -> bool {
+    loop {
+        match cmd_rx.try_recv() {
+            Ok(cmd) => {
+                if apply_command(cmd, decoder, state) {
+                    return true;
+                }
+            }
+            Err(TryRecvError::Empty) => return false,
+            Err(TryRecvError::Disconnected) => return true,
         }
     }
 }
@@ -238,26 +327,28 @@ fn worker_main(
 fn apply_command(
     cmd: PlayerCommand,
     decoder: &mut video_rs::Decoder,
-    paused: &mut bool,
-    speed: &mut f32,
-    mode: &mut PlaybackMode,
-    first_frame: &mut bool,
+    state: &mut WorkerState,
 ) -> bool {
     match cmd {
         PlayerCommand::Play => {
-            *paused = false;
-            *first_frame = true;
+            state.paused = false;
+            state.first_frame = true;
         }
-        PlayerCommand::Pause => *paused = true,
+        PlayerCommand::Pause => state.paused = true,
         PlayerCommand::Seek(s) => {
-            let _ = decoder.seek((s * 1000.0) as i64);
-            *first_frame = true;
+            let ms = (s * 1000.0) as i64;
+            let _ = decoder.seek_to_frame(0);
+            if ms > 0 {
+                let _ = decoder.seek(ms);
+            }
+            state.first_frame = true;
+            state.need_keyframe = true;
         }
         PlayerCommand::SetSpeed(s) => {
-            *speed = s;
-            *first_frame = true;
+            state.speed = s;
+            state.first_frame = true;
         }
-        PlayerCommand::SetMode(m) => *mode = m,
+        PlayerCommand::SetMode(m) => state.mode = m,
         PlayerCommand::Stop => return true,
     }
     false
@@ -266,10 +357,7 @@ fn apply_command(
 fn wait_for_restart(
     cmd_rx: &Receiver<PlayerCommand>,
     decoder: &mut video_rs::Decoder,
-    paused: &mut bool,
-    speed: &mut f32,
-    mode: &mut PlaybackMode,
-    first_frame: &mut bool,
+    state: &mut WorkerState,
 ) -> bool {
     loop {
         let cmd = match cmd_rx.recv() {
@@ -278,26 +366,30 @@ fn wait_for_restart(
         };
         match cmd {
             PlayerCommand::Seek(s) => {
-                let _ = decoder.seek((s * 1000.0) as i64);
-                *first_frame = true;
+                let ms = (s * 1000.0) as i64;
+                let _ = decoder.seek_to_frame(0);
+                if ms > 0 {
+                    let _ = decoder.seek(ms);
+                }
+                state.first_frame = true;
                 return false;
             }
             PlayerCommand::Play => {
-                let _ = decoder.seek_to_start();
-                *first_frame = true;
-                *paused = false;
+                let _ = decoder.seek_to_frame(0);
+                state.first_frame = true;
+                state.paused = false;
                 return false;
             }
             PlayerCommand::SetMode(PlaybackMode::Loop) => {
-                *mode = PlaybackMode::Loop;
-                let _ = decoder.seek_to_start();
-                *first_frame = true;
+                state.mode = PlaybackMode::Loop;
+                let _ = decoder.seek_to_frame(0);
+                state.first_frame = true;
                 return false;
             }
             PlayerCommand::Stop => return true,
-            PlayerCommand::Pause => *paused = true,
-            PlayerCommand::SetSpeed(s) => *speed = s,
-            PlayerCommand::SetMode(m) => *mode = m,
+            PlayerCommand::Pause => state.paused = true,
+            PlayerCommand::SetSpeed(s) => state.speed = s,
+            PlayerCommand::SetMode(m) => state.mode = m,
         }
     }
 }
