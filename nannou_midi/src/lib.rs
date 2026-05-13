@@ -2,7 +2,7 @@ mod components;
 mod events;
 
 #[cfg(not(target_arch = "wasm32"))]
-mod native;
+pub mod native;
 
 pub use components::*;
 pub use events::*;

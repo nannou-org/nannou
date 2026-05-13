@@ -313,7 +313,9 @@ pub(crate) fn drain_events(
                             video.size = size;
                         }
                         let duration = managed.element.duration();
-                        if duration.is_finite() && duration > 0.0 && video.duration_seconds.is_none()
+                        if duration.is_finite()
+                            && duration > 0.0
+                            && video.duration_seconds.is_none()
                         {
                             video.duration_seconds = Some(duration);
                         }

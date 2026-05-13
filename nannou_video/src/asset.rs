@@ -171,7 +171,9 @@ impl AssetLoader for VideoLoader {
         load_context: &mut LoadContext<'_>,
     ) -> Result<Self::Asset, Self::Error> {
         let rel_path = load_context.path().path();
-        let file_path = FileAssetReader::get_base_path().join("assets").join(rel_path);
+        let file_path = FileAssetReader::get_base_path()
+            .join("assets")
+            .join(rel_path);
         let source = if file_path.is_file() {
             VideoSource::File(file_path)
         } else {

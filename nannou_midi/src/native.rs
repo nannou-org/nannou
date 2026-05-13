@@ -23,24 +23,24 @@ impl<T> MidiSync<T> {
 }
 
 #[derive(Component)]
-pub(crate) struct NativeInputPort(pub MidiSync<midir::MidiInputPort>);
+pub struct NativeInputPort(pub(crate) MidiSync<midir::MidiInputPort>);
 
 #[derive(Component)]
-pub(crate) struct NativeOutputPort(pub MidiSync<midir::MidiOutputPort>);
+pub struct NativeOutputPort(pub(crate) MidiSync<midir::MidiOutputPort>);
 
 #[derive(Component)]
-struct InputConnection {
+pub struct InputConnection {
     _connection: MidiSync<midir::MidiInputConnection<()>>,
     receiver: Receiver<MidiData>,
 }
 
 #[derive(Component)]
-struct OutputConnection {
+pub struct OutputConnection {
     connection: MidiSync<midir::MidiOutputConnection>,
 }
 
 #[derive(Resource)]
-struct PortEnumerationTimer {
+pub struct PortEnumerationTimer {
     last_check: Instant,
 }
 
@@ -65,7 +65,7 @@ pub(crate) fn init(app: &mut App) {
     app.add_observer(on_midi_output_removed);
 }
 
-fn enumerate_midi_ports(
+pub fn enumerate_midi_ports(
     mut commands: Commands,
     existing_ports: Query<(Entity, &Name, &MidiPort)>,
     mut timer: ResMut<PortEnumerationTimer>,
@@ -170,7 +170,7 @@ fn enumerate_midi_ports(
     }
 }
 
-fn open_midi_inputs(
+pub fn open_midi_inputs(
     mut commands: Commands,
     new_inputs: Query<(Entity, &MidiInput, Option<&Name>), Added<MidiInput>>,
     ports: Query<(Entity, &MidiPort, &NativeInputPort)>,
@@ -279,7 +279,7 @@ fn connect_input(
         .map_err(|e| format!("failed to connect MIDI input: {e}"))
 }
 
-fn open_midi_outputs(
+pub fn open_midi_outputs(
     mut commands: Commands,
     new_outputs: Query<(Entity, &MidiOutput, Option<&Name>), Added<MidiOutput>>,
     ports: Query<(Entity, &MidiPort, &NativeOutputPort)>,
@@ -356,7 +356,7 @@ fn open_midi_outputs(
     }
 }
 
-fn receive_midi_messages(mut inputs: Query<(&InputConnection, &mut MidiInputStream)>) {
+pub fn receive_midi_messages(mut inputs: Query<(&InputConnection, &mut MidiInputStream)>) {
     for (conn, mut stream) in &mut inputs {
         while let Ok(data) = conn.receiver.try_recv() {
             stream.messages.push(data);
@@ -364,7 +364,7 @@ fn receive_midi_messages(mut inputs: Query<(&InputConnection, &mut MidiInputStre
     }
 }
 
-fn send_midi_messages(mut outputs: Query<(&OutputConnection, &mut MidiOutputStream)>) {
+pub fn send_midi_messages(mut outputs: Query<(&OutputConnection, &mut MidiOutputStream)>) {
     for (conn, mut stream) in &mut outputs {
         let mut connection = conn.connection.lock();
         for msg in stream.outbox.drain(..) {

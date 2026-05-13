@@ -146,13 +146,9 @@ fn worker_main(
                     // one frame so the display updates to the new position.
                     if state.paused && state.need_keyframe {
                         state.need_keyframe = false;
-                        if let Some(payload) = decode_one_frame(
-                            &mut decoder,
-                            &mut state,
-                            &mut rgba,
-                            tb_num,
-                            tb_den,
-                        ) {
+                        if let Some(payload) =
+                            decode_one_frame(&mut decoder, &mut state, &mut rgba, tb_num, tb_den)
+                        {
                             let _ = frame_tx.try_send(FrameEvent::Frame(payload));
                         }
                     }
