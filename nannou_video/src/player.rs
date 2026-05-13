@@ -5,7 +5,9 @@ use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
 use crate::asset::Video;
 use crate::components::{SeekTo, VideoOutput, VideoPlayer};
 use crate::events::{VideoEnded, VideoFailed, VideoLoaded, VideoLooped, VideoSeeked};
-use crate::worker::{FrameEvent, FramePayload, PlayerCommand, VideoWorker, WorkerConfig, spawn_worker};
+use crate::worker::{
+    FrameEvent, FramePayload, PlayerCommand, VideoWorker, WorkerConfig, spawn_worker,
+};
 
 #[derive(Component)]
 pub(crate) struct PendingVideo;
@@ -62,10 +64,7 @@ pub(crate) fn attach_workers(
     }
 }
 
-pub(crate) fn process_seeks(
-    mut commands: Commands,
-    seeks: Query<(Entity, &VideoWorker, &SeekTo)>,
-) {
+pub(crate) fn process_seeks(mut commands: Commands, seeks: Query<(Entity, &VideoWorker, &SeekTo)>) {
     for (entity, worker, seek) in &seeks {
         let _ = worker.cmd_tx.send(PlayerCommand::Seek(seek.0));
         commands.entity(entity).remove::<SeekTo>();
