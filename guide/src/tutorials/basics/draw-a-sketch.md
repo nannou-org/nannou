@@ -59,11 +59,11 @@ After this import the actual sketching code starts. The `main()` functions is wh
 ```
 
 calls a function to draw on the single window (`view()` in this case). This
-function has the signature `fn(_: &App, _: Frame);`. Don't worry if you
+function has the signature `fn(_: &App);`. Don't worry if you
 don't know what a function signature is. Just copy the `main()` function
 and you will be fine.
 
-Within the view() function, what we draw to the Frame will be presented in our window.
+Within the view() function, whatever we draw will be presented in our window.
 
 ```rust,no_run
 # #![allow(unused_imports)]
@@ -94,7 +94,7 @@ let draw = app.draw();
 ```
 
 lets us assign a canvas-like datatype to the variable `draw`.
-We can now paint on the this canvas by setting the background to blue.
+We can now paint on this canvas by setting the background to blue.
 
 ```rust,no_run
 # #![allow(unused_imports)]
@@ -108,8 +108,8 @@ draw.background().color(BLUE);
 # }
 ```
 
-Now we have a canvas with only a blue background. We take this canvas and
-create a computer graphics frame from it to display in the main window.
+Now we have a canvas with only a blue background, which nannou presents in the
+main window for us.
 
 ```rust,no_run
 # #![allow(unused_imports)]

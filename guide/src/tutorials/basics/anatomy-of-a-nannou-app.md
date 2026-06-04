@@ -258,11 +258,11 @@ fn view(_app: &App, _model: &Model, _window: Entity) {
 # fn main() {}
 ```
 
-Finally, the **view** allows us to present the state of the model to a window by
-drawing to its **Frame** and returning the frame at the end. Here we can change
-the background colour, use the **Draw** API to draw a scene, draw a GUI to the
-window or even use the wgpu API to draw to the frame using our own textures and
-render passes. All of this will be covered by future tutorials.
+Finally, the **view** allows us to present the state of the model to a window. It
+is called each time the window needs to be redrawn. Here we can change the
+background colour, use the **Draw** API to draw a scene, draw a GUI to the window
+or even use the wgpu API to draw using our own textures and render passes. All of
+this will be covered by future tutorials.
 
 ## Concluding Remarks
 

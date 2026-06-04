@@ -145,7 +145,7 @@ flexibility, you can turn it into an app by following these steps:
 
 3. Add a `model` function for creating the `Model`:
 
-   ```rust,no_Run
+   ```rust,no_run
    # #![allow(dead_code)]
    # use nannou::prelude::*;
    # fn main() {}
