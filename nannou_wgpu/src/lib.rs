@@ -77,7 +77,7 @@ pub use wgpu::{
     RenderPipelineDescriptor, RequestAdapterOptions, RequestAdapterOptionsBase, RequestDeviceError,
     Sampler, SamplerBorderColor, SamplerDescriptor, ShaderLocation, ShaderModel, ShaderModule,
     ShaderModuleDescriptor, ShaderSource, ShaderStages, StencilFaceState, StencilOperation,
-    StencilState, StorageTextureAccess, Surface, SurfaceConfiguration, SurfaceError, SurfaceStatus,
+    StencilState, StorageTextureAccess, Surface, SurfaceConfiguration, SurfaceStatus,
     SurfaceTexture, TexelCopyBufferInfo, TexelCopyBufferLayout, TexelCopyTextureInfo,
     Texture as TextureHandle, TextureAspect, TextureDescriptor, TextureDimension, TextureFormat,
     TextureFormatFeatureFlags, TextureFormatFeatures, TextureSampleType, TextureUsages,
@@ -165,9 +165,11 @@ pub fn create_pipeline_layout(
     bind_group_layouts: &[&wgpu::BindGroupLayout],
     immediate_size: u32,
 ) -> wgpu::PipelineLayout {
+    // wgpu 29 expects optional bind group layouts to allow sparse binding slots.
+    let bind_group_layouts: Vec<_> = bind_group_layouts.iter().copied().map(Some).collect();
     let descriptor = wgpu::PipelineLayoutDescriptor {
         label,
-        bind_group_layouts,
+        bind_group_layouts: &bind_group_layouts,
         immediate_size,
     };
     device.create_pipeline_layout(&descriptor)
