@@ -7,7 +7,81 @@ back to the origins.
 
 # Unreleased
 
-*There are currently no unreleased changes.*
+## The Bevy Refactor
+
+This is a ground-up overhaul of nannou: it is now built on top of the
+[Bevy](https://bevyengine.org) game engine. Rather than maintaining its own
+application loop, windowing, event and graphics wrappers, nannou now exposes its
+functionality as a set of Bevy plugins. This lets nannou focus on its
+creative-coding API while sharing the upkeep of windowing, rendering and platform
+support with the wider Bevy community. See
+[#946](https://github.com/nannou-org/nannou/issues/946) for the background and
+motivation.
+
+The familiar `model`/`update`/`view` API and the `Draw` API remain, so many
+sketches need only minor changes. At the same time, the full Bevy ecosystem (its
+ECS, renderer, asset system and plugins) is now available to nannou apps.
+
+### Architecture
+
+- nannou is now a Bevy plugin. `nannou::app(model)...run()` and
+  `nannou::sketch(view).run()` build and run a Bevy `App` under the hood, and
+  `NannouPlugin` may be added to an existing Bevy `App` directly.
+- The custom application loop, window wrappers and simplified event types have
+  been removed in favour of Bevy's equivalents.
+- The user's `Model` is stored within the Bevy app, and the `App` provides
+  ergonomic access to the underlying ECS `World`.
+- Windows are now referred to by their Bevy `Entity` rather than a `window::Id`.
+
+### Crates
+
+- **New:** `nannou_draw` (the `Draw` API as a Bevy plugin), `nannou_video`
+  (video playback), `nannou_webcam` (webcam capture), `nannou_midi` (MIDI I/O)
+  and `nannou_derive` (procedural macros, e.g. the `#[shader_model]` attribute).
+- **Removed:** `nannou_egui` and `nannou_egui_demo_app` (egui is now integrated
+  via [`bevy_egui`](https://crates.io/crates/bevy_egui)), `nannou_mesh` (folded
+  into `nannou_draw`/`nannou_core`), and the `nannou_new` and `nannou_package`
+  tools.
+- `nannou_core`, `nannou_wgpu`, `nannou_audio`, `nannou_osc`, `nannou_laser` and
+  `nannou_isf` remain and have been ported to the new architecture.
+
+### Graphics
+
+- The `Draw` API is now rendered through Bevy's renderer.
+- Added a `ShaderModel` abstraction, along with the `#[shader_model]` attribute
+  (from `nannou_derive`), for defining custom materials and shaders.
+- Added 3D support, including cameras and lights via `App::new_camera` and
+  `App::new_light`.
+- Added a compute API (`Builder::compute`) for running compute shaders.
+- `nannou_isf` (Interactive Shader Format) rendering ported to Bevy.
+- Colour types and constants are now aligned with Bevy's `bevy_color` (e.g. the
+  CSS palette colour constants such as `PLUM` and `STEEL_BLUE`).
+- The `view` function no longer receives or returns a `Frame`; it is simply
+  called each time a window needs to be redrawn.
+
+### Dependencies & toolchain
+
+- Built on Bevy `0.19` (currently tracking the `0.19` release candidates) and
+  `wgpu` `29`.
+- Crates now use the Rust 2024 edition and require a recent stable toolchain.
+
+### Migration notes
+
+For existing nannou `0.19` projects, the most common changes are:
+
+- App `view` functions drop the `Frame` argument. The app-level/default view
+  (e.g. via `simple_window`) is now `fn view(app: &App, model: &Model, window: Entity)`,
+  and per-window view functions (via `Window::Builder::view`) are
+  `fn view(app: &App, model: &Model)`.
+- `update` functions drop the event argument:
+  `fn update(app: &App, model: &mut Model)`.
+- Windows are referenced by their Bevy `Entity` rather than a `window::Id`.
+- Event handler arguments now use Bevy's input types (e.g. `KeyCode`,
+  `MouseButton`, `TouchInput`).
+- egui UIs are now created via `bevy_egui` rather than `nannou_egui`.
+
+Sketches built with `nannou::sketch(view)` and the `Draw` API generally require
+minimal changes beyond updating colour constant names where they differ.
 
 ---
 
