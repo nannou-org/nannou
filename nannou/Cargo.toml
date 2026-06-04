@@ -18,10 +18,11 @@ bevy = { workspace = true, default-features = false, features = [
     "jpeg",
     "zstd_rust",
 ]}
-# TODO: waiting on bevy 0.19 support
+# `bevy-inspector-egui` has no Bevy 0.19 release yet - kept disabled (see the
+# `inspector` feature below and the RC -> stable tracking issue).
 #bevy-inspector-egui = { workspace = true, optional = true }
-#bevy_egui = { workspace = true, optional = true }
-#bevy_common_assets = { workspace = true, optional = true }
+bevy_egui = { workspace = true, optional = true }
+bevy_common_assets = { workspace = true, optional = true }
 nannou_derive = { path = "../nannou_derive" }
 nannou_draw = { path = "../nannou_draw" }
 nannou_isf = { path = "../nannou_isf", optional = true }
@@ -53,10 +54,11 @@ default = [
     "x11",
     "webgl2",
 ]
-# TODO: waiting on bevy 0.19 support
-#config_json = ["bevy_common_assets/json"]
-#config_toml = ["bevy_common_assets/toml"]
-#egui = ["bevy_egui", "bevy-inspector-egui"]
+config_json = ["bevy_common_assets/json"]
+config_toml = ["bevy_common_assets/toml"]
+egui = ["dep:bevy_egui"]
+# TODO: re-enable once `bevy-inspector-egui` supports Bevy 0.19.
+#inspector = ["egui", "dep:bevy-inspector-egui"]
 hot_reload = ["bevy/file_watcher", "bevy/multi_threaded"]
 isf = ["nannou_isf"]
 nightly = ["nannou_draw/nightly"]

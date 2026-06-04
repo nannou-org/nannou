@@ -105,8 +105,9 @@ impl RowPaddedBuffer {
             "Wrapped buffer cannot be mapped for writing"
         );
 
+        // wgpu 29's `BufferViewMut` is write-only (mapped memory may be
+        // write-combining), so write through `slice(..).copy_from_slice(..)`.
         let mut mapped = self.buffer.slice(..).get_mapped_range_mut();
-        let mapped = &mut mapped[..];
 
         let width = self.width as usize;
         let padded_width = width + self.row_padding as usize;
@@ -115,8 +116,10 @@ impl RowPaddedBuffer {
             let in_start = row * width;
             let out_start = row * padded_width;
 
-            // note: leaves mapped[out_start + width..out_start + padded_width] uninitialized!
-            mapped[out_start..out_start + width].copy_from_slice(&buf[in_start..in_start + width]);
+            // note: leaves the row padding bytes uninitialized!
+            mapped
+                .slice(out_start..out_start + width)
+                .copy_from_slice(&buf[in_start..in_start + width]);
         }
     }
 

@@ -30,10 +30,14 @@ repository = "https://github.com/nannou-org/nannou.git"
 
 [workspace.dependencies]
 audrey = "0.3"
-bevy = { git = "https://github.com/bevyengine/bevy.git", branch = "main", default-features = false }
-# TODO: waiting on bevy 0.19 support
-#bevy_common_assets = "0.14"
-#bevy_egui = "0.38"
+bevy = { version = "0.19.0-rc.2", default-features = false }
+# Pinned to the Bevy 0.19 release candidates while we wait for the stable
+# release. Tracked for a switch back to stable in #TODO (RC -> stable).
+bevy_common_assets = "0.17.0-rc1"
+bevy_egui = "0.40.0-rc.1"
+# `bevy-inspector-egui` has no Bevy 0.19 release yet. Re-enable it (and the
+# `inspector` feature + `inspector_ui` example) once one lands - see the
+# RC -> stable tracking issue (#TODO).
 #bevy-inspector-egui = "0.35"
 bitflags = "2.9"
 bytemuck = "1.22"
@@ -84,5 +88,5 @@ wasm-bindgen = "0.2"
 web-sys = "0.3"
 console_error_panic_hook = "0.1"
 getrandom = { version = "0.3", default-features = false }
-wgpu = "28"
+wgpu = "29"
 wikipedia = "0.5"

@@ -13,6 +13,12 @@ homepage.workspace = true
 license.workspace = true
 edition.workspace = true
 
+[lints.rust]
+# `noise` 0.7.0 defines `Perlin` in two modules (perlin and perlin_surflet),
+# both glob-exported, so `noise::Perlin` trips `ambiguous_glob_imports` - a hard
+# error on recent rustc. Allow it until the `noise` dependency is updated.
+ambiguous_glob_imports = "allow"
+
 [dev-dependencies]
 audrey.workspace = true
 bevy.workspace = true
@@ -224,10 +230,12 @@ required-features = ["nannou/egui"]
 name = "simple_ui"
 path = "ui/egui/simple_ui.rs"
 required-features = ["nannou/egui"]
-[[example]]
-name = "inspector_ui"
-path = "ui/egui/inspector_ui.rs"
-required-features = ["nannou/egui"]
+# TODO: re-enable once `bevy-inspector-egui` supports Bevy 0.19 (needs the
+# `nannou/inspector` feature and `Builder::model_ui`; see the tracking issue).
+#[[example]]
+#name = "inspector_ui"
+#path = "ui/egui/inspector_ui.rs"
+#required-features = ["nannou/inspector"]
 
 # Video
 [[example]]

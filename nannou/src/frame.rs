@@ -101,12 +101,17 @@ impl<'a, 'r, 'w, 's> Frame<'a, 'r, 'w, 's> {
 
     /// The swap chain texture that will be the target for drawing this frame.
     pub fn swap_chain_texture(&self) -> &wgpu::TextureView {
-        self.view_target.out_texture()
+        // Bevy 0.19's `ViewTarget` exposes the output texture as an `Option`.
+        self.view_target
+            .out_texture()
+            .expect("frame has no output texture")
     }
 
     /// The texture format of the frame's swap chain texture.
     pub fn swap_chain_texture_format(&self) -> wgpu::TextureFormat {
-        self.view_target.out_texture_view_format()
+        self.view_target
+            .out_texture_view_format()
+            .expect("frame has no output texture")
     }
 
     /// The device and queue on which the swap chain was created and which will be used to submit
