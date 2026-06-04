@@ -21,7 +21,7 @@ use bevy::{
     },
     mesh::MeshVertexBufferLayoutRef,
     pbr::{
-        DrawMesh, MATERIAL_BIND_GROUP_INDEX, MeshPipeline, MeshPipelineKey, MeshPipelineSet,
+        DrawMesh, MATERIAL_BIND_GROUP_INDEX, MeshPipeline, MeshPipelineKey, MeshPipelineSystems,
         RenderMeshInstances, SetMeshBindGroup, SetMeshViewBindGroup,
         SetMeshViewBindingArrayBindGroup,
     },
@@ -166,7 +166,7 @@ where
     fn finish(&self, app: &mut App) {
         app.sub_app_mut(RenderApp).add_systems(
             RenderStartup,
-            init_shader_model_pipeline::<SM>.after(MeshPipelineSet),
+            init_shader_model_pipeline::<SM>.after(MeshPipelineSystems),
         );
     }
 }
@@ -378,7 +378,8 @@ pub(crate) fn queue_shader_model<SM, QF, RC>(
             continue;
         };
 
-        let view_key = msaa_key | MeshPipelineKey::from_hdr(view.hdr);
+        // Bevy 0.19 dropped HDR from the mesh pipeline key (and `ExtractedView`).
+        let view_key = msaa_key;
         for (entity, main_entity, draw_idx) in &nannou_meshes {
             let Some(model_asset) = extracted_instances.get(main_entity) else {
                 continue;
@@ -394,7 +395,11 @@ pub(crate) fn queue_shader_model<SM, QF, RC>(
                 continue;
             };
             let mesh_key =
-                view_key | MeshPipelineKey::from_primitive_topology(mesh.primitive_topology());
+                view_key
+                    | MeshPipelineKey::from_primitive_topology_and_strip_index(
+                        mesh.primitive_topology(),
+                        None,
+                    );
             let key = ShaderModelPipelineKey {
                 mesh_key,
                 bind_group_data: shader_model.key.clone(),

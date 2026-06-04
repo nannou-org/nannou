@@ -17,7 +17,7 @@ use bevy::render::render_resource::binding_types::{
 use bevy::render::render_resource::*;
 use bevy::render::renderer::{RenderContext, RenderDevice, ViewQuery};
 use bevy::render::texture::{DefaultImageSampler, GpuImage};
-use bevy::render::view::{ExtractedView, ViewTarget};
+use bevy::render::view::ViewTarget;
 use bevy::render::{Render, RenderApp, RenderSystems};
 use bevy::window::{PrimaryWindow, WindowRef};
 use std::num::NonZero;
@@ -179,9 +179,9 @@ fn queue_isf(
     isf_inputs: Res<IsfInputs>,
     isf_render_targets: Res<IsfRenderTargets>,
     mut specialized_render_pipelines: ResMut<SpecializedRenderPipelines<IsfPipeline>>,
-    views: Query<(Entity, &ExtractedView, &IsfHandle, &Msaa)>,
+    views: Query<(Entity, &IsfHandle, &Msaa)>,
 ) {
-    for (view_entity, extracted_view, isf, msaa) in views.iter() {
+    for (view_entity, isf, msaa) in views.iter() {
         let isf = isf_assets.get(&**isf).unwrap();
 
         // Prepare any new layout descriptors
@@ -226,11 +226,11 @@ fn queue_isf(
         for pass in isf_render_targets.iter() {
             let (format, samples) = match pass {
                 None => (
-                    if extracted_view.hdr {
-                        TextureFormat::Rgba32Float
-                    } else {
-                        TextureFormat::Rgba8UnormSrgb
-                    },
+                    // TODO: Bevy 0.19 removed `ExtractedView::hdr` (HDR is now the
+                    // `Hdr` marker component, read in the main world during
+                    // extraction). Restore an HDR intermediate format by plumbing
+                    // that through. See the RC -> stable tracking issue.
+                    TextureFormat::Rgba8UnormSrgb,
                     msaa.samples(),
                 ),
                 Some(pass) => (pass.format, 1),
