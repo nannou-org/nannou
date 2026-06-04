@@ -12,7 +12,10 @@
 , vulkan-loader
 , vulkan-validation-layers
 , wayland
-, xorg
+, libx11
+, libxcursor
+, libxi
+, libxrandr
 , stdenv
 , udev
 , XCURSOR_THEME ? "Adwaita"
@@ -61,10 +64,10 @@ rustPlatform.buildRustPackage rec {
     vulkan-loader
     vulkan-validation-layers
     wayland
-    xorg.libX11
-    xorg.libXcursor
-    xorg.libXi
-    xorg.libXrandr
+    libx11
+    libxcursor
+    libxi
+    libxrandr
   ] ++ lib.optionals stdenv.isDarwin [
     rustPlatform.bindgenHook
   ]);

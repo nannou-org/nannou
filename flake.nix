@@ -14,17 +14,17 @@
       lib = inputs.nixpkgs.lib;
       perSystem = f: lib.genAttrs systems f;
       systemPkgs = system: import inputs.nixpkgs { inherit system; };
-      perSystemPkgs = f: perSystem (system: f (systemPkgs system));
+      perSystemPkgs = f: perSystem (system: f system (systemPkgs system));
     in
     {
-      packages = perSystemPkgs (pkgs: {
+      packages = perSystemPkgs (system: pkgs: {
         nannou = pkgs.callPackage ./default.nix { };
-        default = inputs.self.packages.${pkgs.system}.nannou;
+        default = inputs.self.packages.${system}.nannou;
       });
 
-      apps = perSystemPkgs (pkgs:
+      apps = perSystemPkgs (system: pkgs:
         let
-          nannou = inputs.self.packages.${pkgs.system}.nannou;
+          nannou = inputs.self.packages.${system}.nannou;
         in
         {
           draw = {
@@ -37,13 +37,13 @@
           };
         });
 
-      devShells = perSystemPkgs (pkgs: {
+      devShells = perSystemPkgs (system: pkgs: {
         nannou-dev = pkgs.callPackage ./shell.nix {
-          inherit (inputs.self.packages.${pkgs.system}) nannou;
+          inherit (inputs.self.packages.${system}) nannou;
         };
-        default = inputs.self.devShells.${pkgs.system}.nannou-dev;
+        default = inputs.self.devShells.${system}.nannou-dev;
       });
 
-      formatter = perSystemPkgs (pkgs: pkgs.nixpkgs-fmt);
+      formatter = perSystemPkgs (_: pkgs: pkgs.nixpkgs-fmt);
     };
 }
