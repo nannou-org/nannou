@@ -12,21 +12,20 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
-        <link rel="icon" href="../../favicon.svg">
-        <link rel="shortcut icon" href="../../favicon.png">
-        <link rel="stylesheet" href="../../css/variables.css">
-        <link rel="stylesheet" href="../../css/general.css">
-        <link rel="stylesheet" href="../../css/chrome.css">
-        <link rel="stylesheet" href="../../css/print.css" media="print">
+        <link rel="icon" href="../../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../../css/general-0392ca55.css">
+        <link rel="stylesheet" href="../../css/chrome-fc474251.css">
+        <link rel="stylesheet" href="../../css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
-        <link rel="stylesheet" href="../../FontAwesome/css/font-awesome.css">
-        <link rel="stylesheet" href="../../fonts/fonts.css">
+        <link rel="stylesheet" href="../../fonts/fonts-9644e21d.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" id="highlight-css" href="../../highlight.css">
-        <link rel="stylesheet" id="tomorrow-night-css" href="../../tomorrow-night.css">
-        <link rel="stylesheet" id="ayu-highlight-css" href="../../ayu-highlight.css">
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../../ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
 
@@ -36,9 +35,10 @@
             const path_to_root = "../../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../../searchindex-210b4bc3.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../../toc.js"></script>
+        <script src="../../toc-ff7df133.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -52,7 +52,7 @@
             </div>
         </div>
     </div>
-    <div id="body-container">
+    <div id="mdbook-body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
@@ -81,56 +81,59 @@
             html.classList.add("js");
         </script>
 
-        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
             let sidebar = null;
-            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
             } else {
                 sidebar = 'hidden';
+                sidebar_toggle.checked = false;
             }
-            sidebar_toggle.checked = sidebar === 'visible';
-            html.classList.remove('sidebar-visible');
-            html.classList.add("sidebar-" + sidebar);
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
         </script>
 
-        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
             <!-- populated by js -->
             <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
             <noscript>
                 <iframe class="sidebar-iframe-outer" src="../../toc.html"></iframe>
             </noscript>
-            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
             </div>
         </nav>
 
-        <div id="page-wrapper" class="page-wrapper">
+        <div id="mdbook-page-wrapper" class="page-wrapper">
 
             <div class="page">
-                <div id="menu-bar-hover-placeholder"></div>
-                <div id="menu-bar" class="menu-bar sticky">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
                     <div class="left-buttons">
-                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
-                            <i class="fa fa-bars"></i>
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
                         </label>
-                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
-                            <i class="fa fa-paint-brush"></i>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
                         </button>
-                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
-                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
-                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
-                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
-                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
-                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
-                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
-                            <i class="fa fa-search"></i>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
                         </button>
                     </div>
 
@@ -138,33 +141,38 @@
 
                     <div class="right-buttons">
                         <a href="../../print.html" title="Print this book" aria-label="Print this book">
-                            <i id="print-button" class="fa fa-print"></i>
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
                         </a>
 
                     </div>
                 </div>
 
-                <div id="search-wrapper" class="hidden">
-                    <form id="searchbar-outer" class="searchbar-outer">
-                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
                     </form>
-                    <div id="searchresults-outer" class="searchresults-outer hidden">
-                        <div id="searchresults-header" class="searchresults-header"></div>
-                        <ul id="searchresults">
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
                         </ul>
                     </div>
                 </div>
 
                 <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
                 <script>
-                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
-                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
-                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
                         link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
                     });
                 </script>
 
-                <div id="content" class="content">
+                <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="drawing-2d-shapes"><a class="header" href="#drawing-2d-shapes">Drawing 2D Shapes</a></h1>
 <p><strong>Tutorial Info</strong></p>
@@ -178,19 +186,19 @@
 </li>
 <li>Reading Time: 20 minutes</li>
 </ul>
-<hr />
+<hr>
 <p>In this tutorial we explore drawing 2D shapes with nannou. We will cover drawing
 basic lines, simple polygons (e.g. ellipses, rectangles, etc.), and more complex
-polygons where you can create whatever shape you'd like!</p>
+polygons where you can create whatever shape you’d like!</p>
 <p>To begin with, we will need a nannou project file to work with. Copy the
 following into new file:</p>
-<pre><pre class="playground"><code class="language-rust no_run">use nannou::prelude::*;
+<pre class="playground"><code class="language-rust no_run">use nannou::prelude::*;
 
 fn main() {
     nannou::sketch(view).run();
 }
 
-fn view(app: &amp;App, frame: Frame) {
+fn view(app: &amp;App) {
     // Prepare to draw.
     let draw = app.draw();
 
@@ -198,64 +206,63 @@ fn view(app: &amp;App, frame: Frame) {
     draw.background().color(PLUM);
 
     // Draw a blue ellipse with default size and position.
-    draw.ellipse().color(STEELBLUE);
+    draw.ellipse().color(STEEL_BLUE);
 
-    // Write to the window frame.
-    draw.to_frame(app, &amp;frame).unwrap();
-}</code></pre></pre>
+    
+}</code></pre>
 <p>You can also find this file, and other useful examples, in the <a href="https://github.com/nannou-org/nannou/tree/master/examples">examples</a> directory of the nannou source repository.</p>
 <h2 id="drawing-simple-shapes"><a class="header" href="#drawing-simple-shapes">Drawing Simple Shapes</a></h2>
-<p>Let's try running the file!  (if you haven't already, you will need to add this file to your Cargo.toml file)</p>
+<p>Let’s try running the file!  (if you haven’t already, you will need to add this file to your Cargo.toml file)</p>
 <p>You should a new window with something that looks like this:</p>
-<p><img src="./images/2d-shape-circle.png" alt="A simple circle" /></p>
+<p><img src="./images/2d-shape-circle.png" alt="A simple circle"></p>
 <p>Already we are rendering a circle to our canvas.  As you may have guessed, the line of code responsible for creating a circle is the call to the <code>ellipse</code> function:</p>
-<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
+<pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">fn main() {
 </span><span class="boring">    let draw: Draw = unimplemented!();
 </span>draw.ellipse()
-    .color(STEELBLUE);
-<span class="boring">}</span></code></pre></pre>
-<p>There are many ways we can alter our circle here.  Let's start with changing the size:</p>
-<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
+    .color(STEEL_BLUE);
+<span class="boring">}</span></code></pre>
+<p>There are many ways we can alter our circle here.  Let’s start with changing the size:</p>
+<pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">fn main() {
 </span><span class="boring">    let draw: Draw = unimplemented!();
 </span>draw.ellipse()
-    .color(STEELBLUE)
+    .color(STEEL_BLUE)
     .w(300.0)
     .h(200.0);
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p>The <code>w</code> function here changes the width of the ellipse to 300 pixels, and the <code>h</code> function changes the height to 200.0 pixels. You should see what we would more colloquially refer to as an ellipse.</p>
 <p>We can also change the position of our ellipse with the <code>x_y</code> method:</p>
-<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
+<pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">fn main() {
 </span><span class="boring">    let draw: Draw = unimplemented!();
 </span>draw.ellipse()
-    .color(STEELBLUE)
+    .color(STEEL_BLUE)
     .w(300.0)
     .h(200.0)
     .x_y(200.0, -100.0);
-<span class="boring">}</span></code></pre></pre>
-<p><img src="./images/2d-shape-ellipse.png" alt="An ellipse" /></p>
+<span class="boring">}</span></code></pre>
+<p><img src="./images/2d-shape-ellipse.png" alt="An ellipse"></p>
 <p>As you can see, we edit our ellipse by chaining together different methods which will change one or more properties of our shape.  This is called the <strong>Builder</strong> pattern.  The call to <code>draw.ellipse()</code> returns an object of type <code>Drawing&lt;Ellipse&gt;</code>.  In turn, each call to a builder method, such as <code>w(300.0)</code> or <code>x_y(200.0, -100.0)</code>, returns the same instance of our shape. By chaining these function calls, we are able to build an ellipse with the attributes we want.</p>
 <p>There are several more methods we can use to build our ellipse. You can view the documentation for many of these methods <a href="https://docs.rs/nannou/latest/nannou/draw/struct.Drawing.html">here</a>.</p>
 <h3 id="drawing-rectangles-and-quadrilaterals"><a class="header" href="#drawing-rectangles-and-quadrilaterals">Drawing Rectangles and Quadrilaterals</a></h3>
-<p>Drawing a square or rectangle uses the same builder pattern that drawing an ellipse does.  In fact, it's similar enough that you can swap out <code>ellipse</code> with <code>rect</code> in the example above to get a working example:</p>
-<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
+<p>Drawing a square or rectangle uses the same builder pattern that drawing an ellipse does.  In fact, it’s similar enough that you can swap out <code>ellipse</code> with <code>rect</code> in the example above to get a working example:</p>
+<pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">fn main() {
 </span><span class="boring">    let draw: Draw = unimplemented!();
 </span>draw.rect()
-    .color(STEELBLUE)
+    .color(STEEL_BLUE)
     .w(300.0)
     .h(200.0);
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p>You will see an image like this:</p>
-<p><img src="./images/2d-shape-rect.png" alt="A rectangle" /></p>
+<p><img src="./images/2d-shape-rect.png" alt="A rectangle"></p>
 <p>In addition to <code>rect</code>, you can also use the <code>quad</code> method, which is for drawing quadrilaterals. This function is similar to <code>rect</code>, but you can also choose to supply your own coordinates for your shape.  Try the following:</p>
-<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
+<pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">fn main() {
 </span><span class="boring">    let draw: Draw = unimplemented!();
@@ -265,21 +272,21 @@ let point3 = pt2(15.0, 40.0);
 let point4 = pt2(-20.0, 35.0);
 
 draw.quad()
-    .color(STEELBLUE)
+    .color(STEEL_BLUE)
     .w(300.0)
     .h(200.0)
     .points(point1, point2, point3, point4);
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p>You should see the following:</p>
-<p><img src="./images/2d-shape-quad.png" alt="A quadrilateral with custom defined points" /></p>
-<p>The <code>pt2</code> method above will create a point object that represents a point in XY coordinate space, like a graph or a Cartesian plane. nannou's coordinate system places (0,0) at the center of the window. This is <strong>not</strong> like many other graphical creative coding frameworks, which place (0,0) at the upper-leftmost position of the window.</p>
+<p><img src="./images/2d-shape-quad.png" alt="A quadrilateral with custom defined points"></p>
+<p>The <code>pt2</code> method above will create a point object that represents a point in XY coordinate space, like a graph or a Cartesian plane. nannou’s coordinate system places (0,0) at the center of the window. This is <strong>not</strong> like many other graphical creative coding frameworks, which place (0,0) at the upper-leftmost position of the window.</p>
 <p>Note that while the <code>Drawing</code> builder objects for different shapes share many of the same builder methods, they do not share all of them.  Trying to use the method <code>points</code> on an instance of an <code>Drawing&lt;Ellipse&gt;</code>, for example, will raise an error.</p>
 <h3 id="drawing-a-triangle"><a class="header" href="#drawing-a-triangle">Drawing a Triangle</a></h3>
 <p>Additionally, there is one more simple shape method: <code>tri</code>, for drawing triangles.  It behaves similarly to <code>quad</code>, where you can supply your own coordinates to decide how the shape looks.  Try it out!</p>
-<p><img src="./images/2d-shape-tri.png" alt="A triangle" /></p>
+<p><img src="./images/2d-shape-tri.png" alt="A triangle"></p>
 <h2 id="drawing-lines"><a class="header" href="#drawing-lines">Drawing Lines</a></h2>
 <p>The <code>line</code> function provides a simple way to draw a line:</p>
-<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
+<pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">fn main() {
 </span><span class="boring">    let draw: Draw = unimplemented!();
@@ -290,32 +297,32 @@ draw.line()
     .start(start_point)
     .end(end_point)
     .weight(4.0)
-    .color(STEELBLUE);
-<span class="boring">}</span></code></pre></pre>
-<p><img src="./images/2d-simple-line.png" alt="A simple line" /></p>
+    .color(STEEL_BLUE);
+<span class="boring">}</span></code></pre>
+<p><img src="./images/2d-simple-line.png" alt="A simple line"></p>
 <p>Simply provide a starting point and an ending point, and you have your line.</p>
 <p>This is great for simpler drawings, but what if you want to draw something more complicated? A sine wave, for instance.</p>
 <p>To draw our sine wave, we will use the <code>polyline</code> function.  To use this function, we will supply a collection (or array) of points that represent points on a sine wave.  We can generate this array of points using—what else—the <code>sin</code> function!</p>
-<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
+<pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">fn main() {
 </span><span class="boring">    let draw: Draw = unimplemented!();
 </span>let points = (0..50).map(|i| {
   let x = i as f32 - 25.0;          //subtract 25 to center the sine wave
   let point = pt2(x, x.sin()) * 20.0; //scale sine wave by 20.0
-  (point, STEELBLUE)
+  (point, STEEL_BLUE)
 });
 draw.polyline()
     .weight(3.0)
     .points_colored(points);
-<span class="boring">}</span></code></pre></pre>
-<p><img src="./images/2d-simple-polyline.png" alt="A sine wave polyline drawing" /></p>
+<span class="boring">}</span></code></pre>
+<p><img src="./images/2d-simple-polyline.png" alt="A sine wave polyline drawing"></p>
 <p>As you can see, the power of <code>polyline</code> is the ability to draw a series of lines
 connecting and ordered array of points.  With this, you can easily draw a
 variety of shapes or lines, so long as you can provide or generate the points
 you need to represent that shape.</p>
 <p>For example, a circle:</p>
-<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
+<pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">fn main() {
 </span><span class="boring">    let draw: Draw = unimplemented!();
@@ -331,42 +338,42 @@ let points = (0..=360).map(|i| {
     // Do the same with cosine to find the y co-ordinate.
     let y = radian.cos() * radius;
     // Construct and return a point object with a color.
-    (pt2(x,y), STEELBLUE)
+    (pt2(x,y), STEEL_BLUE)
 });
 // Create a polyline builder. Hot-tip: polyline is short-hand for a path that is
 // drawn via "stroke" tessellation rather than "fill" tessellation.
 draw.polyline()
     .weight(3.0)
     .points_colored(points); // Submit our points.
-<span class="boring">}</span></code></pre></pre>
-<p><img src="./images/2d-custom-circle-outline.png" alt="A custom circle" /></p>
-<p>A custom drawn circle! ...okay, perhaps this isn't too exciting, given that we
+<span class="boring">}</span></code></pre>
+<p><img src="./images/2d-custom-circle-outline.png" alt="A custom circle"></p>
+<p>A custom drawn circle! …okay, perhaps this isn’t too exciting, given that we
 already have an easy way of drawing circles with <code>ellipse</code>. But with a simple
-change to the above code we can generate an outline of a different shape. Let's
+change to the above code we can generate an outline of a different shape. Let’s
 try using the <code>step_by</code> function, which allows us to choose the interval at
 which we would like to step through a range or other iterator. So instead of
 calling <code>(0..=360).map</code>, we will call <code>(0..=360).step_by(45).map</code>:</p>
-<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused_variables)]
+<pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {
 </span>let points = (0..=360).step_by(45).map(|i| {
 <span class="boring">    0.0
 </span><span class="boring">});
-</span><span class="boring">}</span></code></pre></pre>
+</span><span class="boring">}</span></code></pre>
 <p>The rest of our code will remain unchanged.</p>
 <p>Because 45 divides into 360 eight times, our code generated 8 points to represent a regular octagon.</p>
-<p><img src="./images/2d-complete-octogon-outline.png" alt="An octagon outline" /></p>
+<p><img src="./images/2d-complete-octogon-outline.png" alt="An octagon outline"></p>
 <p>An octagon!</p>
 <p>Try experimenting with different values to pass into <code>step_by</code> and see the
 different shapes you can create!</p>
 <p>As a side note, you may have noticed that we did not use a <code>color</code> function to
-set the drawing's color this time. Instead, <code>polyline</code> allows for each point to
+set the drawing’s color this time. Instead, <code>polyline</code> allows for each point to
 be colored uniquely. This means that you can change the color of the polyline
 point-by-point. Try experimenting with it!</p>
 <h2 id="drawing-custom-polygons"><a class="header" href="#drawing-custom-polygons">Drawing Custom Polygons</a></h2>
 <p>To draw a custom filled-in polygon (and not just an outline), will we use code
 very similar to our custom circle or octagon code. The main difference is that
 instead of calling <code>polyline</code> to create a Builder, we call <code>polygon</code>:</p>
-<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
+<pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">fn main() {
 </span><span class="boring">    let draw: Draw = unimplemented!();
@@ -375,12 +382,12 @@ let points = (0..=360).step_by(45).map(|i| {
     let radian = deg_to_rad(i as f32);
     let x = radian.sin() * radius;
     let y = radian.cos() * radius;
-    (pt2(x,y), STEELBLUE)
+    (pt2(x,y), STEEL_BLUE)
 });
 draw.polygon()
     .points_colored(points);
-<span class="boring">}</span></code></pre></pre>
-<p><img src="./images/2d-custom-octogon-polygon.png" alt="An octagon" /></p>
+<span class="boring">}</span></code></pre>
+<p><img src="./images/2d-custom-octogon-polygon.png" alt="An octagon"></p>
 <h2 id="concluding-remarks"><a class="header" href="#concluding-remarks">Concluding Remarks</a></h2>
 <p>In this tutorial, we learned about most basic 2D drawing functions with nannou.</p>
 <p>You can view the documentation for the different <code>Drawing</code> objects these return
@@ -406,11 +413,11 @@ solid starting point in creating your own drawings.</p>
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
                             <a rel="prev" href="../../tutorials/basics/window-coordinates.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
-                                <i class="fa fa-angle-left"></i>
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
                             <a rel="next prefetch" href="../../tutorials/draw/animating-a-circle.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
-                                <i class="fa fa-angle-right"></i>
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
                         <div style="clear: both"></div>
@@ -420,16 +427,21 @@ solid starting point in creating your own drawings.</p>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
                     <a rel="prev" href="../../tutorials/basics/window-coordinates.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
-                        <i class="fa fa-angle-left"></i>
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
                     <a rel="next prefetch" href="../../tutorials/draw/animating-a-circle.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
-                        <i class="fa fa-angle-right"></i>
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>
 
         </div>
 
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
 
 
 
@@ -438,15 +450,16 @@ solid starting point in creating your own drawings.</p>
         </script>
 
 
-        <script src="../../elasticlunr.min.js"></script>
-        <script src="../../mark.min.js"></script>
-        <script src="../../searcher.js"></script>
+        <script src="../../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../../mark-09e88c2c.min.js"></script>
+        <script src="../../searcher-09f2665d.js"></script>
 
-        <script src="../../clipboard.min.js"></script>
-        <script src="../../highlight.js"></script>
-        <script src="../../book.js"></script>
+        <script src="../../clipboard-1626706a.min.js"></script>
+        <script src="../../highlight-abc7f01d.js"></script>
+        <script src="../../book-c22b7243.js"></script>
 
         <!-- Custom JS scripts -->
+
 
 
     </div>
