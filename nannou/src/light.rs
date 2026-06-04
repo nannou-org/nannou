@@ -11,11 +11,19 @@ use crate::prelude::{Entity, Vec3, default};
 
 use crate::App;
 
+/// A handle to an existing directional light [`Entity`], used to update its configuration.
+///
+/// Construct one via [`Light::new`] (or `app.light(entity)`) and use the [`SetLight`] methods to
+/// mutate the light's transform and properties in place.
 pub struct Light<'a, 'w> {
     entity: Entity,
     app: &'a App<'w>,
 }
 
+/// The set of components that make up a nannou directional light.
+///
+/// Used by the light [`Builder`] to accumulate configuration before spawning, and by [`Light`]
+/// when reading back and updating an existing light entity.
 #[derive(Default)]
 pub struct LightComponents {
     pub transform: Transform,
@@ -23,11 +31,20 @@ pub struct LightComponents {
     pub render_layers: RenderLayers,
 }
 
+/// A context for building and spawning a new directional light.
+///
+/// Created via `app.new_light()`. Configure it with the [`SetLight`] methods, then call
+/// [`Builder::build`] to spawn the light and obtain its [`Entity`].
 pub struct Builder<'a, 'w> {
     app: &'a App<'w>,
     light: LightComponents,
 }
 
+/// Shared light configuration methods, implemented by both the light `Builder` and `Light`.
+///
+/// Implementors only need to provide [`map_light`](SetLight::map_light); all other methods are
+/// expressed in terms of it, so the same fluent API configures a new light before it is spawned
+/// or updates an existing one.
 pub trait SetLight: Sized {
     fn x_y(self, x: f32, y: f32) -> Self {
         self.map_light(|mut light| {

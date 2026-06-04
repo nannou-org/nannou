@@ -29,8 +29,9 @@ use nannou_core::geom;
 
 /// A nannou window.
 ///
-/// The **Window** acts as a wrapper around the `winit::window::Window` and the `wgpu::Surface`
-/// types.
+/// The **Window** is a lightweight handle to a Bevy window [`Entity`], providing convenient
+/// access to the underlying [`bevy::window::Window`] component and related window state through
+/// the [`App`]'s ECS world.
 pub struct Window<'a, 'w> {
     entity: Entity,
     app: &'a App<'w>,

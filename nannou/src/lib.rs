@@ -12,6 +12,11 @@
 //! If you're new to nannou, we recommend checking out [the
 //! examples](https://github.com/nannou-org/nannou/tree/master/examples) to get an idea of how
 //! nannou applications are structured and how the API works.
+//!
+//! Nannou is built on the [Bevy](https://bevyengine.org) game engine. The [`nannou::app`](app())
+//! and [`nannou::sketch`](sketch()) builders provide the familiar nannou entry points, while
+//! [`NannouPlugin`] bundles nannou's functionality as a Bevy [`Plugin`] so it can also be added to
+//! an existing Bevy `App`.
 use bevy::prelude::{App as BevyApp, Plugin};
 
 pub use find_folder;
