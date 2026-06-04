@@ -12,16 +12,11 @@
 //!   [**Requester**](./requester/struct.Requester.html) for buffering input and output streams that
 //!   may deliver buffers of inconsistent sizes into a stream of consistently sized buffers.
 
-use cpal::traits::HostTrait;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
-pub use self::buffer::Buffer;
-pub use self::device::{Device, Devices};
-pub use self::receiver::Receiver;
-pub use self::requester::Requester;
-pub use self::stream::Stream;
 pub use cpal;
+use cpal::traits::HostTrait;
 #[doc(inline)]
 pub use cpal::{
     BackendSpecificError, BufferSize, BuildStreamError, DefaultStreamConfigError, DeviceNameError,
@@ -31,6 +26,12 @@ pub use cpal::{
     SupportedStreamConfigsError,
 };
 pub use dasp_sample;
+
+pub use self::buffer::Buffer;
+pub use self::device::{Device, Devices};
+pub use self::receiver::Receiver;
+pub use self::requester::Requester;
+pub use self::stream::Stream;
 
 pub mod buffer;
 pub mod device;

@@ -22,11 +22,12 @@ fn model(app: &App) -> Model {
     println!("message = {}", message);
 
     // Construct and define the size of our window using `.size(width, height)`.
-    app.new_window().size(640, 480).build().unwrap();
+    app.new_window::<Model>().size(640, 480).build();
 
     Model
 }
 
-fn view(_app: &App, _model: &Model, frame: Frame) {
-    frame.clear(DIMGRAY);
+fn view(app: &App, _model: &Model, _entity: Entity) {
+    let draw = app.draw();
+    draw.background().color(DIM_GRAY);
 }

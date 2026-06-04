@@ -16,8 +16,8 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    app.set_loop_mode(LoopMode::loop_once());
-    app.new_window().size(640, 360).view(view).build().unwrap();
+    app.set_update_mode(UpdateMode::freeze());
+    app.new_window().size(640, 360).view(view).build();
 
     Model {
         angle: 0.0,
@@ -26,7 +26,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn update(app: &App, model: &mut Model, _update: Update) {
+fn update(app: &App, model: &mut Model) {
     let win = app.window_rect();
     model.vertices.clear();
 
@@ -37,7 +37,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
@@ -46,7 +46,4 @@ fn view(app: &App, model: &Model, frame: Frame) {
         .weight(2.0)
         .points(model.vertices.clone())
         .color(BLACK);
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }

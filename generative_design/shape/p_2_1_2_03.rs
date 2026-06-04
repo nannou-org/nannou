@@ -34,7 +34,7 @@ fn main() {
 
 struct Model {
     tile_count: u32,
-    module_color: Rgba,
+    module_color: Srgba,
     max_distance: f32,
 }
 
@@ -44,19 +44,18 @@ fn model(app: &App) -> Model {
         .size(600, 600)
         .key_pressed(key_pressed)
         .view(view)
-        .build()
-        .unwrap();
+        .build();
 
     let module_alpha = 0.7;
 
     Model {
         tile_count: 20,
-        module_color: rgba(0.0, 0.0, 0.0, module_alpha),
+        module_color: Srgba::new(0.0, 0.0, 0.0, module_alpha),
         max_distance: 500.0,
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
     let win = app.window_rect();
 
@@ -69,7 +68,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
             let pos_x = (win.left() + (tile_w / 2.0)) + tile_w * grid_x as f32;
             let pos_y = (win.top() - (tile_h / 2.0)) - tile_h * grid_y as f32;
 
-            let mut diameter = pt2(app.mouse.x, app.mouse.y).distance(pt2(pos_x, pos_y));
+            let mut diameter = pt2(app.mouse().x, app.mouse().x).distance(pt2(pos_x, pos_y));
             diameter = diameter / model.max_distance * 40.0;
 
             draw.rect()
@@ -80,14 +79,11 @@ fn view(app: &App, model: &Model, frame: Frame) {
                 .stroke_weight(3.0);
         }
     }
-
-    // Write to the window frame.
-    draw.to_frame(app, &frame).unwrap();
 }
 
-fn key_pressed(app: &App, _model: &mut Model, key: Key) {
-    if key == Key::S {
+fn key_pressed(app: &App, _model: &mut Model, key: KeyCode) {
+    if key == KeyCode::KeyS {
         app.main_window()
-            .capture_frame(app.exe_name().unwrap() + ".png");
+            .save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }

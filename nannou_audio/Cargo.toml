@@ -5,15 +5,15 @@ authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
 description = "The audio API for Nannou, the creative coding framework."
 readme = "README.md"
 keywords = ["audio", "stream", "cross-platform", "dsp", "pcm"]
-license = "MIT"
-repository = "https://github.com/nannou-org/nannou_audio.git"
-homepage = "https://nannou.cc"
-edition = "2018"
+repository.workspace = true
+homepage.workspace = true
+license.workspace = true
+edition.workspace = true
 
 [dependencies]
-cpal = "0.13.1"
-dasp_sample = "0.11.0"
-thiserror = "1"
+cpal.workspace = true
+dasp_sample.workspace = true
+thiserror.workspace = true
 
 [features]
 asio = ["cpal/asio"]

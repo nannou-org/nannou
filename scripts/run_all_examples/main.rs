@@ -39,7 +39,7 @@ fn main() {
         let examples_dir = workspace_manifest_dir.join(&package);
         let manifest_path = examples_dir.join("Cargo").with_extension("toml");
         let bytes = std::fs::read(&manifest_path).unwrap();
-        let toml: toml::Value = toml::from_slice(&bytes).unwrap();
+        let toml: toml::Value = toml::from_str(std::str::from_utf8(&bytes).unwrap()).unwrap();
 
         // Frist, build all examples in the package.
         println!("Building all examples within /nannou/{}...", package);
@@ -76,7 +76,7 @@ fn main() {
                 .arg("-p")
                 .arg(&package)
                 .arg("--example")
-                .arg(&name)
+                .arg(name)
                 .spawn()
                 .expect("failed to spawn `cargo run --example` process");
 

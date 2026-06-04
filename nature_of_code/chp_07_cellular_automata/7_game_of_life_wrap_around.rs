@@ -25,7 +25,7 @@ struct Gol {
 }
 
 impl Gol {
-    fn new(rect: Rect) -> Self {
+    fn new(rect: geom::Rect) -> Self {
         let w = 8;
         let columns = rect.w() as usize / w;
         let rows = rect.h() as usize / w;
@@ -91,7 +91,7 @@ impl Gol {
     }
 
     // This is the easy part, just draw the cells fill white if 1, black if 0
-    fn display(&self, draw: &Draw, rect: &Rect) {
+    fn display(&self, draw: &Draw, rect: &geom::Rect) {
         for i in 0..self.columns {
             for j in 0..self.rows {
                 let mut fill = 1.0;
@@ -101,8 +101,8 @@ impl Gol {
                 let offset = self.w as f32 / 2.0;
                 draw.rect()
                     .x_y(
-                        offset + (i * self.w) as f32 - rect.right() as f32,
-                        offset + (j * self.w) as f32 - rect.top() as f32,
+                        offset + (i * self.w) as f32 - rect.right(),
+                        offset + (j * self.w) as f32 - rect.top(),
                     )
                     .w_h(self.w as f32, self.w as f32)
                     .gray(fill)
@@ -117,13 +117,12 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    let rect = Rect::from_w_h(400.0, 400.0);
+    let rect = geom::Rect::from_w_h(400.0, 400.0);
     app.new_window()
         .size(rect.w() as u32, rect.h() as u32)
         .mouse_pressed(mouse_pressed)
         .view(view)
-        .build()
-        .unwrap();
+        .build();
 
     let gol = Gol::new(rect);
     Model { gol }
@@ -134,17 +133,14 @@ fn mouse_pressed(_app: &App, m: &mut Model, _button: MouseButton) {
     m.gol.init();
 }
 
-fn update(_app: &App, m: &mut Model, _update: Update) {
+fn update(_app: &App, m: &mut Model) {
     m.gol.generate();
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
 
     m.gol.display(&draw, &app.window_rect());
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }

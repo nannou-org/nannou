@@ -44,8 +44,7 @@ fn model(app: &App) -> Model {
         .size(720, 720)
         .key_pressed(key_pressed)
         .view(view)
-        .build()
-        .unwrap();
+        .build();
 
     Model {
         segment_count: 360,
@@ -53,32 +52,32 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn key_pressed(app: &App, model: &mut Model, key: Key) {
+fn key_pressed(app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        Key::Key1 => {
+        KeyCode::Digit1 => {
             model.segment_count = 360;
         }
-        Key::Key2 => {
+        KeyCode::Digit2 => {
             model.segment_count = 45;
         }
-        Key::Key3 => {
+        KeyCode::Digit3 => {
             model.segment_count = 24;
         }
-        Key::Key4 => {
+        KeyCode::Digit4 => {
             model.segment_count = 12;
         }
-        Key::Key5 => {
+        KeyCode::Digit5 => {
             model.segment_count = 6;
         }
-        Key::S => {
+        KeyCode::KeyS => {
             app.main_window()
-                .capture_frame(app.exe_name().unwrap() + ".png");
+                .save_screenshot(app.exe_name().unwrap() + ".png");
         }
         _other_key => {}
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     // Begin drawing
     let draw = app.draw();
 
@@ -98,15 +97,12 @@ fn view(app: &App, model: &Model, frame: Frame) {
         let next_vy = ((angle + angle_step) as f32).to_radians().sin() * model.radius;
         points.push(pt2(next_vx, next_vy));
 
-        let mx = (app.mouse.x / app.window_rect().w()) + 0.5;
-        let my = (app.mouse.y / app.window_rect().h()) + 0.5;
+        let mx = (app.mouse().x / app.window_rect().w()) + 0.5;
+        let my = (app.mouse().x / app.window_rect().h()) + 0.5;
 
         draw.polygon()
-            .stroke(hsv(angle as f32 / 360.0, my, mx))
+            .stroke(Color::hsv(angle as f32 / 360.0, my, mx))
             .hsv(angle as f32 / 360.0, mx, my)
             .points(points);
     }
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }

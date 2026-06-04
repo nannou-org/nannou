@@ -18,33 +18,30 @@ fn model(app: &App) -> Model {
     let angle = 0.0;
     let a_velocity = 0.03;
 
-    app.new_window().size(640, 360).view(view).build().unwrap();
+    app.new_window().size(640, 360).view(view).build();
     Model { angle, a_velocity }
 }
 
-fn update(_app: &App, model: &mut Model, _update: Update) {
+fn update(_app: &App, model: &mut Model) {
     model.angle += model.a_velocity;
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
 
     let amplitude = 300.0;
-    let x = amplitude * model.angle.sin() as f32;
+    let x = amplitude * model.angle.sin();
 
     draw.line()
         .start(pt2(0.0, 0.0))
         .end(pt2(x, 0.0))
-        .rgb(0.0, 0.0, 0.0);
+        .srgb(0.0, 0.0, 0.0);
 
     draw.ellipse()
         .x_y(x, 0.0)
         .w_h(20.0, 20.0)
-        .rgba(0.68, 0.68, 0.68, 1.0)
+        .srgba(0.68, 0.68, 0.68, 1.0)
         .stroke(BLACK);
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }

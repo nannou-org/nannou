@@ -104,8 +104,8 @@ impl<'a> RenderPipelineBuilder<'a> {
     pub const DEFAULT_UNCLIPPED_DEPTH: bool = false;
     pub const DEFAULT_DEPTH_STENCIL: wgpu::DepthStencilState = wgpu::DepthStencilState {
         format: Self::DEFAULT_DEPTH_FORMAT,
-        depth_write_enabled: Self::DEFAULT_DEPTH_WRITE_ENABLED,
-        depth_compare: Self::DEFAULT_DEPTH_COMPARE,
+        depth_write_enabled: Some(Self::DEFAULT_DEPTH_WRITE_ENABLED),
+        depth_compare: Some(Self::DEFAULT_DEPTH_COMPARE),
         stencil: Self::DEFAULT_STENCIL,
         bias: Self::DEFAULT_DEPTH_BIAS,
     };
@@ -287,7 +287,7 @@ impl<'a> RenderPipelineBuilder<'a> {
         let state = self
             .depth_stencil
             .get_or_insert(Self::DEFAULT_DEPTH_STENCIL);
-        state.depth_write_enabled = enabled;
+        state.depth_write_enabled = Some(enabled);
         self
     }
 
@@ -296,7 +296,7 @@ impl<'a> RenderPipelineBuilder<'a> {
         let state = self
             .depth_stencil
             .get_or_insert(Self::DEFAULT_DEPTH_STENCIL);
-        state.depth_compare = compare;
+        state.depth_compare = Some(compare);
         self
     }
 
@@ -492,12 +492,12 @@ impl<'a> IntoPipelineLayoutDescriptor<'a> for wgpu::PipelineLayoutDescriptor<'a>
     }
 }
 
-impl<'a> IntoPipelineLayoutDescriptor<'a> for &'a [&'a wgpu::BindGroupLayout] {
+impl<'a> IntoPipelineLayoutDescriptor<'a> for &'a [Option<&'a wgpu::BindGroupLayout>] {
     fn into_pipeline_layout_descriptor(self) -> wgpu::PipelineLayoutDescriptor<'a> {
         wgpu::PipelineLayoutDescriptor {
             label: Some("nannou render pipeline layout"),
             bind_group_layouts: self,
-            push_constant_ranges: &[],
+            immediate_size: 0,
         }
     }
 }
@@ -523,7 +523,8 @@ fn build(
 
     let vertex = wgpu::VertexState {
         module: &vs_mod,
-        entry_point: vs_entry_point,
+        entry_point: Some(vs_entry_point),
+        compilation_options: Default::default(),
         buffers: &vertex_buffers[..],
     };
 
@@ -545,7 +546,8 @@ fn build(
     let fragment = match (fs_mod, color_states.is_empty()) {
         (Some(fs_mod), false) => Some(wgpu::FragmentState {
             module: &fs_mod,
-            entry_point: fs_entry_point,
+            entry_point: Some(fs_entry_point),
+            compilation_options: Default::default(),
             targets: color_states,
         }),
         _ => None,
@@ -559,7 +561,8 @@ fn build(
         depth_stencil,
         multisample,
         fragment,
-        multiview: None,
+        multiview_mask: None,
+        cache: None,
     };
 
     device.create_render_pipeline(&pipeline_desc)

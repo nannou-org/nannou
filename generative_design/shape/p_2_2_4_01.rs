@@ -42,8 +42,7 @@ fn model(app: &App) -> Model {
         .size(800, 800)
         .view(view)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
 
     let max_count = 5000; // max count of the circles
     Model {
@@ -55,7 +54,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn update(app: &App, model: &mut Model, _update: Update) {
+fn update(app: &App, model: &mut Model) {
     let win = app.window_rect();
 
     // create a random set of parameters
@@ -84,11 +83,11 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     model.current_count += 1;
 
     if model.current_count >= model.max_count {
-        app.set_loop_mode(LoopMode::loop_once());
+        app.set_update_mode(UpdateMode::freeze());
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
     draw.background().color(WHITE);
 
@@ -98,13 +97,11 @@ fn view(app: &App, model: &Model, frame: Frame) {
             .radius(model.r[i])
             .gray(0.2);
     }
-    // Write to the window frame.
-    draw.to_frame(app, &frame).unwrap();
 }
 
-fn key_released(app: &App, _model: &mut Model, key: Key) {
-    if key == Key::S {
+fn key_released(app: &App, _model: &mut Model, key: KeyCode) {
+    if key == KeyCode::KeyS {
         app.main_window()
-            .capture_frame(app.exe_name().unwrap() + ".png");
+            .save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }

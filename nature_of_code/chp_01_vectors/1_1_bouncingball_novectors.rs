@@ -22,7 +22,7 @@ fn model(app: &App) -> Model {
     let x_speed = 2.5;
     let y_speed = 2.0;
 
-    let _window = app.new_window().size(800, 200).view(view).build().unwrap();
+    let _window = app.new_window().size(800, 200).view(view).build();
     Model {
         x,
         y,
@@ -31,22 +31,22 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn update(app: &App, model: &mut Model, _update: Update) {
+fn update(app: &App, model: &mut Model) {
     // Add the current speed to the position
-    model.x = model.x + model.x_speed;
-    model.y = model.y + model.y_speed;
+    model.x += model.x_speed;
+    model.y += model.y_speed;
 
     let win_rect = app.window_rect();
 
     if (model.x > win_rect.right()) || (model.x < win_rect.left()) {
-        model.x_speed = model.x_speed * -1.0;
+        model.x_speed *= -1.0;
     }
     if (model.y > win_rect.top()) || (model.y < win_rect.bottom()) {
-        model.y_speed = model.y_speed * -1.0;
+        model.y_speed *= -1.0;
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
@@ -54,9 +54,6 @@ fn view(app: &App, model: &Model, frame: Frame) {
     draw.ellipse()
         .x_y(model.x, model.y)
         .w_h(50.0, 50.0)
-        .rgba(0.5, 0.5, 0.5, 1.0)
+        .srgba(0.5, 0.5, 0.5, 1.0)
         .stroke(BLACK);
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }

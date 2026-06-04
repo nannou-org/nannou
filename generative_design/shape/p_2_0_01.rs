@@ -35,12 +35,12 @@ fn main() {
     nannou::sketch(view).size(550, 550).run();
 }
 
-fn view(app: &App, frame: Frame) {
+fn view(app: &App) {
     // Prepare to draw.
     let draw = app.draw();
     let win = app.window_rect();
-    let circle_resolution = map_range(app.mouse.y, win.top(), win.bottom(), 2, 80);
-    let radius = app.mouse.x - win.left();
+    let circle_resolution = map_range(app.mouse().x, win.top(), win.bottom(), 2, 80);
+    let radius = app.mouse().x - win.left();
     let angle = TAU / circle_resolution as f32;
 
     draw.background().color(BLACK);
@@ -51,15 +51,13 @@ fn view(app: &App, frame: Frame) {
         draw.line()
             .start(pt2(0.0, 0.0))
             .end(pt2(x, y))
-            .stroke_weight(app.mouse.y / 20.0)
+            .stroke_weight(app.mouse().x / 20.0)
             .caps_round()
             .color(WHITE);
     }
-    // Write to the window frame.
-    draw.to_frame(app, &frame).unwrap();
 
-    if app.keys.down.contains(&Key::S) {
+    if app.keys().just_pressed(KeyCode::KeyS) {
         app.main_window()
-            .capture_frame(app.exe_name().unwrap() + ".png");
+            .save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }

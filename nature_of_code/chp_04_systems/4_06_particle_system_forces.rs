@@ -52,18 +52,14 @@ impl Particle {
         draw.ellipse()
             .xy(self.position)
             .radius(6.0)
-            .rgba(0.5, 0.5, 0.5, self.life_span / 255.0)
-            .stroke(rgba(0.0, 0.0, 0.0, self.life_span / 255.0))
+            .srgba(0.5, 0.5, 0.5, self.life_span / 255.0)
+            .stroke(Color::srgba(0.0, 0.0, 0.0, self.life_span / 255.0))
             .stroke_weight(2.0);
     }
 
     // Is the particle still useful?
     fn is_dead(&self) -> bool {
-        if self.life_span < 0.0 {
-            true
-        } else {
-            false
-        }
+        self.life_span < 0.0
     }
 }
 
@@ -101,7 +97,7 @@ impl ParticleSystem {
 
     fn draw(&self, draw: &Draw) {
         for p in self.particles.iter() {
-            p.display(&draw);
+            p.display(draw);
         }
     }
 }
@@ -111,12 +107,12 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    app.new_window().size(640, 360).view(view).build().unwrap();
+    app.new_window().size(640, 360).view(view).build();
     let ps = ParticleSystem::new(pt2(0.0, app.window_rect().top() - 50.0));
     Model { ps }
 }
 
-fn update(_app: &App, m: &mut Model, _update: Update) {
+fn update(_app: &App, m: &mut Model) {
     let gravity = pt2(0.0, 0.1);
     m.ps.apply_force(gravity);
 
@@ -124,13 +120,10 @@ fn update(_app: &App, m: &mut Model, _update: Update) {
     m.ps.update();
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
 
     m.ps.draw(&draw);
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }

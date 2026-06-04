@@ -2,9 +2,9 @@
 //! helper/utility functions.
 
 use core::ops::Add;
-use num_traits::{Float, NumCast, One};
 
 pub use num_traits;
+use num_traits::{Float, NumCast, One};
 
 const ONE_TURN_DEGREES_F32: f32 = 360.0;
 const ONE_TURN_DEGREES_F64: f64 = 360.0;
@@ -85,7 +85,7 @@ impl ConvertAngle for f64 {
 
 impl Vec2Angle for glam::Vec2 {
     fn angle(self) -> f32 {
-        glam::Vec2::X.angle_between(self)
+        glam::Vec2::X.angle_to(self)
     }
 }
 
@@ -152,11 +152,7 @@ pub fn partial_max<T>(a: T, b: T) -> T
 where
     T: PartialOrd,
 {
-    if a >= b {
-        a
-    } else {
-        b
-    }
+    if a >= b { a } else { b }
 }
 
 /// The min between two partially ordered values.
@@ -164,11 +160,7 @@ pub fn partial_min<T>(a: T, b: T) -> T
 where
     T: PartialOrd,
 {
-    if a <= b {
-        a
-    } else {
-        b
-    }
+    if a <= b { a } else { b }
 }
 
 /// Clamp a value between some range.
@@ -184,14 +176,12 @@ where
         } else {
             n
         }
+    } else if n < end {
+        end
+    } else if n > start {
+        start
     } else {
-        if n < end {
-            end
-        } else if n > start {
-            start
-        } else {
-            n
-        }
+        n
     }
 }
 

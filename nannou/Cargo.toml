@@ -1,47 +1,69 @@
 [package]
 name = "nannou"
-version ="0.19.0"
+version = "0.19.0"
 authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
 description = "A Creative Coding Framework for Rust."
 readme = "README.md"
 keywords = ["creative", "sketch", "graphics", "audio"]
-license = "MIT"
-repository = "https://github.com/nannou-org/nannou.git"
-homepage = "https://github.com/nannou-org/nannou"
-edition = "2018"
+repository.workspace = true
+homepage.workspace = true
+license.workspace = true
+edition.workspace = true
 
 [dependencies]
-futures = "0.3"
-find_folder = "0.3"
-getrandom = "0.2.3"
-image = "0.23"
-instant = "0.1.9"
-lyon = "0.17"
-nannou_core = { version ="0.19.0", path = "../nannou_core", features = ["std", "serde"] }
-nannou_mesh = { version ="0.19.0", path = "../nannou_mesh", features = ["serde1"] }
-nannou_wgpu = { version ="0.19.0", path = "../nannou_wgpu", features = ["capturer"] }
-noise = "0.7"
-notosans = { version = "0.1", optional = true }
-num_cpus = "1"
-pennereq = "0.3"
-rusttype = { version = "0.8", features = ["gpu_cache"] }
-serde = "1"
-serde_derive = "1"
-serde_json = "1"
-toml = "0.5"
-walkdir = "2"
-web-sys = { version = "0.3.64", optional = true }
-wgpu_upstream = { version = "0.17.1", package = "wgpu" }
-winit = "0.28"
+bevy = { workspace = true, default-features = false, features = [
+    "bevy_post_process",
+    "bevy_window",
+    "bevy_winit",
+    "jpeg",
+    "zstd_rust",
+]}
+# `bevy-inspector-egui` has no Bevy 0.19 release yet - kept disabled (see the
+# `inspector` feature below and the RC -> stable tracking issue).
+#bevy-inspector-egui = { workspace = true, optional = true }
+bevy_egui = { workspace = true, optional = true }
+bevy_common_assets = { workspace = true, optional = true }
+nannou_derive = { path = "../nannou_derive" }
+nannou_draw = { path = "../nannou_draw" }
+nannou_isf = { path = "../nannou_isf", optional = true }
+nannou_video = { path = "../nannou_video", optional = true }
+find_folder = { workspace = true }
+lyon = { workspace = true }
+nannou_core = { version ="0.19.0", path = "../nannou_core", features = ["std"] }
+nannou_wgpu = { version = "0.19.0", path = "../nannou_wgpu", features = ["capturer"]}
+noise = { workspace = true }
+pennereq = { workspace = true }
+serde = { workspace = true, features = ["derive"], optional = true }
+serde_json = { workspace = true, optional = true }
+toml = { workspace = true, optional = true }
+walkdir = { workspace = true }
+wgpu = { workspace = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tokio = { version = "1", features = ["full"]}
+image = { workspace = true, features = ["default"] }
 [target.'cfg(target_arch = "wasm32")'.dependencies]
+bevy = { workspace = true, features = ["webgpu"] }
 tokio = { version = "1", features = ["rt"]}
+image = { workspace = true, features = [] }
 
 [features]
-default = ["notosans"]
-# Enables SPIR-V support in the `wgpu` module.
-spirv = ["nannou_wgpu/spirv"]
-# Enables experimental WASM compilation for CI-use only
-wasm-experimental = ["getrandom/js", "web-sys", "wgpu_upstream/webgl", "wgpu_upstream/fragile-send-sync-non-atomic-wasm"]
+default = [
+    # FIXME: bevy defaults to x11 so we do.. but that seems oldschool?
+    # We should use wayland instead no?
+    "x11",
+    "webgl2",
+]
+config_json = ["bevy_common_assets/json"]
+config_toml = ["bevy_common_assets/toml"]
+egui = ["dep:bevy_egui"]
+# TODO: re-enable once `bevy-inspector-egui` supports Bevy 0.19.
+#inspector = ["egui", "dep:bevy-inspector-egui"]
+hot_reload = ["bevy/file_watcher", "bevy/multi_threaded"]
+isf = ["nannou_isf"]
+nightly = ["nannou_draw/nightly"]
+serde = ["dep:serde", "toml", "serde_json", "nannou_core/serde"]
+video = ["nannou_video"]
+wayland = ["bevy/wayland"]
+webgl2 = ["bevy/webgl2"]
+x11 = ["bevy/x11"]

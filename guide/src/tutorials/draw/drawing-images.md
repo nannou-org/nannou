@@ -48,11 +48,11 @@ fn main() {
 
 fn model(app: &App) -> Model {
   // Create a new window!
-  app.new_window().size(512, 512).view(view).build().unwrap();
+  app.new_window().size(512, 512).view(view).build();
   Model {}
 }
 
-fn view(_app: &App, _model: &Model, _frame: Frame) {
+fn view(_app: &App, _model: &Model) {
 }
 ```
 
@@ -60,48 +60,46 @@ If you `cargo run` your app, you'll see an empty window.
 
 ## Setting up a Texture
 
-Now, at the top of your `main.rs` file, add a [WGPU Texture](https://docs.rs/nannou/latest/nannou/wgpu/struct.Texture.html) type field named `texture` to the `Model` struct.
+Now, at the top of your `main.rs` file, add an image [`Handle<Image>`](https://docs.rs/bevy/latest/bevy/asset/struct.Handle.html) field named `texture` to the `Model` struct. A `Handle` is a lightweight reference to an asset (in this case an image/texture) managed by Bevy's asset system.
 
 ```rust,no_run
 # #![allow(unreachable_code, unused_variables, dead_code)]
 # use nannou::prelude::*;
 struct Model {
-  texture: wgpu::Texture,
+  texture: Handle<Image>,
 }
 # fn main() {
 #   nannou::app(model).run();
 # }
 # fn model(app: &App) -> Model {
 #   // Create a new window!
-#   app.new_window().size(512, 512).view(view).build().unwrap();
-#   let texture: wgpu::Texture = unimplemented!();
+#   app.new_window().size(512, 512).view(view).build();
+#   let texture: Handle<Image> = unimplemented!();
 #   Model { texture }
 # }
-# fn view(_app: &App, _model: &Model, _frame: Frame) {
+# fn view(_app: &App, _model: &Model) {
 # }
 ```
 
-Next, we'll need to create a GPU texture to initialize the struct with. We can accomplish this by loading a texture from an image file after we create the window in our `model` function. We will let nannou find the assets directory for us using the app's [`assets_path()`](https://docs.rs/nannou/0.14.1/nannou/app/struct.App.html#method.assets_path) method, so we only need to spell out the image path from the root of that directory.
+Next, we'll need to load an image to initialize the struct with. We can accomplish this by asking Bevy's asset server to load an image file after we create the window in our `model` function, via the app's [`asset_server()`](https://docs.rs/nannou/latest/nannou/app/struct.App.html#method.asset_server) method. The asset server looks for files within the project's `assets` directory, so we only need to spell out the image path from the root of that directory. Loading happens in the background, and the returned `Handle` can be drawn as soon as the asset is ready.
 
 ```rust,no_run
 # #![allow(unreachable_code, unused_variables, dead_code)]
 # use nannou::prelude::*;
 # struct Model {
-#   texture: wgpu::Texture,
+#   texture: Handle<Image>,
 # }
 # fn main() {
 #   nannou::app(model).run();
 # }
 fn model(app: &App) -> Model {
   // Create a new window!
-  app.new_window().size(512, 512).view(view).build().unwrap();
-  // Load the image from disk and upload it to a GPU texture.
-  let assets = app.assets_path().unwrap();
-  let img_path = assets.join("images").join("nature").join("nature_1.jpg");
-  let texture = wgpu::Texture::from_path(app, img_path).unwrap();
+  app.new_window().size(512, 512).view(view).build();
+  // Load the image from disk and upload it to a GPU texture
+  let texture = app.asset_server().load("images/nature/nature_1.jpg");
   Model { texture }
 }
-# fn view(_app: &App, _model: &Model, _frame: Frame) {
+# fn view(_app: &App, _model: &Model) {
 # }
 ```
 
@@ -115,27 +113,25 @@ Finally, in our `view` function, we can draw the texture stored in our model wit
 # #![allow(unreachable_code, unused_variables, dead_code)]
 # use nannou::prelude::*;
 # struct Model {
-#   texture: wgpu::Texture,
+#   texture: Handle<Image>, 
 # }
 # fn main() {
 #   nannou::app(model).run();
 # }
 # fn model(app: &App) -> Model {
 #   // Create a new window!
-#   app.new_window().size(512, 512).view(view).build().unwrap();
+#   app.new_window().size(512, 512).view(view).build();
 #   // Load the image from disk and upload it to a GPU texture.
-#   let assets = app.assets_path().unwrap();
-#   let img_path = assets.join("images").join("nature").join("nature_1.jpg");
-#   let texture = wgpu::Texture::from_path(app, img_path).unwrap();
+#   let texture = app.asset_server().load("images/nature/nature_1.jpg");
 #   Model { texture }
 # }
-fn view(app: &App, model: &Model, frame: Frame) {
-  frame.clear(BLACK);
-
+fn view(app: &App, model: &Model) {
   let draw = app.draw();
-  draw.texture(&model.texture);
+  draw.background().color(BLACK);
 
-  draw.to_frame(app, &frame).unwrap();
+  draw
+    .rect()
+    .texture(&model.texture);
 }
 ```
 ![A texture](./images/drawing-images-0.png)
@@ -149,32 +145,30 @@ A texture can be drawn at any location and any size desired within the frame. Le
 # #![allow(unreachable_code, unused_variables, dead_code)]
 # use nannou::prelude::*;
 # struct Model {
-#   texture: wgpu::Texture,
+#   texture: Handle<Image>, 
 # }
 # fn main() {
 #   nannou::app(model).run();
 # }
 # fn model(app: &App) -> Model {
 #   // Create a new window!
-#   app.new_window().size(512, 512).view(view).build().unwrap();
+#   app.new_window().size(512, 512).view(view).build();
 #   // Load the image from disk and upload it to a GPU texture.
-#   let assets = app.assets_path().unwrap();
-#   let img_path = assets.join("images").join("nature").join("nature_1.jpg");
-#   let texture = wgpu::Texture::from_path(app, img_path).unwrap();
+#   let texture = app.asset_server().load("images/nature/nature_1.jpg");
 #   Model { texture }
 # }
-fn view(app: &App, model: &Model, frame: Frame) {
-  frame.clear(BLACK);
+fn view(app: &App, model: &Model) {
+  let draw = app.draw();
+  draw.background().color(BLACK);
 
   let win = app.window_rect();
-  let r = Rect::from_w_h(100.0, 100.0).top_left_of(win);
+  let r = geom::Rect::from_w_h(100.0, 100.0).top_left_of(win);
 
-  let draw = app.draw();
-  draw.texture(&model.texture)
+  draw
+    .rect()
+    .texture(&model.texture)
     .xy(r.xy())
     .wh(r.wh());
-
-  draw.to_frame(app, &frame).unwrap();
 }
 ```
 ![A translated and scaled texture](./images/drawing-images-1.png)

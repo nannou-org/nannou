@@ -38,11 +38,11 @@ struct Agent {
     step_size: f32,
     angle: f32,
     is_outside: bool,
-    win_rect: Rect,
+    win_rect: geom::Rect,
 }
 
 impl Agent {
-    fn new(win_rect: Rect) -> Self {
+    fn new(win_rect: geom::Rect) -> Self {
         let vector = vec2(
             random_range(win_rect.left(), win_rect.right()),
             random_range(win_rect.top(), win_rect.bottom()),
@@ -97,7 +97,7 @@ impl Agent {
         draw.line()
             .start(self.vector_old)
             .end(self.vector)
-            .rgba(0.0, 0.0, 0.0, agent_alpha)
+            .srgba(0.0, 0.0, 0.0, agent_alpha)
             .stroke_weight(stroke_weight * self.step_size);
     }
 }
@@ -118,8 +118,7 @@ fn model(app: &App) -> Model {
         .size(720, 720)
         .view(view)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
 
     let agent_count = 4000;
     let agents = (0..agent_count)
@@ -138,7 +137,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn update(_app: &App, model: &mut Model, _update: Update) {
+fn update(_app: &App, model: &mut Model) {
     let noise = Perlin::new().set_seed(model.noise_seed);
 
     for agent in &mut model.agents {
@@ -151,36 +150,33 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     // Begin drawing
     let draw = app.draw();
 
-    if frame.nth() == 0 || app.keys.down.contains(&Key::Delete) {
+    if app.elapsed_frames() == 0 || app.keys().just_pressed(KeyCode::Delete) {
         draw.background().color(WHITE);
     } else {
         draw.rect()
             .wh(app.window_rect().wh())
-            .rgba(1.0, 1.0, 1.0, model.overlay_alpha);
+            .srgba(1.0, 1.0, 1.0, model.overlay_alpha);
     }
 
     model.agents.iter().for_each(|agent| {
         agent.display(&draw, model.stroke_width, model.agent_alpha);
     });
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }
 
-fn key_released(app: &App, model: &mut Model, key: Key) {
+fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        Key::Key1 => model.draw_mode = 1,
-        Key::Key2 => model.draw_mode = 2,
-        Key::Space => {
+        KeyCode::Digit1 => model.draw_mode = 1,
+        KeyCode::Digit2 => model.draw_mode = 2,
+        KeyCode::Space => {
             model.noise_seed = (random_f32() * 10000.0).floor() as u32;
         }
-        Key::S => {
+        KeyCode::KeyS => {
             app.main_window()
-                .capture_frame(app.exe_name().unwrap() + ".png");
+                .save_screenshot(app.exe_name().unwrap() + ".png");
         }
         _other_key => {}
     }

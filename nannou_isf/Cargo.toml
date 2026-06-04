@@ -1,13 +1,16 @@
 [package]
 name = "nannou_isf"
-version ="0.1.0"
-authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
-edition = "2018"
+version.workspace = true
+description = "Interactive Shader Format (ISF) support, built on Bevy for nannou - the creative-coding framework."
+readme = "README.md"
+edition.workspace = true
+license.workspace = true
 
 [dependencies]
-hotglsl = { git = "https://github.com/nannou-org/hotglsl", branch = "master" }
-isf = { git = "https://github.com/nannou-org/isf", branch = "master" }
-nannou = { version ="0.19.0", path = "../nannou", features = ["spirv"] }
-thiserror = "1"
-threadpool = "1"
-walkdir = "2"
+bevy = { workspace = true, features = ["shader_format_glsl"] }
+# TODO: waiting on bevy 0.19 support
+#bevy-inspector-egui = { workspace = true }
+isf.workspace = true
+thiserror.workspace = true
+bytemuck.workspace = true
+evalexpr.workspace = true

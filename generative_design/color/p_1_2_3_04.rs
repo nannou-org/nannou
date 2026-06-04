@@ -53,8 +53,7 @@ fn model(app: &App) -> Model {
         .view(view)
         .mouse_released(mouse_released)
         .key_pressed(key_pressed)
-        .build()
-        .unwrap();
+        .build();
 
     let color_count = 20;
 
@@ -75,18 +74,18 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn update(app: &App, model: &mut Model, _update: Update) {
+fn update(app: &App, model: &mut Model) {
     let mut rng = StdRng::seed_from_u64(model.act_random_seed);
 
     // Create palette
     for i in 0..model.color_count {
         if i % 2 == 0 {
-            model.hue_values[i] = rng.gen::<f32>();
+            model.hue_values[i] = rng.random::<f32>();
             model.saturation_values[i] = 1.0;
-            model.brightness_values[i] = rng.gen::<f32>();
+            model.brightness_values[i] = rng.random::<f32>();
         } else {
             model.hue_values[i] = 0.54;
-            model.saturation_values[i] = rng.gen::<f32>() * 0.2;
+            model.saturation_values[i] = rng.random::<f32>() * 0.2;
             model.brightness_values[i] = 1.0;
         }
     }
@@ -96,19 +95,19 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     // Begin drawing
     let draw = app.draw();
     let mut rng = StdRng::seed_from_u64(model.act_random_seed);
 
     if model.clicked {
-        frame.clear(BLACK);
+        draw.background().color(BLACK);
         // ------ area tiling ------
         // count tiles
         let mut counter = 0;
         // row count and row height
-        let row_count = rng.gen_range(5..30);
-        let row_height = (app.window_rect().h() as i32 / row_count) as i32;
+        let row_count = rng.random_range(5..30);
+        let row_height = app.window_rect().h() as i32 / row_count;
 
         // seperate each line in parts
         for i in (0..=row_count).rev() {
@@ -118,15 +117,15 @@ fn view(app: &App, model: &Model, frame: Frame) {
 
             for _ in 0..part_count {
                 // sub fragment of not?
-                if rng.gen::<f32>() < 0.075 {
+                if rng.random::<f32>() < 0.075 {
                     // take care of big values
-                    let fragments = rng.gen_range(2..20);
+                    let fragments = rng.random_range(2..20);
                     part_count = part_count + fragments - 1;
                     for _ in 0..fragments {
-                        parts.push(rng.gen_range(0..2));
+                        parts.push(rng.random_range(0..2));
                     }
                 } else {
-                    parts.push(rng.gen_range(2..20));
+                    parts.push(rng.random_range(2..20));
                 }
             }
 
@@ -139,9 +138,9 @@ fn view(app: &App, model: &Model, frame: Frame) {
             // draw rects
             let mut sum_parts_now = 0;
             for ii in 0..parts.len() {
-                sum_parts_now += parts[ii as usize];
+                sum_parts_now += parts[ii];
 
-                if rng.gen::<f32>() < 0.45 {
+                if rng.random::<f32>() < 0.45 {
                     let x = map_range(
                         sum_parts_now,
                         0,
@@ -158,10 +157,10 @@ fn view(app: &App, model: &Model, frame: Frame) {
                     let points_colored = rect.corners_iter().map(|[x, y]| {
                         let lum = map_range(y, h / 2.0, -h / 2.0, 0.0, 1.0);
 
-                        let col = hsva(
-                            model.hue_values[index as usize],
-                            model.saturation_values[index as usize],
-                            model.brightness_values[index as usize],
+                        let col = Color::hsva(
+                            model.hue_values[index],
+                            model.saturation_values[index],
+                            model.brightness_values[index],
                             model.alpha_value * lum,
                         );
                         (pt2(x, y), col)
@@ -175,9 +174,6 @@ fn view(app: &App, model: &Model, frame: Frame) {
             }
         }
     }
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }
 
 fn mouse_released(app: &App, model: &mut Model, _button: MouseButton) {
@@ -186,9 +182,9 @@ fn mouse_released(app: &App, model: &mut Model, _button: MouseButton) {
     model.clicked_frame = app.elapsed_frames();
 }
 
-fn key_pressed(app: &App, _model: &mut Model, key: Key) {
-    if key == Key::S {
+fn key_pressed(app: &App, _model: &mut Model, key: KeyCode) {
+    if key == KeyCode::KeyS {
         app.main_window()
-            .capture_frame(app.exe_name().unwrap() + ".png");
+            .save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }

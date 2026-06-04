@@ -48,12 +48,12 @@ impl<S> Buffer<S> {
     }
 
     /// Produce an iterator yielding each frame from the buffer in order.
-    pub fn frames(&self) -> Frames<S> {
+    pub fn frames(&self) -> Frames<'_, S> {
         let chunks = self.interleaved_samples.chunks(self.channels);
         Frames { chunks }
     }
 
-    pub fn frames_mut(&mut self) -> FramesMut<S> {
+    pub fn frames_mut(&mut self) -> FramesMut<'_, S> {
         let chunks = self.interleaved_samples.chunks_mut(self.channels);
         FramesMut { chunks }
     }

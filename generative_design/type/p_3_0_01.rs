@@ -48,8 +48,7 @@ fn model(app: &App) -> Model {
         .mouse_pressed(mouse_pressed)
         .mouse_released(mouse_released)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
 
     Model {
         letter: '8',
@@ -57,21 +56,18 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
 
-    if model.mouse_drag == false {
+    if !model.mouse_drag {
         draw.background().color(WHITE);
     }
 
-    let size = app.mouse.x.max(4.0) as u32 * 5 + 1;
+    let size = app.mouse().x.max(4.0) as u32 * 5 + 1;
     draw.text(&model.letter.to_string())
         .color(BLACK)
         .font_size(size)
-        .x_y(0.0, app.mouse.y);
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+        .x_y(0.0, app.mouse().x);
 }
 
 fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {
@@ -80,9 +76,9 @@ fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {
 fn mouse_released(_app: &App, model: &mut Model, _button: MouseButton) {
     model.mouse_drag = false;
 }
-fn key_released(app: &App, _model: &mut Model, key: Key) {
-    if key == Key::LControl || key == Key::RControl {
+fn key_released(app: &App, _model: &mut Model, key: KeyCode) {
+    if key == KeyCode::ControlLeft || key == KeyCode::ControlRight {
         app.main_window()
-            .capture_frame(app.exe_name().unwrap() + ".png");
+            .save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }

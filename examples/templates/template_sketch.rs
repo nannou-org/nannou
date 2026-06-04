@@ -4,9 +4,8 @@ fn main() {
     nannou::sketch(view).run()
 }
 
-fn view(app: &App, frame: Frame) {
+fn view(app: &App) {
     let draw = app.draw();
     draw.background().color(PLUM);
-    draw.ellipse().color(STEELBLUE);
-    draw.to_frame(app, &frame).unwrap();
+    draw.ellipse().color(STEEL_BLUE);
 }

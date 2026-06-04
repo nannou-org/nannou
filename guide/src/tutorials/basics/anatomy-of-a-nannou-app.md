@@ -23,7 +23,6 @@ struct Model {}
 
 fn main() {
     nannou::app(model)
-        .event(event)
         .simple_window(view)
         .run();
 }
@@ -32,10 +31,7 @@ fn model(_app: &App) -> Model {
     Model {}
 }
 
-fn event(_app: &App, _model: &mut Model, _event: Event) {
-}
-
-fn view(_app: &App, _model: &Model, _frame: Frame) {
+fn view(_app: &App, _model: &Model, _window: Entity) {
 }
 ```
 
@@ -88,16 +84,13 @@ model can stay empty.
 # struct Model {}
 fn main() {
     nannou::app(model)
-        .event(event)
         .simple_window(view)
         .run();
 }
 # fn model(_app: &App) -> Model {
 #     Model {}
 # }
-# fn event(_app: &App, _model: &mut Model, _event: Event) {
-# }
-# fn view(_app: &App, _model: &Model, _frame: Frame) {
+# fn view(_app: &App, _model: &Model, _window: Entity) {
 # }
 ```
 
@@ -110,16 +103,13 @@ quite small. In short, we build a description of our app and then run it!
 # struct Model {}
 # fn main() {
     nannou::app(model)       // Start building the app and specify our `model`
-        .event(event)        // Specify that we want to handle app events with `event`
         .simple_window(view) // Request a simple window to which we'll draw with `view`
         .run();              // Run it!
 # }
 # fn model(_app: &App) -> Model {
 #     Model {}
 # }
-# fn event(_app: &App, _model: &mut Model, _event: Event) {
-# }
-# fn view(_app: &App, _model: &Model, _frame: Frame) {
+# fn view(_app: &App, _model: &Model, _window: Entity) {
 # }
 ```
 
@@ -195,8 +185,7 @@ will just return an instance of our empty **Model**.
 # #![allow(dead_code)]
 # use nannou::prelude::*;
 # struct Model {}
-fn event(_app: &App, _model: &mut Model, _event: Event) {
-}
+// TODO: Add an event function here!
 # fn main() {}
 ```
 
@@ -232,9 +221,9 @@ fn main() {
 # fn model(_app: &App) -> Model {
 #     Model {}
 # }
-# fn update(_app: &App, _model: &mut Model, _update: Update) {
+# fn update(_app: &App, _model: &mut Model) {
 # }
-# fn view(_app: &App, _model: &Model, _frame: Frame) {
+# fn view(_app: &App, _model: &Model, _window: Entity) {
 # }
 ```
 
@@ -244,7 +233,7 @@ And remove our `event` function in favour of an `update` function:
 # #![allow(dead_code)]
 # use nannou::prelude::*;
 # struct Model {}
-fn update(_app: &App, _model: &mut Model, _update: Update) {
+fn update(_app: &App, _model: &mut Model) {
 }
 # fn main() {}
 ```
@@ -264,16 +253,16 @@ occurs.
 # #![allow(dead_code)]
 # use nannou::prelude::*;
 # struct Model {}
-fn view(_app: &App, _model: &Model, _frame: Frame) {
+fn view(_app: &App, _model: &Model, _window: Entity) {
 }
 # fn main() {}
 ```
 
-Finally, the **view** allows us to present the state of the model to a window by
-drawing to its **Frame** and returning the frame at the end. Here we can change
-the background colour, use the **Draw** API to draw a scene, draw a GUI to the
-window or even use the wgpu API to draw to the frame using our own textures and
-render passes. All of this will be covered by future tutorials.
+Finally, the **view** allows us to present the state of the model to a window. It
+is called each time the window needs to be redrawn. Here we can change the
+background colour, use the **Draw** API to draw a scene, draw a GUI to the window
+or even use the wgpu API to draw using our own textures and render passes. All of
+this will be covered by future tutorials.
 
 ## Concluding Remarks
 

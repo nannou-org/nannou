@@ -1,8 +1,10 @@
+use std::ops::Deref;
+
+use cpal::traits::DeviceTrait;
+
 use crate::{
     DefaultStreamConfigError, DeviceNameError, SupportedStreamConfig, SupportedStreamConfigsError,
 };
-use cpal::traits::DeviceTrait;
-use std::ops::Deref;
 
 /// A device that can be used to spawn an audio stream.
 pub struct Device {

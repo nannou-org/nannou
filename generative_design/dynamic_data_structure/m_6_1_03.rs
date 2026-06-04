@@ -105,8 +105,7 @@ fn model(app: &App) -> Model {
         .view(view)
         .mouse_released(mouse_released)
         .key_pressed(key_pressed)
-        .build()
-        .unwrap();
+        .build();
 
     let node_radius = 8.0;
     let node_count = 100;
@@ -132,7 +131,7 @@ fn create_connections(node_count: usize) -> Vec<(usize, usize)> {
         .collect()
 }
 
-fn create_nodes(node_count: usize, node_radius: f32, win: Rect) -> Vec<Node> {
+fn create_nodes(node_count: usize, node_radius: f32, win: geom::Rect) -> Vec<Node> {
     (0..node_count)
         .map(|_| {
             Node::new(
@@ -197,7 +196,7 @@ fn spring(nodes: &mut Vec<Node>, spring_connection: (usize, usize)) {
     nodes[from_node].velocity += force;
 }
 
-fn update(app: &App, model: &mut Model, _update: Update) {
+fn update(app: &App, model: &mut Model) {
     for i in 0..model.nodes.len() {
         // Let all nodes repel each other
         attract_nodes(&mut model.nodes, i);
@@ -213,11 +212,12 @@ fn update(app: &App, model: &mut Model, _update: Update) {
         model.nodes[i].update();
     }
 
-    if app.mouse.buttons.pressed().next().is_some() {
+    if app.mouse_buttons().get_just_pressed().count() > 0 {
         // Ignore anything greater than this distance
         let mut max_dist = 20.0;
         for i in 0..model.nodes.len() {
-            let d = pt2(app.mouse.x, app.mouse.y).distance(pt2(model.nodes[i].x, model.nodes[i].y));
+            let d =
+                pt2(app.mouse().x, app.mouse().x).distance(pt2(model.nodes[i].x, model.nodes[i].y));
             if d < max_dist && model.selected_node.is_none() {
                 model.selected_node = Some(i);
                 max_dist = d;
@@ -226,12 +226,12 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     }
 
     if model.selected_node.is_some() {
-        model.nodes[model.selected_node.unwrap()].x = app.mouse.x;
-        model.nodes[model.selected_node.unwrap()].y = app.mouse.y;
+        model.nodes[model.selected_node.unwrap()].x = app.mouse().x;
+        model.nodes[model.selected_node.unwrap()].y = app.mouse().x;
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
@@ -243,7 +243,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
             .start(pt2(model.nodes[from].x, model.nodes[from].y))
             .end(pt2(model.nodes[to].x, model.nodes[to].y))
             .stroke_weight(2.0)
-            .rgb(0.0, 0.5, 0.64);
+            .srgb(0.0, 0.5, 0.64);
     });
 
     model.nodes.iter().for_each(|node| {
@@ -254,17 +254,14 @@ fn view(app: &App, model: &Model, frame: Frame) {
             .stroke(WHITE)
             .stroke_weight(2.0);
     });
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }
 
-fn key_pressed(app: &App, model: &mut Model, key: Key) {
-    if key == Key::S {
+fn key_pressed(app: &App, model: &mut Model, key: KeyCode) {
+    if key == KeyCode::KeyS {
         app.main_window()
-            .capture_frame(app.exe_name().unwrap() + ".png");
+            .save_screenshot(app.exe_name().unwrap() + ".png");
     }
-    if key == Key::R {
+    if key == KeyCode::KeyR {
         model.nodes = create_nodes(model.node_count, model.node_radius, app.window_rect());
         model.spring_connections = create_connections(model.node_count);
     }

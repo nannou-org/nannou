@@ -32,7 +32,7 @@ fn main() {
 
 struct Model {
     // Store the window ID so we can refer to this specific window later if needed.
-    texture: wgpu::Texture,
+    texture: Handle<Image>,
 }
 
 fn model(app: &App) -> Model {
@@ -41,20 +41,25 @@ fn model(app: &App) -> Model {
         .size(1024, 780)
         .view(view)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
     // Load the image from disk and upload it to a GPU texture.
-    let assets = app.assets_path().unwrap();
+    let assets = app.assets_path();
     let img_path = assets
         .join("images")
         .join("generative_examples")
         .join("p_4_1_2_01.png");
-    let texture = wgpu::Texture::from_path(app, img_path).unwrap();
-    Model { texture }
+    let image = app.asset_server().load(img_path);
+    Model { texture: image }
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
+    let images = app.assets::<Image>();
+    let Some(_texture) = images.get(&model.texture) else {
+        return;
+    };
+
+    let draw = app.draw();
     let win = app.window_rect();
 
     let x1 = random_range(win.left(), win.right());
@@ -71,28 +76,22 @@ fn view(app: &App, model: &Model, frame: Frame) {
         map_range(h, 0.0, win.h(), 0.0, 1.0),
     );
 
-    // Don't interpolate between pixels.model
-    let sampler = wgpu::SamplerBuilder::new()
-        .min_filter(wgpu::FilterMode::Nearest)
-        .mag_filter(wgpu::FilterMode::Nearest)
-        .into_descriptor();
-    let draw = app.draw().sampler(sampler);
-
-    if frame.nth() == 0 || app.keys.down.contains(&Key::Delete) {
-        frame.clear(WHITE);
-        draw.texture(&model.texture);
+    let texture = model.texture.clone();
+    if app.elapsed_frames() == 0 || app.keys().just_pressed(KeyCode::Delete) {
+        draw.background().color(WHITE);
+        draw.rect().texture(&texture);
     } else {
-        draw.texture(&frame.resolve_target().unwrap_or(frame.texture_view()))
+        draw.rect()
             .x_y(x2, y2)
             .w_h(w, h)
+            .texture(&texture)
             .area(area);
     }
-    draw.to_frame(app, &frame).unwrap();
 }
 
-fn key_released(app: &App, _model: &mut Model, key: Key) {
-    if key == Key::S {
+fn key_released(app: &App, _model: &mut Model, key: KeyCode) {
+    if key == KeyCode::KeyS {
         app.main_window()
-            .capture_frame(app.exe_name().unwrap() + ".png");
+            .save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }

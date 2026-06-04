@@ -1,5 +1,4 @@
 use nannou::prelude::*;
-use nannou_egui::{self, egui, Egui};
 
 fn main() {
     nannou::app(model).update(update).run();
@@ -9,29 +8,21 @@ struct Settings {
     resolution: u32,
     scale: f32,
     rotation: f32,
-    color: Srgb<u8>,
+    color: Srgba,
     position: Vec2,
 }
 
 struct Model {
     settings: Settings,
-    egui: Egui,
+    window: Entity,
 }
 
 fn model(app: &App) -> Model {
     // Create window
-    let window_id = app
-        .new_window()
-        .view(view)
-        .raw_event(raw_window_event)
-        .build()
-        .unwrap();
-    let window = app.window(window_id).unwrap();
-
-    let egui = Egui::from_window(&window);
+    let window = app.new_window().primary().view(view).build();
 
     Model {
-        egui,
+        window,
         settings: Settings {
             resolution: 10,
             scale: 200.0,
@@ -42,14 +33,13 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn update(_app: &App, model: &mut Model, update: Update) {
-    let egui = &mut model.egui;
+fn update(app: &App, model: &mut Model) {
     let settings = &mut model.settings;
 
-    egui.set_elapsed_time(update.since_start);
-    let ctx = egui.begin_frame();
+    let mut egui_ctx = app.egui_for_window(model.window);
+    let ctx = egui_ctx.get_mut();
 
-    egui::Window::new("Settings").show(&ctx, |ui| {
+    egui::Window::new("Settings").show(ctx, |ui| {
         // Resolution slider
         ui.label("Resolution:");
         ui.add(egui::Slider::new(&mut settings.resolution, 1..=40));
@@ -66,17 +56,12 @@ fn update(_app: &App, model: &mut Model, update: Update) {
         let clicked = ui.button("Random color").clicked();
 
         if clicked {
-            settings.color = rgb(random(), random(), random());
+            settings.color = Color::srgb(random(), random(), random()).into();
         }
     });
 }
 
-fn raw_window_event(_app: &App, model: &mut Model, event: &nannou::winit::event::WindowEvent) {
-    // Let egui handle things like keyboard and mouse input.
-    model.egui.handle_raw_event(event);
-}
-
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let settings = &model.settings;
 
     let draw = app.draw();
@@ -89,7 +74,4 @@ fn view(app: &App, model: &Model, frame: Frame) {
         .color(settings.color)
         .rotate(-rotation_radians)
         .radius(settings.scale);
-
-    draw.to_frame(app, &frame).unwrap();
-    model.egui.draw_to_frame(&frame).unwrap();
 }

@@ -12,7 +12,7 @@ impl<'b> SamplerBuilder {
     pub const DEFAULT_ADDRESS_MODE_W: wgpu::AddressMode = wgpu::AddressMode::ClampToEdge;
     pub const DEFAULT_MAG_FILTER: wgpu::FilterMode = wgpu::FilterMode::Linear;
     pub const DEFAULT_MIN_FILTER: wgpu::FilterMode = wgpu::FilterMode::Linear;
-    pub const DEFAULT_MIPMAP_FILTER: wgpu::FilterMode = wgpu::FilterMode::Nearest;
+    pub const DEFAULT_MIPMAP_FILTER: wgpu::MipmapFilterMode = wgpu::MipmapFilterMode::Nearest;
     pub const DEFAULT_LOD_MIN_CLAMP: f32 = 0.0;
     pub const DEFAULT_LOD_MAX_CLAMP: f32 = 100.0;
     pub const DEFAULT_COMPARE: Option<wgpu::CompareFunction> = None;
@@ -85,7 +85,7 @@ impl<'b> SamplerBuilder {
     }
 
     /// How the implementation should choose which mipmap to use.
-    pub fn mipmap_filter(mut self, filter: wgpu::FilterMode) -> Self {
+    pub fn mipmap_filter(mut self, filter: wgpu::MipmapFilterMode) -> Self {
         self.descriptor.mipmap_filter = filter;
         self
     }

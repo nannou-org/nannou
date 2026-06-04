@@ -87,7 +87,7 @@ impl Bob {
     }
 
     fn display(&self, draw: &Draw) {
-        let c = if self.dragging { GREY } else { DARKGREY };
+        let c = if self.dragging { GREY } else { DARK_GREY };
         draw.ellipse()
             .xy(self.position)
             .w_h(self.mass * 2.0, self.mass * 2.0)
@@ -135,8 +135,7 @@ fn model(app: &App) -> Model {
         .view(view)
         .mouse_pressed(mouse_pressed)
         .mouse_released(mouse_released)
-        .build()
-        .unwrap();
+        .build();
 
     // Create objects at starting position
     // Note third argument in Spring constructor is "rest length"
@@ -152,7 +151,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn update(app: &App, m: &mut Model, _update: Update) {
+fn update(app: &App, m: &mut Model) {
     m.s1.update(&mut m.b1, &mut m.b2);
     m.s2.update(&mut m.b2, &mut m.b3);
     m.s3.update(&mut m.b1, &mut m.b3);
@@ -160,10 +159,10 @@ fn update(app: &App, m: &mut Model, _update: Update) {
     m.b1.update();
     m.b2.update();
     m.b3.update();
-    m.b1.drag(app.mouse.x, app.mouse.y);
+    m.b1.drag(app.mouse().x, app.mouse().y);
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
@@ -175,13 +174,10 @@ fn view(app: &App, m: &Model, frame: Frame) {
     m.b1.display(&draw);
     m.b2.display(&draw);
     m.b3.display(&draw);
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }
 
 fn mouse_pressed(app: &App, m: &mut Model, _button: MouseButton) {
-    m.b1.clicked(app.mouse.x, app.mouse.y);
+    m.b1.clicked(app.mouse().x, app.mouse().y);
 }
 
 fn mouse_released(_app: &App, m: &mut Model, _button: MouseButton) {

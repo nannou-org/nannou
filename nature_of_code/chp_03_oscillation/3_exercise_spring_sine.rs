@@ -14,18 +14,18 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    app.new_window().size(640, 360).view(view).build().unwrap();
+    app.new_window().size(640, 360).view(view).build();
     Model {
         angle: 0.0,
         a_velocity: 0.05,
     }
 }
 
-fn update(_app: &App, model: &mut Model, _update: Update) {
+fn update(_app: &App, model: &mut Model) {
     model.angle += model.a_velocity;
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
@@ -46,9 +46,6 @@ fn view(app: &App, model: &Model, frame: Frame) {
     draw.ellipse()
         .x_y(0.0, y)
         .radius(10.0)
-        .color(LIGHTGREY)
+        .color(LIGHT_GRAY)
         .stroke(BLACK);
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }

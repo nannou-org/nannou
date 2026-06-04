@@ -6,8 +6,9 @@
 
 // Simple demonstration of a Wolfram 1-dimensional cellular automata
 
-use nannou::prelude::*;
 use std::ops::Range;
+
+use nannou::prelude::*;
 
 fn main() {
     nannou::app(model).update(update).run();
@@ -23,12 +24,12 @@ struct Ca {
 }
 
 impl Ca {
-    fn new(rect: Rect) -> Self {
+    fn new(rect: geom::Rect) -> Self {
         let w = 10;
         let rule_set = vec![0, 1, 0, 1, 1, 0, 1, 0];
         let mut cells = vec![0; (rect.w() as i32 / w) as usize];
         let length = cells.len();
-        cells[length / 2 as usize] = 1; // We arbitrarily start with just the middle cell having a state of "1"
+        cells[length / 2_usize] = 1; // We arbitrarily start with just the middle cell having a state of "1"
         let generation = 0;
         let cells_range = 1..cells.len() - 1;
         Ca {
@@ -59,7 +60,7 @@ impl Ca {
     }
 
     // This is the easy part, just draw the cells fill white if 1, black if 0
-    fn display(&self, draw: &Draw, rect: &Rect) {
+    fn display(&self, draw: &Draw, rect: &geom::Rect) {
         for i in 0..self.cells.len() {
             let mut fill = 1.0;
             if self.cells[i] == 1 {
@@ -67,8 +68,8 @@ impl Ca {
             }
             draw.rect()
                 .x_y(
-                    ((self.w / 2) + i as i32 * self.w) as f32 - rect.right() as f32,
-                    rect.top() as f32 - (self.generation * self.w - (self.w / 2)) as f32,
+                    ((self.w / 2) + i as i32 * self.w) as f32 - rect.right(),
+                    rect.top() - (self.generation * self.w - (self.w / 2)) as f32,
                 )
                 .w_h(self.w as f32, self.w as f32)
                 .gray(fill);
@@ -111,30 +112,26 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    let rect = Rect::from_w_h(800.0, 400.0);
+    let rect = geom::Rect::from_w_h(800.0, 400.0);
     let _window = app
         .new_window()
         .size(rect.w() as u32, rect.h() as u32)
         .view(view)
-        .build()
-        .unwrap();
+        .build();
 
     let ca = Ca::new(rect);
     Model { ca }
 }
 
-fn update(app: &App, m: &mut Model, _update: Update) {
+fn update(app: &App, m: &mut Model) {
     if m.ca.generation < app.window_rect().h() as i32 / m.ca.w {
         m.ca.generate();
     }
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
 
     m.ca.display(&draw, &app.window_rect());
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }

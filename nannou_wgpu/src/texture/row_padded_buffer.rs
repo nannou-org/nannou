@@ -105,8 +105,9 @@ impl RowPaddedBuffer {
             "Wrapped buffer cannot be mapped for writing"
         );
 
+        // wgpu 29's `BufferViewMut` is write-only (mapped memory may be
+        // write-combining), so write through `slice(..).copy_from_slice(..)`.
         let mut mapped = self.buffer.slice(..).get_mapped_range_mut();
-        let mapped = &mut mapped[..];
 
         let width = self.width as usize;
         let padded_width = width + self.row_padding as usize;
@@ -115,8 +116,10 @@ impl RowPaddedBuffer {
             let in_start = row * width;
             let out_start = row * padded_width;
 
-            // note: leaves mapped[out_start + width..out_start + padded_width] uninitialized!
-            mapped[out_start..out_start + width].copy_from_slice(&buf[in_start..in_start + width]);
+            // note: leaves the row padding bytes uninitialized!
+            mapped
+                .slice(out_start..out_start + width)
+                .copy_from_slice(&buf[in_start..in_start + width]);
         }
     }
 
@@ -183,8 +186,8 @@ impl RowPaddedBuffer {
         texture: &'t wgpu::Texture,
         depth: u32,
     ) -> (
-        wgpu::ImageCopyBuffer<'s>,
-        wgpu::ImageCopyTexture<'t>,
+        wgpu::TexelCopyBufferInfo<'s>,
+        wgpu::TexelCopyTextureInfo<'t>,
         wgpu::Extent3d,
     ) {
         let format_size_bytes = wgpu::texture_format_size_bytes(texture.format());
@@ -212,10 +215,10 @@ impl RowPaddedBuffer {
         let mut copy_size = texture.extent();
         copy_size.depth_or_array_layers = 1;
 
-        let buffer_view = wgpu::ImageCopyBuffer {
+        let buffer_view = wgpu::TexelCopyBufferInfo {
             buffer: &self.buffer,
             // note: this is the layout of *this buffer*.
-            layout: wgpu::ImageDataLayout {
+            layout: wgpu::TexelCopyBufferLayout {
                 offset: 0,
                 bytes_per_row: Some(self.padded_width()),
                 rows_per_image: Some(self.height),

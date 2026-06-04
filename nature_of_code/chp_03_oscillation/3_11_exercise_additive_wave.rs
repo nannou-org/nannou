@@ -21,7 +21,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    app.new_window().size(750, 200).view(view).build().unwrap();
+    app.new_window().size(750, 200).view(view).build();
 
     let x_spacing = 8.0;
     let w = app.window_rect().w() + 16.0; // Width of entire wave
@@ -45,7 +45,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn update(_app: &App, m: &mut Model, _update: Update) {
+fn update(_app: &App, m: &mut Model) {
     // Increment theta (try different values for 'angular velocity' here
     m.theta += 0.02;
 
@@ -68,7 +68,7 @@ fn update(_app: &App, m: &mut Model, _update: Update) {
     }
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
@@ -81,10 +81,7 @@ fn view(app: &App, m: &Model, frame: Frame) {
                 m.y_values[x],
             )
             .w_h(48.0, 48.0)
-            .rgba(0.0, 0.0, 0.0, 0.2)
+            .srgba(0.0, 0.0, 0.0, 0.2)
             .stroke(BLACK);
     }
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }

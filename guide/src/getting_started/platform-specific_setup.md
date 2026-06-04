@@ -74,13 +74,6 @@ Ensure you have the following system packages installed:
   sudo pacman -S alsa-lib
   ```
 
-- **curl lib dev package**
-
-  Nannou depends on the `curl-sys` crate. Some Linux distributions use
-  LibreSSL instead of OpenSSL (such as AlpineLinux, Voidlinux, possibly
-  [others](https://en.wikipedia.org/wiki/LibreSSL#Adoption) if manually
-  installed).
-
 - **xcb**
 
   The XCB library provides inter-operability with Xlib.

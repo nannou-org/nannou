@@ -41,11 +41,11 @@ impl Attractor {
     // Method to display
     fn display(&self, draw: &Draw) {
         let c = if self.dragging {
-            rgba(0.2, 0.2, 0.2, 1.0)
+            Color::srgba(0.2, 0.2, 0.2, 1.0)
         } else if self.rollover {
-            rgba(0.4, 0.4, 0.4, 1.0)
+            Color::srgba(0.4, 0.4, 0.4, 1.0)
         } else {
-            rgba(0.7, 0.7, 0.7, 0.78)
+            Color::srgba(0.7, 0.7, 0.7, 0.78)
         };
         draw.ellipse()
             .xy(self.position)
@@ -66,11 +66,7 @@ impl Attractor {
 
     fn hover(&mut self, mx: f32, my: f32) {
         let d = pt2(mx, my).distance(self.position);
-        if d < self.mass {
-            self.rollover = true;
-        } else {
-            self.rollover = false;
-        }
+        self.rollover = d < self.mass;
     }
 
     fn stop_dragging(&mut self) {
@@ -144,8 +140,7 @@ fn model(app: &App) -> Model {
         .view(view)
         .mouse_pressed(mouse_pressed)
         .mouse_released(mouse_released)
-        .build()
-        .unwrap();
+        .build();
 
     Model {
         mover: Mover::new(),
@@ -153,29 +148,26 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn update(app: &App, m: &mut Model, _update: Update) {
+fn update(app: &App, m: &mut Model) {
     let force = m.attractor.attract(&m.mover);
     m.mover.apply_force(force);
     m.mover.update();
 
-    m.attractor.drag(app.mouse.x, app.mouse.y);
-    m.attractor.hover(app.mouse.x, app.mouse.y);
+    m.attractor.drag(app.mouse().x, app.mouse().y);
+    m.attractor.hover(app.mouse().x, app.mouse().y);
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
 
     m.attractor.display(&draw);
     m.mover.display(&draw);
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }
 
 fn mouse_pressed(app: &App, m: &mut Model, _button: MouseButton) {
-    m.attractor.clicked(app.mouse.x, app.mouse.y);
+    m.attractor.clicked(app.mouse().x, app.mouse().y);
 }
 
 fn mouse_released(_app: &App, m: &mut Model, _button: MouseButton) {

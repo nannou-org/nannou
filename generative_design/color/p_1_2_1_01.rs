@@ -32,9 +32,6 @@
  */
 use nannou::prelude::*;
 
-use nannou::color::FromColor;
-use nannou::color::Mix;
-
 fn main() {
     nannou::app(model).update(update).run();
 }
@@ -42,8 +39,8 @@ fn main() {
 struct Model {
     tile_count_x: usize,
     tile_count_y: usize,
-    colours_left: Vec<Hsv>,
-    colours_right: Vec<Hsv>,
+    colours_left: Vec<Hsva>,
+    colours_right: Vec<Hsva>,
     interpolate_shortest: bool,
 }
 
@@ -53,16 +50,15 @@ fn model(app: &App) -> Model {
         .key_pressed(key_pressed)
         .mouse_released(mouse_released)
         .view(view)
-        .build()
-        .unwrap();
+        .build();
 
     let tile_count_x = 2;
     let tile_count_y = 10;
     let mut model = Model {
         tile_count_x,
         tile_count_y,
-        colours_left: vec![hsv(0.0, 0.0, 0.0); tile_count_y],
-        colours_right: vec![hsv(0.0, 0.0, 0.0); tile_count_y],
+        colours_left: vec![Hsva::default(); tile_count_y],
+        colours_right: vec![Hsva::default(); tile_count_y],
         interpolate_shortest: true,
     };
     shake_colors(&mut model);
@@ -70,21 +66,21 @@ fn model(app: &App) -> Model {
     model
 }
 
-fn update(app: &App, model: &mut Model, _update: Update) {
+fn update(app: &App, model: &mut Model) {
     let win = app.window_rect();
     model.tile_count_x = clamp(
-        map_range(app.mouse.x, win.left(), win.right(), 2, 100),
+        map_range(app.mouse().x, win.left(), win.right(), 2, 100),
         2,
         100,
     ) as usize;
     model.tile_count_y = clamp(
-        map_range(app.mouse.y, win.top(), win.bottom(), 2, 10),
+        map_range(app.mouse().x, win.top(), win.bottom(), 2, 10),
         2,
         10,
     ) as usize;
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(BLACK);
@@ -105,7 +101,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
             let col = if model.interpolate_shortest {
                 let c1 = cast_to_rgb(col1);
                 let c2 = cast_to_rgb(col2);
-                Hsv::from_rgb(c1.mix(&c2, amount))
+                Hsva::from(c1.mix(&c2, amount))
             } else {
                 col1.mix(&col2, amount)
             };
@@ -115,22 +111,19 @@ fn view(app: &App, model: &Model, frame: Frame) {
                 .color(col);
         }
     }
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }
 
-fn cast_to_rgb(col: Hsv) -> LinSrgb {
-    let red: f32 = col.hue.into();
+fn cast_to_rgb(col: Hsva) -> LinearRgba {
+    let red: f32 = col.hue;
     let green = col.saturation;
     let blue = col.value;
-    lin_srgb(red / 360.0, green, blue)
+    LinearRgba::new(red / 360.0, green, blue, 1.0)
 }
 
 fn shake_colors(model: &mut Model) {
     for i in 0..model.tile_count_y {
-        model.colours_left[i] = hsv(random_f32() * 0.166, random_f32(), 1.0);
-        model.colours_right[i] = hsv(random_range(0.44, 0.52), 1.0, random_f32());
+        model.colours_left[i] = Hsva::new(random_f32() * 0.166, random_f32(), 1.0, 1.0);
+        model.colours_right[i] = Hsva::new(random_range(0.44, 0.52), 1.0, random_f32(), 1.0);
     }
 }
 
@@ -138,17 +131,17 @@ fn mouse_released(_app: &App, model: &mut Model, _button: MouseButton) {
     shake_colors(model);
 }
 
-fn key_pressed(app: &App, model: &mut Model, key: Key) {
+fn key_pressed(app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        Key::Key1 => {
+        KeyCode::Digit1 => {
             model.interpolate_shortest = true;
         }
-        Key::Key2 => {
+        KeyCode::Digit2 => {
             model.interpolate_shortest = false;
         }
-        Key::S => {
+        KeyCode::KeyS => {
             app.main_window()
-                .capture_frame(app.exe_name().unwrap() + ".png");
+                .save_screenshot(app.exe_name().unwrap() + ".png");
         }
         _other_key => {}
     }

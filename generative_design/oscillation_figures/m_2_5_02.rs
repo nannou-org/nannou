@@ -61,8 +61,7 @@ fn model(app: &App) -> Model {
         .size(800, 800)
         .key_pressed(key_pressed)
         .view(view)
-        .build()
-        .unwrap();
+        .build();
 
     let lissajous_points = Vec::new();
 
@@ -95,7 +94,7 @@ fn model(app: &App) -> Model {
     model
 }
 
-fn update(_app: &App, model: &mut Model, _update: Update) {
+fn update(_app: &App, model: &mut Model) {
     model.point_index += 1;
 
     if model.point_index >= model.point_count - 1 {
@@ -103,7 +102,7 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
 
     if app.elapsed_frames() == 1 {
@@ -118,7 +117,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
             for i in 0..(model.point_count - 1) {
                 draw_line(
                     &draw,
-                    &model,
+                    model,
                     model.lissajous_points[i],
                     model.lissajous_points[i + 1],
                 );
@@ -127,15 +126,13 @@ fn view(app: &App, model: &Model, frame: Frame) {
             for i2 in 0..model.point_index {
                 draw_line(
                     &draw,
-                    &model,
+                    model,
                     model.lissajous_points[model.point_index],
                     model.lissajous_points[i2],
                 );
             }
         }
     }
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }
 
 fn draw_line(draw: &Draw, model: &Model, p1: Point2, p2: Point2) {
@@ -151,7 +148,7 @@ fn draw_line(draw: &Draw, model: &Model, p1: Point2, p2: Point2) {
         } else {
             model.brightness_value
         };
-        let c = hsva(
+        let c = Color::hsva(
             hue,
             model.saturation_value,
             b,
@@ -181,8 +178,8 @@ fn calculate_lissajous_points(app: &App, model: &mut Model) {
             * (angle * model.mod_freq_x).cos();
         let mut y = (angle * model.freq_y * fmy).sin() * (angle * model.mod_freq_y).cos();
 
-        let rx = rng.gen_range(-model.random_offset..model.random_offset + 1.0);
-        let ry = rng.gen_range(-model.random_offset..model.random_offset + 1.0);
+        let rx = rng.random_range(-model.random_offset..model.random_offset + 1.0);
+        let ry = rng.random_range(-model.random_offset..model.random_offset + 1.0);
 
         x = (x * (win.w() / 2.0 - 30.0 - model.random_offset) + win.w() / 2.0) + rx;
         y = (y * (win.h() / 2.0 - 30.0 - model.random_offset) + win.h() / 2.0) + ry;
@@ -192,9 +189,9 @@ fn calculate_lissajous_points(app: &App, model: &mut Model) {
     }
 }
 
-fn key_pressed(app: &App, _model: &mut Model, key: Key) {
-    if key == Key::S {
+fn key_pressed(app: &App, _model: &mut Model, key: KeyCode) {
+    if key == KeyCode::KeyS {
         app.main_window()
-            .capture_frame(app.exe_name().unwrap() + ".png");
+            .save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }

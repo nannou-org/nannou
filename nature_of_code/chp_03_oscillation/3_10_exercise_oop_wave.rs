@@ -28,12 +28,12 @@ struct Wave {
 impl Wave {
     fn new(o: Point2, w: f32, a: f32, p: f32) -> Self {
         let origin = o;
-        let x_spacing = 8.0 as f32;
-        let theta = 0.0 as f32;
+        let x_spacing = 8.0_f32;
+        let theta = 0.0_f32;
         let _w = w;
         let _period = p;
         let amplitude = a;
-        let dx = (((PI * 2.0) / _period) * x_spacing) as f32;
+        let dx = ((PI * 2.0) / _period) * x_spacing;
         let y_values = (0..(w / x_spacing) as i32).map(|_| 0.0).collect();
         Wave {
             origin,
@@ -68,26 +68,26 @@ impl Wave {
                     self.origin.y + self.y_values[x],
                 )
                 .w_h(48.0, 48.0)
-                .rgba(0.0, 0.0, 0.0, 0.2)
+                .srgba(0.0, 0.0, 0.0, 0.2)
                 .stroke(BLACK);
         }
     }
 }
 
 fn model(app: &App) -> Model {
-    app.new_window().size(750, 200).view(view).build().unwrap();
+    app.new_window().size(750, 200).view(view).build();
     let wave0 = Wave::new(pt2(-325.0, 25.0), 100.0, 20.0, 500.0);
     let wave1 = Wave::new(pt2(-75.0, 0.0), 300.0, 40.0, 220.0);
     Model { wave0, wave1 }
 }
 
-fn update(_app: &App, m: &mut Model, _update: Update) {
+fn update(_app: &App, m: &mut Model) {
     // Update waves
     m.wave0.calculate();
     m.wave1.calculate();
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
@@ -95,7 +95,4 @@ fn view(app: &App, m: &Model, frame: Frame) {
     // display waves
     m.wave0.display(&draw);
     m.wave1.display(&draw);
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }

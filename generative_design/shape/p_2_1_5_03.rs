@@ -74,7 +74,7 @@ impl Shape {
             draw.line()
                 .start(pt2(0.0, i as f32))
                 .end(pt2(w, i as f32))
-                .rgb(self.c.x, self.c.y, self.c.z);
+                .srgb(self.c.x, self.c.y, self.c.z);
         }
     }
 }
@@ -96,8 +96,7 @@ fn model(app: &App) -> Model {
         .mouse_pressed(mouse_pressed)
         .mouse_released(mouse_released)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
 
     Model {
         shapes: Vec::new(),
@@ -109,44 +108,40 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn update(app: &App, model: &mut Model, _update: Update) {
+fn update(app: &App, model: &mut Model) {
     if let Some(ref mut s) = model.new_shape {
-        s.x2 = app.mouse.x;
-        s.y2 = app.mouse.y;
+        s.x2 = app.mouse().x;
+        s.y2 = app.mouse().x;
         s.h = model.shape_height;
         s.c = model.shape_color;
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     // Prepare to draw.
     let draw = app.draw();
     draw.background().color(WHITE);
 
     model.shapes.iter().for_each(|shape| {
-        shape.display(&draw, &model);
+        shape.display(&draw, model);
     });
 
     if let Some(ref s) = model.new_shape {
-        s.display(&draw, &model);
+        s.display(&draw, model);
     }
-
-    // Write to the window frame.
-    draw.to_frame(app, &frame).unwrap();
 }
 
 fn mouse_pressed(app: &App, model: &mut Model, _button: MouseButton) {
     model.p_mouse = app
-        .mouse
-        .buttons
-        .left()
-        .if_down()
-        .unwrap_or(app.mouse.position());
+        .mouse_buttons()
+        .just_pressed(MouseButton::Left)
+        .then_some(app.mouse())
+        .unwrap();
     model.new_shape = Some(Shape::new(
         model.p_mouse.x,
         model.p_mouse.y,
-        app.mouse.x,
-        app.mouse.y,
+        app.mouse().x,
+        app.mouse().x,
         model.shape_height,
         model.shape_color,
     ));
@@ -161,28 +156,28 @@ fn mouse_released(_app: &App, model: &mut Model, button: MouseButton) {
     }
 }
 
-fn key_released(app: &App, model: &mut Model, key: Key) {
+fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        Key::S => {
+        KeyCode::KeyS => {
             app.main_window()
-                .capture_frame(app.exe_name().unwrap() + ".png");
+                .save_screenshot(app.exe_name().unwrap() + ".png");
         }
-        Key::Key1 => {
+        KeyCode::Digit1 => {
             model.shape_color = vec3(1.0, 0.0, 0.0);
         }
-        Key::Key2 => {
+        KeyCode::Digit2 => {
             model.shape_color = vec3(0.0, 1.0, 0.0);
         }
-        Key::Key3 => {
+        KeyCode::Digit3 => {
             model.shape_color = vec3(0.0, 0.0, 1.0);
         }
-        Key::Key4 => {
+        KeyCode::Digit4 => {
             model.shape_color = vec3(0.0, 0.0, 0.0);
         }
-        Key::Up => {
+        KeyCode::ArrowUp => {
             model.shape_height += model.density as f32;
         }
-        Key::Down => {
+        KeyCode::ArrowDown => {
             model.shape_height -= model.density as f32;
         }
         _other_key => (),

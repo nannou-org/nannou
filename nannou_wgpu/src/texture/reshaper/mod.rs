@@ -1,4 +1,4 @@
-use crate::{self as wgpu, util::DeviceExt, BufferInitDescriptor};
+use crate::{self as wgpu, BufferInitDescriptor, util::DeviceExt};
 
 /// Reshapes a texture from its original size, sample_count and format to the destination size,
 /// sample_count and format.
@@ -203,8 +203,8 @@ fn pipeline_layout(
 ) -> wgpu::PipelineLayout {
     let desc = wgpu::PipelineLayoutDescriptor {
         label: Some("nannou_reshaper"),
-        bind_group_layouts: &[&bind_group_layout],
-        push_constant_ranges: &[],
+        bind_group_layouts: &[Some(&bind_group_layout)],
+        immediate_size: 0,
     };
     device.create_pipeline_layout(&desc)
 }

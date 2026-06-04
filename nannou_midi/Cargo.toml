@@ -1,0 +1,14 @@
+[package]
+name = "nannou_midi"
+version.workspace = true
+description = "The MIDI API for nannou - the creative-coding framework."
+readme = "README.md"
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+crossbeam-channel = { workspace = true }
+bevy = { workspace = true, features = ["bevy_log"] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+midir = { workspace = true }

@@ -6,7 +6,7 @@
 - Required Knowledge:
     - [Anatomy of a nannou App](/tutorials/basics/anatomy-of-a-nannou-app.md)
     - [Drawing 2D Shapes](/tutorials/basics/drawing-2d-shapes.md)
-    - [Moving a circle about on the screen](/tutorials/tutorial/moving-a-circle-about.md)
+    - [Animating a Circle](/tutorials/draw/animating-a-circle.md)
     - [OSC introduction](/tutorials/osc/osc-introduction.md)
 - Reading Time: 20 minutes
 
@@ -14,13 +14,13 @@
 
 In this tutorial we will cover how to send OSC data from a nannou app to another application using the `nannou_osc` crate.
 
-We are going to write a simple program which has a circle moving about on the screen while the circle's position is sent via OSC to another application. We will continue working on the app from [Moving a circle about on the screen](/tutorials/basics/moving-a-circle-about.md).
+We are going to write a simple program which has a circle moving about on the screen while the circle's position is sent via OSC to another application. We will continue working on the app from [Animating a Circle](/tutorials/draw/animating-a-circle.md).
 
 ## Setting up an OSC sender
 
 At the top of your `main.rs`-file, import the `nannou_osc` crate and make it available in your program via the shorthand `osc`.
 
-```rust, norun
+```rust,no_run
 # #![allow(unused_imports)]
 use nannou_osc as osc;
 # fn main(){}
@@ -178,10 +178,10 @@ fn model(_app: &App) -> Model {
     Model { sender }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model, _window: Entity) {
     // Use app time to progress through a sine wave
-    let sine = app.time.sin();
-    let slowersine = (app.time / 2.0).sin();
+    let sine = app.time().sin();
+    let slowersine = (app.time() / 2.0).sin();
 
     // Get boundary of the window (to constrain the movements of our circle)
     let boundary = app.window_rect();
@@ -204,9 +204,9 @@ fn view(app: &App, model: &Model, frame: Frame) {
     draw.background().color(PLUM);
 
     // Draw a blue ellipse at the x/y coordinates 0.0, 0.0
-    draw.ellipse().color(STEELBLUE).x_y(x, y);
+    draw.ellipse().color(STEEL_BLUE).x_y(x, y);
 
-    draw.to_frame(app, &frame).unwrap();
+    
 }
 ```
 

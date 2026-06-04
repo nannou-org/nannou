@@ -27,7 +27,7 @@ struct Attractor {
 }
 
 impl Attractor {
-    fn new(rect: Rect) -> Self {
+    fn new(rect: geom::Rect) -> Self {
         let position = rect.xy();
         let mass = 10.0;
         let radius = mass * 3.0;
@@ -81,11 +81,7 @@ impl Attractor {
 
     fn rollover(&mut self, mx: f32, my: f32) {
         let d = self.position.distance(pt2(mx, my));
-        if d < self.mass {
-            self.roll_over = true;
-        } else {
-            self.roll_over = false;
-        }
+        self.roll_over = d < self.mass;
     }
 
     fn stop_dragging(&mut self) {
@@ -129,7 +125,7 @@ impl Mover {
         draw.ellipse()
             .xy(self.position)
             .w_h(self.mass * 2.0, self.mass * 2.0)
-            .rgba(0.6, 0.6, 0.6, 0.5);
+            .srgba(0.6, 0.6, 0.6, 0.5);
     }
 
     fn repel(&self, m: &Mover) -> Vec2 {
@@ -142,7 +138,7 @@ impl Mover {
         force * (-1.0 * strength) // Get force vector --> magnitude * direction
     }
 
-    fn _check_edges(&mut self, rect: Rect) {
+    fn _check_edges(&mut self, rect: geom::Rect) {
         if self.position.x < rect.left() {
             self.position.x = rect.left();
             self.velocity.x *= -1.0;
@@ -166,13 +162,13 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    let rect = Rect::from_w_h(640.0, 360.0);
+    let rect = geom::Rect::from_w_h(640.0, 360.0);
     app.new_window()
         .size(rect.w() as u32, rect.h() as u32)
-        .event(event)
+        .mouse_pressed(mouse_pressed)
+        .mouse_released(mouse_released)
         .view(view)
-        .build()
-        .unwrap();
+        .build();
 
     let movers = (0..20)
         .map(|_| {
@@ -189,21 +185,17 @@ fn model(app: &App) -> Model {
     Model { movers, attractor }
 }
 
-fn event(app: &App, m: &mut Model, event: WindowEvent) {
-    match event {
-        MousePressed(_button) => {
-            m.attractor.clicked(app.mouse.x, app.mouse.y);
-        }
-        MouseReleased(_buttom) => {
-            m.attractor.stop_dragging();
-        }
-        _other => (),
-    }
+fn mouse_pressed(app: &App, m: &mut Model, _button: MouseButton) {
+    m.attractor.clicked(app.mouse().x, app.mouse().y);
 }
 
-fn update(app: &App, m: &mut Model, _update: Update) {
-    m.attractor.drag(app.mouse.x, app.mouse.y);
-    m.attractor.rollover(app.mouse.x, app.mouse.y);
+fn mouse_released(_app: &App, m: &mut Model, _button: MouseButton) {
+    m.attractor.stop_dragging();
+}
+
+fn update(app: &App, m: &mut Model) {
+    m.attractor.drag(app.mouse().x, app.mouse().y);
+    m.attractor.rollover(app.mouse().x, app.mouse().y);
 
     for i in 0..m.movers.len() {
         for j in 0..m.movers.len() {
@@ -218,7 +210,7 @@ fn update(app: &App, m: &mut Model, _update: Update) {
     }
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     let draw = app.draw();
     draw.background().color(WHITE);
 
@@ -228,7 +220,4 @@ fn view(app: &App, m: &Model, frame: Frame) {
     for mover in &m.movers {
         mover.display(&draw);
     }
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }

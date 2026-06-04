@@ -22,7 +22,7 @@ fn main() {
     nannou::sketch(view).run();
 }
 
-fn view(app: &App, frame: Frame) {
+fn view(app: &App) {
     // get canvas to draw on
     let draw = app.draw();
 
@@ -30,7 +30,7 @@ fn view(app: &App, frame: Frame) {
     draw.background().color(BLUE);
 
     // put everything on the frame
-    draw.to_frame(app, &frame).unwrap();
+    
 }
 ```
 
@@ -55,15 +55,15 @@ After this import the actual sketching code starts. The `main()` functions is wh
 # fn main() {
     nannou::sketch(view).run();
 # }
-# fn view(_app: &App, _frame: Frame) {}
+# fn view(_app: &App) {}
 ```
 
 calls a function to draw on the single window (`view()` in this case). This
-function has the signature `fn(_: &App, _: Frame);`. Don't worry if you
+function has the signature `fn(_: &App);`. Don't worry if you
 don't know what a function signature is. Just copy the `main()` function
 and you will be fine.
 
-Within the view() function, what we draw to the Frame will be presented in our window.
+Within the view() function, whatever we draw will be presented in our window.
 
 ```rust,no_run
 # #![allow(unused_imports)]
@@ -71,12 +71,12 @@ Within the view() function, what we draw to the Frame will be presented in our w
 # fn main() {
 #    nannou::sketch(view).run();
 # }
-fn view(app: &App, frame: Frame) {
+fn view(app: &App) {
     let draw = app.draw();
 
     draw.background().color(BLUE);
 
-    draw.to_frame(app, &frame).unwrap();
+    
 }
 ```
 
@@ -88,13 +88,13 @@ This function follows the same scheme. First some setup is done. The line
 # fn main() {
 #    nannou::sketch(view).run();
 # }
-# fn view(app: &App, _frame: Frame) {
+# fn view(app: &App) {
 let draw = app.draw();
 # }
 ```
 
 lets us assign a canvas-like datatype to the variable `draw`.
-We can now paint on the this canvas by setting the background to blue.
+We can now paint on this canvas by setting the background to blue.
 
 ```rust,no_run
 # #![allow(unused_imports)]
@@ -102,14 +102,14 @@ We can now paint on the this canvas by setting the background to blue.
 # fn main() {
 #    nannou::sketch(view).run();
 # }
-# fn view(app: &App, _frame: Frame) {
+# fn view(app: &App) {
 # let draw = app.draw();
 draw.background().color(BLUE);
 # }
 ```
 
-Now we have a canvas with only a blue background. We take this canvas and
-create a computer graphics frame from it to display in the main window.
+Now we have a canvas with only a blue background, which nannou presents in the
+main window for us.
 
 ```rust,no_run
 # #![allow(unused_imports)]
@@ -117,9 +117,9 @@ create a computer graphics frame from it to display in the main window.
 # fn main() {
 #    nannou::sketch(view).run();
 # }
-# fn view(app: &App, frame: Frame) {
+# fn view(app: &App) {
 # let draw = app.draw();
-draw.to_frame(app, &frame).unwrap();
+
 # }
 ```
 

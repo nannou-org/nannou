@@ -9,7 +9,8 @@
 //! - Functions for determining the bounding rectangle or cuboid.
 //! - A function for finding the centroid.
 
-pub mod path;
-
-pub use self::path::{path, Path};
 pub use nannou_core::geom::*;
+
+pub use self::path::{Path, path};
+
+pub mod path;

@@ -26,7 +26,7 @@ struct Mover {
 }
 
 impl Mover {
-    fn new(rect: Rect<f32>) -> Self {
+    fn new(rect: geom::Rect<f32>) -> Self {
         let rand_x = random_range(rect.left(), rect.right());
         let rand_y = random_range(rect.top(), rect.bottom());
         let position = pt2(rand_x, rand_y);
@@ -59,32 +59,31 @@ impl Mover {
         draw.ellipse()
             .xy(self.position)
             .w_h(48.0, 48.0)
-            .rgba(0.5, 0.5, 0.5, 0.7)
+            .srgba(0.5, 0.5, 0.5, 0.7)
             .stroke(BLACK)
             .stroke_weight(2.0);
     }
 }
 
 fn model(app: &App) -> Model {
-    let rect = Rect::from_w_h(640.0, 360.0);
+    let rect = geom::Rect::from_w_h(640.0, 360.0);
     app.new_window()
         .size(rect.w() as u32, rect.h() as u32)
         .view(view)
-        .build()
-        .unwrap();
+        .build();
 
     let movers = (0..20).map(|_| Mover::new(rect)).collect();
     Model { movers }
 }
 
 // update gets called just before view every frame
-fn update(app: &App, m: &mut Model, _update: Update) {
+fn update(app: &App, m: &mut Model) {
     for mover in &mut m.movers {
-        mover.update(pt2(app.mouse.x, app.mouse.y));
+        mover.update(pt2(app.mouse().x, app.mouse().y));
     }
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
@@ -92,7 +91,4 @@ fn view(app: &App, m: &Model, frame: Frame) {
     for mover in &m.movers {
         mover.display(&draw);
     }
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }

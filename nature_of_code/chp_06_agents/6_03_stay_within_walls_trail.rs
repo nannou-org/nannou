@@ -9,7 +9,6 @@
 // One vehicle "seeks"
 // See: http://www.red3d.com/cwr/
 use nannou::prelude::*;
-use nannou::Draw;
 use std::collections::VecDeque;
 
 fn main() {
@@ -60,7 +59,7 @@ impl Vehicle {
         // Update velocity
         self.velocity += self.acceleration;
         // Limit speed
-        self.velocity.clamp_length_max(self.max_speed);
+        self.velocity = self.velocity.clamp_length_max(self.max_speed);
         self.position += self.velocity;
         // Reset accelerationelertion to 0 each cycle
         self.acceleration *= 0.0;
@@ -75,7 +74,7 @@ impl Vehicle {
         self.acceleration += force;
     }
 
-    fn boundaries(&mut self, d: f32, win: &Rect) {
+    fn boundaries(&mut self, d: f32, win: &geom::Rect) {
         let left = win.left() + d;
         let right = win.right() - d;
         let top = win.top() - d;
@@ -102,8 +101,7 @@ fn model(app: &App) -> Model {
         .size(640, 360)
         .view(view)
         .mouse_pressed(mouse_pressed)
-        .build()
-        .unwrap();
+        .build();
     let middle = app.window_rect().xy();
     let vehicle = Vehicle::new(middle.x, middle.y);
     let debug = false;
@@ -111,12 +109,12 @@ fn model(app: &App) -> Model {
     Model { vehicle, debug, d }
 }
 
-fn update(app: &App, m: &mut Model, _update: Update) {
+fn update(app: &App, m: &mut Model) {
     m.vehicle.boundaries(m.d, &app.window_rect());
     m.vehicle.update();
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
@@ -132,9 +130,6 @@ fn view(app: &App, m: &Model, frame: Frame) {
     }
 
     display(&m.vehicle, &draw);
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }
 
 fn display(vehicle: &Vehicle, draw: &Draw) {
@@ -147,15 +142,11 @@ fn display(vehicle: &Vehicle, draw: &Draw) {
     } = vehicle;
 
     if history.len() > 1 {
-        let vertices = history
-            .iter()
-            .map(|v| pt2(v.x, v.y))
-            .enumerate()
-            .map(|(_, p)| {
-                let rgba = srgba(0.0, 0.0, 0.0, 1.0);
-                (p, rgba)
-            });
-        draw.polyline().weight(1.0).points_colored(vertices);
+        let points_colored = history.iter().map(|v| pt2(v.x, v.y)).map(|p| {
+            let rgba = Color::srgba(0.0, 0.0, 0.0, 1.0);
+            (p, rgba)
+        });
+        draw.polyline().weight(1.0).points_colored(points_colored);
     }
 
     // Draw a triangle rotated in the direction of velocity
@@ -167,7 +158,7 @@ fn display(vehicle: &Vehicle, draw: &Draw) {
         .stroke_weight(1.0)
         .points(points)
         .xy(*position)
-        .rgb(0.5, 0.5, 0.5)
+        .srgb(0.5, 0.5, 0.5)
         .rotate(-theta);
 }
 

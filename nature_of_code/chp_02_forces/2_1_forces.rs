@@ -21,7 +21,7 @@ struct Mover {
 }
 
 impl Mover {
-    fn new(rect: Rect) -> Self {
+    fn new(rect: geom::Rect) -> Self {
         let position = pt2(rect.left() + 30.0, rect.top() - 30.0);
         let velocity = vec2(0.0, 0.0);
         let acceleration = vec2(0.0, 0.0);
@@ -45,7 +45,7 @@ impl Mover {
         self.acceleration *= 0.0;
     }
 
-    fn check_edges(&mut self, rect: Rect) {
+    fn check_edges(&mut self, rect: geom::Rect) {
         if self.position.x > rect.right() {
             self.position.x = rect.right();
             self.velocity.x *= -1.0;
@@ -71,17 +71,16 @@ impl Mover {
 }
 
 fn model(app: &App) -> Model {
-    let rect = Rect::from_w_h(640.0, 360.0);
+    let rect = geom::Rect::from_w_h(640.0, 360.0);
     app.new_window()
         .size(rect.w() as u32, rect.h() as u32)
         .view(view)
-        .build()
-        .unwrap();
+        .build();
     let mover = Mover::new(rect);
     Model { mover }
 }
 
-fn update(app: &App, m: &mut Model, _update: Update) {
+fn update(app: &App, m: &mut Model) {
     let wind = vec2(0.01, 0.0);
     let gravity = vec2(0.0, -0.1);
     m.mover.apply_force(wind);
@@ -90,13 +89,10 @@ fn update(app: &App, m: &mut Model, _update: Update) {
     m.mover.check_edges(app.window_rect());
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
 
     m.mover.display(&draw);
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }

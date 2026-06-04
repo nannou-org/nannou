@@ -9,6 +9,24 @@
 //! - Functions for determining the bounding rectangle or cuboid.
 //! - A function for finding the centroid.
 
+pub use glam::{
+    DVec2, DVec3, DVec4, IVec2, IVec3, IVec4, Vec2, Vec3, Vec4, dvec2, dvec3, dvec4, ivec2, ivec3,
+    ivec4, vec2, vec3, vec4,
+};
+
+pub use self::cuboid::Cuboid;
+pub use self::ellipse::Ellipse;
+pub use self::point::{Point2, Point3, Point4, pt2, pt3, pt4};
+pub use self::polygon::Polygon;
+pub use self::quad::Quad;
+pub use self::range::{Align, Edge, Range};
+pub use self::rect::{Corner, Padding, Rect};
+pub use self::scalar::Scalar;
+pub use self::tri::Tri;
+#[allow(deprecated)]
+pub use self::vector::{Vector2, Vector3, Vector4};
+pub use self::vertex::{Vertex, Vertex2d, Vertex3d};
+
 pub mod cuboid;
 pub mod ellipse;
 pub mod point;
@@ -20,23 +38,6 @@ pub mod scalar;
 pub mod tri;
 pub mod vector;
 pub mod vertex;
-
-pub use self::cuboid::Cuboid;
-pub use self::ellipse::Ellipse;
-pub use self::point::{pt2, pt3, pt4, Point2, Point3, Point4};
-pub use self::polygon::Polygon;
-pub use self::quad::Quad;
-pub use self::range::{Align, Edge, Range};
-pub use self::rect::{Corner, Padding, Rect};
-pub use self::scalar::Scalar;
-pub use self::tri::Tri;
-#[allow(deprecated)]
-pub use self::vector::{Vector2, Vector3, Vector4};
-pub use self::vertex::{Vertex, Vertex2d, Vertex3d};
-pub use glam::{
-    dvec2, dvec3, dvec4, ivec2, ivec3, ivec4, vec2, vec3, vec4, DVec2, DVec3, DVec4, IVec2, IVec3,
-    IVec4, Vec2, Vec3, Vec4,
-};
 
 // General geometry utility functions
 

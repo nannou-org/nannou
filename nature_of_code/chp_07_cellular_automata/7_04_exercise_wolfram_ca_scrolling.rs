@@ -8,8 +8,9 @@
 // with the system scrolling by
 // Also implements wrap around
 
-use nannou::prelude::*;
 use std::ops::Range;
+
+use nannou::prelude::*;
 
 const RULE: i32 = 5;
 
@@ -29,7 +30,7 @@ struct Ca {
 }
 
 impl Ca {
-    fn new(r: Vec<i32>, rect: Rect) -> Self {
+    fn new(r: Vec<i32>, rect: geom::Rect) -> Self {
         let rule_set = r;
         let generation = 0;
         let w = 4;
@@ -82,21 +83,20 @@ impl Ca {
     }
 
     // This is the easy part, just draw the cells fill white if 1, black if 0
-    fn display(&self, draw: &Draw, rect: &Rect) {
+    fn display(&self, draw: &Draw, rect: &geom::Rect) {
         let offset = self.generation % self.rows as i32;
         for col in 0..self.columns {
             for row in 0..self.rows {
                 let mut y = row as i32 - offset;
                 if y <= rect.top() as i32 {
-                    y = self.rows as i32 + y;
+                    y += self.rows as i32;
                 }
                 // Only draw if cell state is 1
                 let mut fill = 1.0;
                 if self.matrix[col][row] == 1 {
                     fill = 0.0;
                 }
-                let x =
-                    ((self.w as i32 / 2) + col as i32 * self.w as i32) as f32 - rect.right() as f32;
+                let x = ((self.w as i32 / 2) + col as i32 * self.w as i32) as f32 - rect.right();
                 let y = rect.top() - (self.w / 2) as f32 - ((y - 1) * self.w as i32) as f32;
                 draw.rect()
                     .x_y(x, y)
@@ -137,12 +137,8 @@ impl Ca {
     }
 
     // The CA is done if it reaches the bottom of the screen
-    fn _finished(&self, rect: &Rect) -> bool {
-        if self.generation > rect.h() as i32 / self.w as i32 {
-            true
-        } else {
-            false
-        }
+    fn _finished(&self, rect: &geom::Rect) -> bool {
+        self.generation > rect.h() as i32 / self.w as i32
     }
 }
 
@@ -151,12 +147,11 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    let rect = Rect::from_w_h(640.0, 800.0);
+    let rect = geom::Rect::from_w_h(640.0, 800.0);
     app.new_window()
         .size(rect.w() as u32, rect.h() as u32)
         .view(view)
-        .build()
-        .unwrap();
+        .build();
 
     let rule_set = match RULE {
         1 => vec![0, 1, 1, 1, 1, 0, 1, 1], // Rule 222
@@ -171,18 +166,15 @@ fn model(app: &App) -> Model {
     Model { ca }
 }
 
-fn update(_app: &App, m: &mut Model, _update: Update) {
+fn update(_app: &App, m: &mut Model) {
     m.ca.generate();
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
 
     draw.background().color(WHITE);
 
     m.ca.display(&draw, &app.window_rect());
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }

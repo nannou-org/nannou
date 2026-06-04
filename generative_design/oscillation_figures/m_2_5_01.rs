@@ -43,7 +43,7 @@ struct Model {
     mod_freq_x: f32,
     mod_freq_y: f32,
     line_weight: f32,
-    line_color: Rgba,
+    line_color: Srgba,
     line_alpha: f32,
     connection_radius: f32,
     should_draw: bool,
@@ -56,8 +56,7 @@ fn model(app: &App) -> Model {
         .size(800, 800)
         .view(view)
         .key_pressed(key_pressed)
-        .build()
-        .unwrap();
+        .build();
 
     let lissajous_points = Vec::new();
     let line_alpha = 0.2;
@@ -71,7 +70,7 @@ fn model(app: &App) -> Model {
         mod_freq_x: 3.0,
         mod_freq_y: 2.0,
         line_weight: 1.5,
-        line_color: rgba(0.0, 0.0, 0.0, line_alpha),
+        line_color: Srgba::new(0.0, 0.0, 0.0, line_alpha),
         line_alpha,
         connection_radius: 200.0,
         should_draw: true,
@@ -98,13 +97,13 @@ fn calculate_lissajous_points(app: &App, model: &mut Model) {
     }
 }
 
-fn update(app: &App, model: &mut Model, _update: Update) {
+fn update(app: &App, model: &mut Model) {
     if model.should_draw_frame != app.elapsed_frames() {
         model.should_draw = false;
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
 
     if model.should_draw {
@@ -128,45 +127,43 @@ fn view(app: &App, model: &Model, frame: Frame) {
             }
         }
     }
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }
 
-fn key_pressed(app: &App, model: &mut Model, key: Key) {
+fn key_pressed(app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        Key::Key1 => {
+        KeyCode::Digit1 => {
             model.freq_x -= 1.0;
         }
-        Key::Key2 => {
+        KeyCode::Digit2 => {
             model.freq_x += 1.0;
         }
-        Key::Key3 => {
+        KeyCode::Digit3 => {
             model.freq_y -= 1.0;
         }
-        Key::Key4 => {
+        KeyCode::Digit4 => {
             model.freq_y += 1.0;
         }
-        Key::Key7 => {
+        KeyCode::Digit7 => {
             model.mod_freq_x -= 1.0;
         }
-        Key::Key8 => {
+        KeyCode::Digit8 => {
             model.mod_freq_x += 1.0;
         }
-        Key::Key9 => {
+        KeyCode::Digit9 => {
             model.mod_freq_y -= 1.0;
         }
-        Key::Key0 => {
+        KeyCode::Digit0 => {
             model.mod_freq_y += 1.0;
         }
-        Key::Left => {
+        KeyCode::ArrowLeft => {
             model.phi -= 15.0;
         }
-        Key::Right => {
+        KeyCode::ArrowRight => {
             model.phi += 15.0;
         }
-        Key::S => {
+        KeyCode::KeyS => {
             app.main_window()
-                .capture_frame(app.exe_name().unwrap() + ".png");
+                .save_screenshot(app.exe_name().unwrap() + ".png");
         }
         _other_key => {}
     }

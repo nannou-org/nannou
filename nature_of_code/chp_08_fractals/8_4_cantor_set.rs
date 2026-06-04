@@ -13,21 +13,18 @@ fn main() {
 struct Model;
 
 fn model(app: &App) -> Model {
-    app.set_loop_mode(LoopMode::loop_once());
-    let _window = app.new_window().size(800, 200).view(view).build().unwrap();
+    app.set_update_mode(UpdateMode::freeze());
+    let _window = app.new_window().size(800, 200).view(view).build();
     Model
 }
 
-fn view(app: &App, _model: &Model, frame: Frame) {
+fn view(app: &App, _model: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
 
     let win = app.window_rect();
     cantor(&draw, 0.0, win.top(), 730.0);
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }
 
 // Recursive function
@@ -46,7 +43,7 @@ fn cantor(draw: &Draw, x: f32, mut y: f32, len: f32) {
         y -= h;
         // Draw 2 more lines 1/3rd the length (without the middle section)
         let length = len / 3.0;
-        cantor(&draw, x - length, y, length);
-        cantor(&draw, (x + len * 2.0 / 3.0) - length, y, length);
+        cantor(draw, x - length, y, length);
+        cantor(draw, (x + len * 2.0 / 3.0) - length, y, length);
     }
 }

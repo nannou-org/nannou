@@ -42,7 +42,7 @@ impl Particle {
 
     // Method to display
     fn display(&self, draw: &Draw) {
-        draw.rect().xy(self.position).w_h(self.r, self.r).rgba(
+        draw.rect().xy(self.position).w_h(self.r, self.r).srgba(
             0.0,
             0.0,
             0.0,
@@ -52,11 +52,7 @@ impl Particle {
 
     // Is the particle still useful?
     fn _is_dead(&self) -> bool {
-        if self.life_span < 0.0 {
-            true
-        } else {
-            false
-        }
+        self.life_span < 0.0
     }
 }
 
@@ -101,7 +97,7 @@ impl ParticleSystem {
 
     fn draw(&self, draw: &Draw) {
         for p in self.particles.iter() {
-            p.display(&draw);
+            p.display(draw);
         }
     }
 }
@@ -115,26 +111,22 @@ fn model(app: &App) -> Model {
         .size(640, 360)
         .view(view)
         .mouse_pressed(mouse_pressed)
-        .build()
-        .unwrap();
+        .build();
     let win = app.window_rect();
     let ps = ParticleSystem::new(win.left() + 100.0, win.top() - 100.0, 5.0);
     Model { ps }
 }
 
-fn update(_app: &App, m: &mut Model, _update: Update) {
+fn update(_app: &App, m: &mut Model) {
     m.ps.update();
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
 
     m.ps.draw(&draw);
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }
 
 fn mouse_pressed(_app: &App, m: &mut Model, _button: MouseButton) {

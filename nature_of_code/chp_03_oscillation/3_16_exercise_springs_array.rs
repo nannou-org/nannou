@@ -87,7 +87,7 @@ impl Bob {
     }
 
     fn display(&self, draw: &Draw) {
-        let c = if self.dragging { GREY } else { DARKGREY };
+        let c = if self.dragging { GREY } else { DARK_GREY };
         draw.ellipse()
             .xy(self.position)
             .w_h(self.mass * 2.0, self.mass * 2.0)
@@ -131,8 +131,7 @@ fn model(app: &App) -> Model {
         .view(view)
         .mouse_pressed(mouse_pressed)
         .mouse_released(mouse_released)
-        .build()
-        .unwrap();
+        .build();
 
     let win = app.window_rect();
 
@@ -154,18 +153,18 @@ fn model(app: &App) -> Model {
     Model { bobs, springs }
 }
 
-fn update(app: &App, m: &mut Model, _update: Update) {
+fn update(app: &App, m: &mut Model) {
     for (i, s) in m.springs.iter().enumerate() {
         s.update(&mut m.bobs, i);
     }
 
     for b in &mut m.bobs {
         b.update();
-        b.drag(app.mouse.x, app.mouse.y);
+        b.drag(app.mouse().x, app.mouse().y);
     }
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
@@ -177,14 +176,11 @@ fn view(app: &App, m: &Model, frame: Frame) {
     for b in &m.bobs {
         b.display(&draw);
     }
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }
 
 fn mouse_pressed(app: &App, m: &mut Model, _button: MouseButton) {
     for b in &mut m.bobs {
-        b.clicked(app.mouse.x, app.mouse.y);
+        b.clicked(app.mouse().x, app.mouse().y);
     }
 }
 

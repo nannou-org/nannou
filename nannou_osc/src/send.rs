@@ -1,8 +1,9 @@
 //! Items related to the `osc::Sender` implementation.
 
-use super::{encode, CommunicationError, Connected, Packet, Unconnected};
 use std;
 use std::net::{SocketAddr, SocketAddrV4, ToSocketAddrs, UdpSocket};
+
+use super::{CommunicationError, Connected, Packet, Unconnected, encode};
 
 /// The default port bound to by the `Sender`.
 ///
@@ -23,7 +24,7 @@ pub fn default_sender_socket_addr_v4() -> SocketAddrV4 {
     SocketAddrV4::new(super::default_ipv4_addr(), DEFAULT_PORT)
 }
 
-impl<M> Sender<M> {
+impl<SM> Sender<SM> {
     /// The socket address that this `Sender`'s socket was created from.
     pub fn local_addr(&self) -> Result<SocketAddr, std::io::Error> {
         self.socket.local_addr()

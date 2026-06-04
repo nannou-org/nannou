@@ -7,8 +7,9 @@
 // A basic implementation of John Conway's Game of Life CA
 // Each cell is now an object!
 
-use nannou::prelude::*;
 use std::ops::Range;
+
+use nannou::prelude::*;
 
 fn main() {
     nannou::app(model).update(update).run();
@@ -39,18 +40,18 @@ impl Cell {
 
     fn display(&self, draw: &Draw, x: f32, y: f32) {
         let fill = if self.previous == 0 && self.state == 1 {
-            rgb(0.0, 0.0, 1.0)
+            Color::srgb(0.0, 0.0, 1.0)
         } else if self.state == 1 {
-            gray(0.0)
+            Color::gray(0.0)
         } else if self.previous == 1 && self.state == 0 {
-            rgb(1.0, 0.0, 0.0)
+            Color::srgb(1.0, 0.0, 0.0)
         } else {
-            gray(1.0)
+            Color::gray(1.0)
         };
         draw.rect()
             .x_y(x, y)
             .w_h(self.w, self.w)
-            .rgb(fill.red, fill.green, fill.blue)
+            .color(fill)
             .stroke(BLACK);
     }
 }
@@ -65,7 +66,7 @@ struct Gol {
 }
 
 impl Gol {
-    fn new(rect: Rect) -> Self {
+    fn new(rect: geom::Rect) -> Self {
         let w = 8;
         let columns = rect.w() as usize / w;
         let rows = rect.h() as usize / w;
@@ -112,9 +113,8 @@ impl Gol {
                 for i in 0..3 {
                     for j in 0..3 {
                         let i_idx =
-                            (x as i32 + (i as i32 - 1) + self.columns as i32) % self.columns as i32;
-                        let j_idx =
-                            (y as i32 + (j as i32 - 1) + self.rows as i32) % self.rows as i32;
+                            (x as i32 + (i - 1) + self.columns as i32) % self.columns as i32;
+                        let j_idx = (y as i32 + (j - 1) + self.rows as i32) % self.rows as i32;
                         neighbors += self.board[i_idx as usize][j_idx as usize].previous;
                     }
                 }
@@ -136,13 +136,13 @@ impl Gol {
     }
 
     // This is the easy part, just draw the cells fill white if 1, black if 0
-    fn display(&self, draw: &Draw, rect: &Rect) {
+    fn display(&self, draw: &Draw, rect: &geom::Rect) {
         for i in 0..self.columns {
             for j in 0..self.rows {
-                let x = (i * self.w) as f32 - rect.right() as f32;
-                let y = (j * self.w) as f32 - rect.top() as f32;
+                let x = (i * self.w) as f32 - rect.right();
+                let y = (j * self.w) as f32 - rect.top();
                 let offset = self.w as f32 / 2.0;
-                self.board[i][j].display(&draw, x + offset, y + offset);
+                self.board[i][j].display(draw, x + offset, y + offset);
             }
         }
     }
@@ -153,13 +153,12 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    let rect = Rect::from_w_h(640.0, 360.0);
+    let rect = geom::Rect::from_w_h(640.0, 360.0);
     app.new_window()
         .size(rect.w() as u32, rect.h() as u32)
         .mouse_pressed(mouse_pressed)
         .view(view)
-        .build()
-        .unwrap();
+        .build();
 
     let gol = Gol::new(rect);
     Model { gol }
@@ -170,17 +169,14 @@ fn mouse_pressed(_app: &App, m: &mut Model, _button: MouseButton) {
     m.gol.init();
 }
 
-fn update(_app: &App, m: &mut Model, _update: Update) {
+fn update(_app: &App, m: &mut Model) {
     m.gol.generate();
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
 
     m.gol.display(&draw, &app.window_rect());
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }

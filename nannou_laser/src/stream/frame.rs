@@ -1,12 +1,13 @@
-use crate::stream;
-use crate::stream::raw::{self, Buffer, StreamError};
-use crate::{Point, RawPoint};
 use std::io;
 use std::ops::{Deref, DerefMut};
-use std::sync::{mpsc, Arc, Mutex};
+use std::sync::{Arc, Mutex, mpsc};
 use std::time::Duration;
 
 pub use lasy::InterpolationConfig;
+
+use crate::stream;
+use crate::stream::raw::{self, Buffer, StreamError};
+use crate::{Point, RawPoint};
 
 /// The function that will be called each time a new `Frame` is requested.
 pub trait RenderFn<M>: Fn(&mut M, &mut Frame) {}
@@ -465,7 +466,7 @@ impl Frame {
                 self.points.push(*next);
             }
         }
-        self.points.extend(points.map(|p| p.as_ref().clone()));
+        self.points.extend(points.map(|p| *p.as_ref()));
     }
 }
 
@@ -597,13 +598,13 @@ impl Requester {
                         let blank_point = self
                             .blank_points
                             .last()
-                            .map(|&p| p)
+                            .copied()
                             .or_else(|| last_frame_point.map(|p| p.blanked()))
                             .unwrap_or_else(RawPoint::centered_blank);
                         interpolated.extend((0..target_points).map(|_| blank_point));
                     }
 
-                    self.raw_points.extend(self.blank_points.drain(..));
+                    self.raw_points.append(&mut self.blank_points);
                     self.raw_points.extend(interpolated);
                 }
 
@@ -626,12 +627,12 @@ impl Requester {
                     .iter()
                     .flat_map(|pt| Some(pt.to_raw()).into_iter().chain(pt.to_raw_weighted()));
 
-                self.raw_points.extend(self.blank_points.drain(..));
+                self.raw_points.append(&mut self.blank_points);
                 self.raw_points.extend(frame_points);
             }
 
             // Update the last frame point.
-            self.last_frame_point = self.raw_points.last().map(|&p| p);
+            self.last_frame_point = self.raw_points.last().copied();
 
             // Write the points to buffer.
             let end = start + std::cmp::min(num_points_to_fill, self.raw_points.len());

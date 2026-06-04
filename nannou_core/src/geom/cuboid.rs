@@ -2,7 +2,7 @@
 //!
 //! The main type is the `Cuboid` type.
 
-use crate::geom::{quad, scalar, Point3, Quad, Range, Scalar, Tri};
+use crate::geom::{Point3, Quad, Range, Scalar, Tri, quad, scalar};
 use crate::glam::{DVec3, Vec3};
 use crate::math::num_traits::Float;
 
@@ -467,19 +467,19 @@ where
     /// 0---1
     /// ```
     pub fn corners(&self) -> [[S; 3]; NUM_CORNERS as usize] {
-        let a = [self.x.start, self.y.start, self.z.start].into();
-        let b = [self.x.end, self.y.start, self.z.start].into();
-        let c = [self.x.start, self.y.end, self.z.start].into();
-        let d = [self.x.end, self.y.end, self.z.start].into();
-        let e = [self.x.start, self.y.start, self.z.end].into();
-        let f = [self.x.end, self.y.start, self.z.end].into();
-        let g = [self.x.start, self.y.end, self.z.end].into();
-        let h = [self.x.end, self.y.end, self.z.end].into();
+        let a = [self.x.start, self.y.start, self.z.start];
+        let b = [self.x.end, self.y.start, self.z.start];
+        let c = [self.x.start, self.y.end, self.z.start];
+        let d = [self.x.end, self.y.end, self.z.start];
+        let e = [self.x.start, self.y.start, self.z.end];
+        let f = [self.x.end, self.y.start, self.z.end];
+        let g = [self.x.start, self.y.end, self.z.end];
+        let h = [self.x.end, self.y.end, self.z.end];
         [a, b, c, d, e, f, g, h]
     }
 
     /// The same as `corners` but produces an iterator rather than a fixed-size array.
-    pub fn corners_iter(&self) -> Corners<S> {
+    pub fn corners_iter(&self) -> Corners<'_, S> {
         Corners {
             cuboid: self,
             corner_index: 0,
@@ -500,7 +500,7 @@ where
     }
 
     /// An iterator yielding a quad for each face on the cuboid.
-    pub fn faces_iter(&self) -> FaceQuads<S> {
+    pub fn faces_iter(&self) -> FaceQuads<'_, S> {
         FaceQuads {
             faces: Faces { next_face_index: 0 },
             cuboid: self,
@@ -510,7 +510,7 @@ where
     /// Produce an iterator yielding every triangle in the cuboid (two for each face).
     ///
     /// Uses the `faces_iter` method internally.
-    pub fn triangles_iter(&self) -> Triangles<S> {
+    pub fn triangles_iter(&self) -> Triangles<'_, S> {
         let mut face_quads = self.faces_iter();
         let first_quad = face_quads.next().unwrap();
         let triangles = first_quad.triangles_iter();
@@ -753,7 +753,7 @@ where
         7 => corner_from_index!(7, c),
         _ => return None,
     };
-    Some(p.into())
+    Some(p)
 }
 
 impl<'a, S> Iterator for Corners<'a, S>

@@ -44,8 +44,8 @@ fn main() {
 struct Model {
     tile_count: u32,
     act_random_seed: u64,
-    color_left: Hsv,
-    color_right: Hsv,
+    color_left: Hsva,
+    color_right: Hsva,
     transparent_left: bool,
     transparent_right: bool,
 }
@@ -58,24 +58,23 @@ fn model(app: &App) -> Model {
         .mouse_pressed(mouse_pressed)
         .key_released(key_released)
         .key_pressed(key_pressed)
-        .build()
-        .unwrap();
+        .build();
 
     Model {
         tile_count: 1,
         act_random_seed: 0,
-        color_left: hsv(0.88, 1.0, 0.77),
-        color_right: hsv(0.0, 0.0, 0.0),
+        color_left: Color::hsv(0.88, 1.0, 0.77).into(),
+        color_right: Color::hsv(0.0, 0.0, 0.0).into(),
         transparent_left: false,
         transparent_right: false,
     }
 }
 
-fn update(app: &App, model: &mut Model, _update: Update) {
-    model.tile_count = (app.mouse.y + app.window_rect().top()) as u32 / 15;
+fn update(app: &App, model: &mut Model) {
+    model.tile_count = (app.mouse().x + app.window_rect().top()) as u32 / 15;
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     // Prepare to draw.
     let draw = app.draw();
     draw.background().color(WHITE);
@@ -89,16 +88,16 @@ fn view(app: &App, model: &Model, frame: Frame) {
             let tile_h = win.h() / model.tile_count as f32;
             let pos_x = win.left() + tile_w * grid_x as f32;
             let pos_y = (win.top() - tile_h) - tile_h * grid_y as f32;
-            let mx = clamp(win.right() + app.mouse.x, 0.0, win.w());
+            let mx = clamp(win.right() + app.mouse().x, 0.0, win.w());
 
-            let toggle = rng.gen::<bool>();
+            let toggle = rng.random::<bool>();
 
-            if toggle == false {
-                let (h, s, v) = model.color_left.into_components();
+            if !toggle {
+                let [h, s, v] = model.color_left.to_f32_array_no_alpha();
                 let a = calculate_alpha_left(grid_y, model.transparent_left);
 
                 draw.line()
-                    .hsva(h.into(), s, v, a)
+                    .hsva(h, s, v, a)
                     .caps_round()
                     .weight(mx / 15.0)
                     .points(
@@ -109,7 +108,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
                         ),
                     );
                 draw.line()
-                    .hsva(h.into(), s, v, a)
+                    .hsva(h, s, v, a)
                     .caps_round()
                     .weight(mx / 15.0)
                     .points(
@@ -120,12 +119,12 @@ fn view(app: &App, model: &Model, frame: Frame) {
                         ),
                     );
             }
-            if toggle == true {
-                let (h, s, v) = model.color_right.into_components();
+            if toggle {
+                let [h, s, v] = model.color_right.to_f32_array_no_alpha();
                 let a = calculate_alpha_right(grid_y, model.transparent_right);
 
                 draw.line()
-                    .hsva(h.into(), s, v, a)
+                    .hsva(h, s, v, a)
                     .caps_round()
                     .weight(mx / 15.0)
                     .points(
@@ -133,7 +132,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
                         pt2(pos_x + (win.h() / model.tile_count as f32) / 2.0, pos_y),
                     );
                 draw.line()
-                    .hsva(h.into(), s, v, a)
+                    .hsva(h, s, v, a)
                     .caps_round()
                     .weight(mx / 15.0)
                     .points(
@@ -146,14 +145,12 @@ fn view(app: &App, model: &Model, frame: Frame) {
             }
         }
     }
-
-    // Write to the window frame.
-    draw.to_frame(app, &frame).unwrap();
 }
 
 fn calculate_alpha_left(grid_y: u32, transparent_left: bool) -> f32 {
     let max_alpha = 100.0;
-    let alpha_left = if transparent_left {
+
+    if transparent_left {
         let a = grid_y as f32 * 10.0;
         match a {
             _ if a > max_alpha => 1.0,
@@ -162,14 +159,13 @@ fn calculate_alpha_left(grid_y: u32, transparent_left: bool) -> f32 {
         }
     } else {
         1.0
-    };
-
-    alpha_left
+    }
 }
 
 fn calculate_alpha_right(grid_y: u32, transparent_right: bool) -> f32 {
     let max_alpha = 100.0;
-    let alpha_right = if transparent_right {
+
+    if transparent_right {
         let a = max_alpha - (grid_y as f32 * 10.0);
         match a {
             _ if a > max_alpha => 1.0,
@@ -178,49 +174,47 @@ fn calculate_alpha_right(grid_y: u32, transparent_right: bool) -> f32 {
         }
     } else {
         1.0
-    };
-
-    alpha_right
+    }
 }
 
 fn mouse_pressed(_app: &App, model: &mut Model, _button: MouseButton) {
     model.act_random_seed = (random_f32() * 100000.0) as u64;
 }
 
-fn key_pressed(app: &App, _model: &mut Model, key: Key) {
-    if key == Key::S {
+fn key_pressed(app: &App, _model: &mut Model, key: KeyCode) {
+    if key == KeyCode::KeyS {
         app.main_window()
-            .capture_frame(app.exe_name().unwrap() + ".png");
+            .save_screenshot(app.exe_name().unwrap() + ".png");
     }
 }
 
-fn key_released(_app: &App, model: &mut Model, key: Key) {
+fn key_released(_app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        Key::Key1 => {
-            if model.color_left.eq(&hsv(0.75, 0.73, 0.51)) {
-                model.color_left = hsv(0.89, 1.0, 0.77);
+        KeyCode::Digit1 => {
+            if model.color_left.eq(&Color::hsv(0.75, 0.73, 0.51).into()) {
+                model.color_left = Color::hsv(0.89, 1.0, 0.77).into();
             } else {
-                model.color_left = hsv(0.75, 0.73, 0.51);
+                model.color_left = Color::hsv(0.75, 0.73, 0.51).into();
             }
         }
-        Key::Key2 => {
-            if model.color_right.eq(&hsv(0.0, 0.0, 0.0)) {
-                model.color_right = hsv(0.53, 1.0, 0.64);
+        KeyCode::Digit2 => {
+            if model.color_right.eq(&Color::hsv(0.0, 0.0, 0.0).into()) {
+                model.color_right = Color::hsv(0.53, 1.0, 0.64).into()
             } else {
-                model.color_right = hsv(0.0, 0.0, 0.0);
+                model.color_right = Color::hsv(0.0, 0.0, 0.0).into();
             }
         }
-        Key::Key3 => {
+        KeyCode::Digit3 => {
             model.transparent_left = !model.transparent_left;
         }
-        Key::Key4 => {
+        KeyCode::Digit4 => {
             model.transparent_right = !model.transparent_right;
         }
-        Key::Key0 => {
+        KeyCode::Digit0 => {
             model.transparent_left = false;
             model.transparent_right = false;
-            model.color_left = hsv(0.89, 1.0, 0.77);
-            model.color_right = hsv(0.0, 0.0, 0.0);
+            model.color_left = Color::hsv(0.89, 1.0, 0.77).into();
+            model.color_right = Color::hsv(0.0, 0.0, 0.0).into();
         }
         _other_key => {}
     }

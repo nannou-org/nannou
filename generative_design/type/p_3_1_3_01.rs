@@ -47,14 +47,9 @@ fn model(app: &App) -> Model {
         .size(550, 650)
         .view(view)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
 
-    let text_path = app
-        .assets_path()
-        .unwrap()
-        .join("text")
-        .join("faust_kurz.txt");
+    let text_path = app.assets_path().join("text").join("faust_kurz.txt");
     let joined_text = std::fs::read_to_string(text_path).unwrap().parse().unwrap();
     let alphabet = "ABCDEFGHIJKLMNORSTUVWYZÄÖÜß,.;!? ".to_string();
     let counters = vec![0; alphabet.len()];
@@ -70,7 +65,7 @@ fn model(app: &App) -> Model {
     model
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
     let win = app.window_rect();
     draw.background().color(WHITE);
@@ -88,26 +83,32 @@ fn view(app: &App, model: &Model, frame: Frame) {
         }
 
         let col = if model.draw_alpha {
-            rgba(
+            Color::srgba(
                 0.34,
                 0.14,
                 0.5,
                 (model.counters[index.unwrap()] * 3) as f32 / 255.0,
             )
         } else {
-            rgba(0.34, 0.14, 0.5, 1.0)
+            Color::srgba(0.34, 0.14, 0.5, 1.0)
         };
 
         let sort_y = win.top() - (index.unwrap() * 20 + 40) as f32;
         let m = clamp(
-            map_range(app.mouse.x, win.left() + 50.0, win.right() - 50.0, 0.0, 1.0),
+            map_range(
+                app.mouse().x,
+                win.left() + 50.0,
+                win.right() - 50.0,
+                0.0,
+                1.0,
+            ),
             0.0,
             1.0,
         );
         let inter_y = nannou::geom::range::Range::new(pos_y, sort_y).lerp(m);
 
         let character = &c.to_string();
-        let text = text(character).font_size(18).build(win);
+        let text = draw.text_layout(character).font_size(18).build(win);
         draw.path()
             .fill()
             .x_y(pos_x, inter_y)
@@ -120,9 +121,6 @@ fn view(app: &App, model: &Model, frame: Frame) {
             pos_x = win.left() + 20.0;
         }
     }
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }
 
 fn count_characters(model: &mut Model) {
@@ -137,12 +135,12 @@ fn count_characters(model: &mut Model) {
     }
 }
 
-fn key_released(app: &App, model: &mut Model, key: Key) {
-    if key == Key::S {
+fn key_released(app: &App, model: &mut Model, key: KeyCode) {
+    if key == KeyCode::KeyS {
         app.main_window()
-            .capture_frame(app.exe_name().unwrap() + ".png");
+            .save_screenshot(app.exe_name().unwrap() + ".png");
     }
-    if key == Key::A {
+    if key == KeyCode::KeyA {
         model.draw_alpha = !model.draw_alpha;
     }
 }

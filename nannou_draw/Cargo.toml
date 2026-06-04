@@ -1,0 +1,33 @@
+[package]
+name = "nannou_draw"
+version.workspace = true
+description = "A simple and expressive API for drawing 2D and 3D graphics, built on Bevy for nannou - the creative-coding framework."
+readme = "README.md"
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+bevy = { workspace = true, default-features = false, features = [
+    "bevy_asset",
+    "bevy_color",
+    "bevy_core_pipeline",
+    "bevy_pbr",
+    "bevy_render",
+    "bevy_text",
+    "bevy_ui", # needed for `BackgroundColor`
+    "bevy_log",
+    "tonemapping_luts",
+    "zstd_rust",
+]}
+lyon.workspace = true
+nannou_core = { path = "../nannou_core" }
+notosans = { workspace = true, optional = true }
+parley.workspace = true
+skrifa.workspace = true
+rayon.workspace = true
+uuid.workspace = true
+bitflags.workspace = true
+
+[features]
+nightly = []
+notosans = ["dep:notosans"]

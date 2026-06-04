@@ -29,15 +29,15 @@ impl Ball {
         Ball { position, velocity }
     }
 
-    fn update(&mut self, rect: Rect<f32>) {
+    fn update(&mut self, rect: geom::Rect<f32>) {
         // Add the current speed to the position.
         self.position += self.velocity;
 
         if self.position.x > rect.right() || self.position.x < rect.left() {
-            self.velocity.x = self.velocity.x * -1.0;
+            self.velocity.x *= -1.0;
         }
         if self.position.y > rect.top() || self.position.y < rect.bottom() {
-            self.velocity.y = self.velocity.y * -1.0;
+            self.velocity.y *= -1.0;
         }
     }
 
@@ -56,19 +56,16 @@ fn model(_app: &App) -> Model {
     Model { ball }
 }
 
-fn update(app: &App, m: &mut Model, _update: Update) {
+fn update(app: &App, m: &mut Model) {
     m.ball.update(app.window_rect());
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model, _window: Entity) {
     // Begin drawing
     let draw = app.draw();
     draw.rect()
         .wh(app.window_rect().wh())
-        .rgba(1.0, 1.0, 1.0, 0.03);
+        .srgba(1.0, 1.0, 1.0, 0.03);
 
     m.ball.display(&draw);
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }

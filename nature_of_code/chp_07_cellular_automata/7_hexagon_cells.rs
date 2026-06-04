@@ -25,11 +25,11 @@ impl Cell {
         Cell { x, y, w, state }
     }
 
-    fn display(&self, draw: &Draw, rect: &Rect) {
+    fn display(&self, draw: &Draw, rect: &geom::Rect) {
         let fill = if self.state == 1 {
-            gray(0.0)
+            Color::gray(0.0)
         } else {
-            gray(1.0)
+            Color::gray(1.0)
         };
 
         let n_points = 6;
@@ -60,7 +60,7 @@ struct Gol {
 }
 
 impl Gol {
-    fn new(rect: Rect) -> Self {
+    fn new(rect: geom::Rect) -> Self {
         let w = 20.0;
         let h = deg_to_rad(60.0).sin() * w;
         let columns = (rect.w() / (w * 3.0)) as usize;
@@ -99,10 +99,10 @@ impl Gol {
     }
 
     // This is the easy part, just draw the cells fill white if 1, black if 0
-    fn display(&self, draw: &Draw, rect: &Rect) {
+    fn display(&self, draw: &Draw, rect: &geom::Rect) {
         for i in 0..self.columns {
             for j in 0..self.rows {
-                self.board[i][j].display(&draw, &rect);
+                self.board[i][j].display(draw, rect);
             }
         }
     }
@@ -113,13 +113,12 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    let rect = Rect::from_w_h(600.0, 600.0);
+    let rect = geom::Rect::from_w_h(600.0, 600.0);
     app.new_window()
         .size(rect.w() as u32, rect.h() as u32)
         .mouse_pressed(mouse_pressed)
         .view(view)
-        .build()
-        .unwrap();
+        .build();
 
     let gol = Gol::new(rect);
     Model { gol }
@@ -130,15 +129,12 @@ fn mouse_pressed(_app: &App, m: &mut Model, _button: MouseButton) {
     m.gol.init();
 }
 
-fn update(_app: &App, _m: &mut Model, _update: Update) {}
+fn update(_app: &App, _m: &mut Model) {}
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
 
     m.gol.display(&draw, &app.window_rect());
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }

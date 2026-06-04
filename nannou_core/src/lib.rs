@@ -32,11 +32,10 @@
 
 #![no_std]
 
-pub mod color;
+/// Re-export `glam` - linear algebra lib for graphics.
+pub use glam;
+
 pub mod geom;
 pub mod math;
 pub mod prelude;
 pub mod rand;
-
-/// Re-export `glam` - linear algebra lib for graphics.
-pub use glam;

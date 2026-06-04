@@ -34,11 +34,7 @@ pub enum TestPattern {
 
 fn model(app: &App) -> Model {
     // Create a window to receive keyboard events.
-    app.new_window()
-        .key_pressed(key_pressed)
-        .view(view)
-        .build()
-        .unwrap();
+    app.new_window().key_pressed(key_pressed).view(view).build();
 
     // Initialise the state that we want to live on the laser thread and spawn the stream.
     let laser_model = Laser {
@@ -88,8 +84,8 @@ fn laser(laser: &mut Laser, frame: &mut laser::Frame) {
             let yb = [0.0, 1.0];
             let x = [lit_p(xa), lit_p(xb)];
             let y = [lit_p(ya), lit_p(yb)];
-            frame.add_lines(&x);
-            frame.add_lines(&y);
+            frame.add_lines(x);
+            frame.add_lines(y);
         }
 
         TestPattern::ThreeVerticalLines => {
@@ -102,14 +98,14 @@ fn laser(laser: &mut Laser, frame: &mut laser::Frame) {
             let l = [lit_p(la), lit_p(lb)];
             let m = [lit_p(ma), lit_p(mb)];
             let r = [lit_p(ra), lit_p(rb)];
-            frame.add_lines(&l);
-            frame.add_lines(&m);
-            frame.add_lines(&r);
+            frame.add_lines(l);
+            frame.add_lines(m);
+            frame.add_lines(r);
         }
 
         TestPattern::Circle => {
             let n_points = frame.points_per_frame() as usize / 4;
-            let rect = Rect::from_w_h(1.0, 1.0);
+            let rect = geom::Rect::from_w_h(1.0, 1.0);
             let ellipse: Vec<_> = geom::ellipse::Circumference::new(rect, n_points as f32)
                 .map(|[x, y]| lit_p([x, y]))
                 .collect();
@@ -136,15 +132,15 @@ fn laser(laser: &mut Laser, frame: &mut laser::Frame) {
     }
 }
 
-fn key_pressed(_app: &App, model: &mut Model, key: Key) {
+fn key_pressed(_app: &App, model: &mut Model, key: KeyCode) {
     // Send a new pattern to the laser on keys 1, 2, 3 and 4.
     let new_pattern = match key {
-        Key::Key1 => TestPattern::Rectangle,
-        Key::Key2 => TestPattern::Triangle,
-        Key::Key3 => TestPattern::Crosshair,
-        Key::Key4 => TestPattern::ThreeVerticalLines,
-        Key::Key5 => TestPattern::Circle,
-        Key::Key6 => TestPattern::Spiral,
+        KeyCode::Digit1 => TestPattern::Rectangle,
+        KeyCode::Digit2 => TestPattern::Triangle,
+        KeyCode::Digit3 => TestPattern::Crosshair,
+        KeyCode::Digit4 => TestPattern::ThreeVerticalLines,
+        KeyCode::Digit5 => TestPattern::Circle,
+        KeyCode::Digit6 => TestPattern::Spiral,
         _ => return,
     };
     model
@@ -155,6 +151,7 @@ fn key_pressed(_app: &App, model: &mut Model, key: Key) {
         .unwrap();
 }
 
-fn view(_app: &App, _model: &Model, frame: Frame) {
-    frame.clear(DIMGRAY);
+fn view(app: &App, _model: &Model) {
+    let draw = app.draw();
+    draw.background().color(DIM_GRAY);
 }

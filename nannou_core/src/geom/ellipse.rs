@@ -1,7 +1,6 @@
 use crate::geom::{
-    self,
+    self, Rect, Tri,
     scalar::{self, Scalar},
-    Rect, Tri,
 };
 use crate::math::{
     self,
@@ -155,11 +154,11 @@ where
         let two = math::two();
         Circumference {
             index: S::zero(),
-            num_points: num_points,
-            middle: [x, y].into(),
+            num_points,
+            middle: [x, y],
             half_w: w / two,
             half_h: h / two,
-            rad_step: rad_step,
+            rad_step,
             rad_offset: S::zero(),
         }
     }
@@ -258,7 +257,7 @@ where
         let x = mx + half_w * (rad_offset + rad_step * *index).cos();
         let y = my + half_h * (rad_offset + rad_step * *index).sin();
         *index += S::one();
-        Some([x, y].into())
+        Some([x, y])
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {

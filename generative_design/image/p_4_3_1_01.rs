@@ -1,3 +1,5 @@
+use nannou::image;
+use nannou::image::GenericImageView;
 // P_4_3_1_01
 //
 // Generative Gestaltung – Creative Coding im Web
@@ -28,9 +30,6 @@
  */
 use nannou::prelude::*;
 
-use nannou::image;
-use nannou::image::GenericImageView;
-
 fn main() {
     nannou::app(model).run();
 }
@@ -46,10 +45,9 @@ fn model(app: &App) -> Model {
         .size(603, 873)
         .view(view)
         .key_released(key_released)
-        .build()
-        .unwrap();
+        .build();
 
-    let assets = app.assets_path().unwrap();
+    let assets = app.assets_path();
     let img_path = assets
         .join("images")
         .join("generative_examples")
@@ -63,14 +61,13 @@ fn model(app: &App) -> Model {
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
-fn view(app: &App, model: &Model, frame: Frame) {
-    frame.clear(WHITE);
-
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
+    draw.background().color(WHITE);
     let win = app.window_rect();
 
-    let mouse_x_factor = map_range(app.mouse.x, win.left(), win.right(), 0.01, 1.0);
-    let mouse_y_factor = map_range(app.mouse.y, win.bottom(), win.top(), 0.01, 1.0);
+    let mouse_x_factor = map_range(app.mouse().x, win.left(), win.right(), 0.01, 1.0);
+    let mouse_y_factor = map_range(app.mouse().x, win.bottom(), win.top(), 0.01, 1.0);
 
     let (w, h) = model.image.dimensions();
     for grid_x in 0..w {
@@ -152,7 +149,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
                         .start(pt2(pos_x - d1, pos_y - d1))
                         .end(pt2(pos_x + tile_width - d2, pos_y - d2))
                         .weight(w5 * mouse_y_factor + 0.1)
-                        .rgb(red, green, blue);
+                        .srgb(red, green, blue);
                 }
                 6 => {
                     // pixel color to fill, greyscale to ellipse size
@@ -160,7 +157,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
                     draw.ellipse()
                         .x_y(pos_x, pos_y)
                         .w_h(w6 * mouse_x_factor, w6 * mouse_x_factor)
-                        .rgb(red, green, blue);
+                        .srgb(red, green, blue);
                 }
                 7 => {
                     let w7 = map_range(greyscale, 0.0, 1.0, 5.0, 0.1);
@@ -171,11 +168,11 @@ fn view(app: &App, model: &Model, frame: Frame) {
                         .x_y(0.0, 0.0)
                         .w_h(15.0, 15.0)
                         .stroke_weight(w7)
-                        .stroke(rgb(red, green, blue))
-                        .rgba(1.0, 1.0, 1.0, mouse_x_factor);
+                        .stroke(Color::srgb(red, green, blue))
+                        .srgba(1.0, 1.0, 1.0, mouse_x_factor);
                 }
                 8 => {
-                    let col = rgb(greyscale, greyscale * mouse_x_factor, mouse_y_factor);
+                    let col = Color::srgb(greyscale, greyscale * mouse_x_factor, mouse_y_factor);
                     draw.rect().x_y(pos_x, pos_y).w_h(3.5, 3.5).color(col);
                     draw.rect().x_y(pos_x + 4.0, pos_y).w_h(3.5, 3.5).color(col);
                     draw.rect().x_y(pos_x, pos_y - 4.0).w_h(3.5, 3.5).color(col);
@@ -190,55 +187,54 @@ fn view(app: &App, model: &Model, frame: Frame) {
                         .x_y(0.0, 0.0)
                         .w_h(15.0 * mouse_x_factor, 15.0 * mouse_y_factor)
                         .stroke_weight(1.0)
-                        .stroke(rgb(1.0, greyscale, 0.0))
+                        .stroke(Color::srgb(1.0, greyscale, 0.0))
                         .no_fill();
                     let w9 = map_range(greyscale, 0.0, 1.0, 15.0, 0.1);
                     draw.ellipse()
                         .x_y(0.0, 0.0)
                         .w_h(5.0, 2.5)
                         .stroke_weight(w9)
-                        .stroke(rgb(0.0, 0.0, 0.27))
+                        .stroke(Color::srgb(0.0, 0.0, 0.27))
                         .no_fill();
                 }
                 _ => (),
             }
         }
     }
-    draw.to_frame(app, &frame).unwrap();
 }
 
-fn key_released(app: &App, model: &mut Model, key: Key) {
+fn key_released(app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        Key::Key1 => {
+        KeyCode::Digit1 => {
             model.draw_mode = 1;
         }
-        Key::Key2 => {
+        KeyCode::Digit2 => {
             model.draw_mode = 2;
         }
-        Key::Key3 => {
+        KeyCode::Digit3 => {
             model.draw_mode = 3;
         }
-        Key::Key4 => {
+        KeyCode::Digit4 => {
             model.draw_mode = 4;
         }
-        Key::Key5 => {
+        KeyCode::Digit5 => {
             model.draw_mode = 5;
         }
-        Key::Key6 => {
+        KeyCode::Digit6 => {
             model.draw_mode = 6;
         }
-        Key::Key7 => {
+        KeyCode::Digit7 => {
             model.draw_mode = 7;
         }
-        Key::Key8 => {
+        KeyCode::Digit8 => {
             model.draw_mode = 8;
         }
-        Key::Key9 => {
+        KeyCode::Digit9 => {
             model.draw_mode = 9;
         }
-        Key::S => {
+        KeyCode::KeyS => {
             app.main_window()
-                .capture_frame(app.exe_name().unwrap() + ".png");
+                .save_screenshot(app.exe_name().unwrap() + ".png");
         }
         _otherkey => (),
     }

@@ -5,27 +5,25 @@ fn main() {
 }
 
 struct Model {
-    window_id: window::Id,
-    texture: wgpu::Texture,
+    texture: Handle<Image>,
 }
 
 fn model(app: &App) -> Model {
-    let window_id = app.new_window().size(512, 512).view(view).build().unwrap();
+    app.new_window().size(512, 512).view(view).build();
 
     // Load the image from disk and upload it to a GPU texture.
-    let assets = app.assets_path().unwrap();
+    let assets = app.assets_path();
     let img_path = assets.join("images").join("nature").join("nature_1.jpg");
-    let texture = wgpu::Texture::from_path(app, img_path).unwrap();
+    let texture = app.asset_server().load(img_path);
 
-    Model { window_id, texture }
+    Model { texture }
 }
 
 // Draw the state of your `Model` into the given `Frame` here.
-fn view(app: &App, model: &Model, frame: Frame) {
-    frame.clear(DIMGRAY);
-    let window = app.window(model.window_id).unwrap();
-    let win_rect = window.rect();
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
+    draw.background().color(DIM_GRAY);
+    let win_rect = app.window_rect();
 
     // Generate the triangulated points for a cuboid to use for out mesh.
     let centre = pt3(0.0, 0.0, 0.0);
@@ -44,13 +42,13 @@ fn view(app: &App, model: &Model, frame: Frame) {
 
     // Scale the points up to half the window size.
     let cube_side = win_rect.w().min(win_rect.h()) * 0.5;
+    let t = app.time();
     draw.scale(cube_side)
         .mesh()
-        .points_textured(&model.texture, points)
-        .z_radians(app.time * 0.33)
-        .x_radians(app.time * 0.166 + -app.mouse.y / 100.0)
-        .y_radians(app.time * 0.25 + app.mouse.x / 100.0);
+        .points_textured(model.texture.clone(), points)
+        .z_radians(t * 0.33)
+        .x_radians(t * 0.166 + -app.mouse().x / 100.0)
+        .y_radians(t * 0.25 + app.mouse().x / 100.0);
 
     // Draw to the frame!
-    draw.to_frame(app, &frame).unwrap();
 }

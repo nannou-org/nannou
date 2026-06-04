@@ -48,8 +48,7 @@ fn model(app: &App) -> Model {
         .size(800, 400)
         .view(view)
         .key_pressed(key_pressed)
-        .build()
-        .unwrap();
+        .build();
 
     Model {
         point_count: 20,
@@ -62,7 +61,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn update(app: &App, model: &mut Model, _update: Update) {
+fn update(app: &App, model: &mut Model) {
     if model.do_draw_animation {
         model.point_count = app.window_rect().w() as usize - 250;
         let t = fmod(app.elapsed_frames() as f32 / model.point_count as f32, 1.0);
@@ -70,13 +69,13 @@ fn update(app: &App, model: &mut Model, _update: Update) {
         model.x = (model.angle * model.freq + deg_to_rad(model.phi)).cos();
         model.x *= 100.0 - 125.0;
         model.y = (model.angle * model.freq + deg_to_rad(model.phi)).sin();
-        model.y = model.y * 100.0;
+        model.y *= 100.0;
     } else {
         model.point_count = app.window_rect().w() as usize;
     }
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
+fn view(app: &App, model: &Model) {
     let draw = app.draw();
     let win = app.window_rect();
 
@@ -95,9 +94,8 @@ fn view(app: &App, model: &Model, frame: Frame) {
             y *= 100.0;
             pt2(x_start + i as f32, y)
         })
-        .enumerate()
-        .map(|(_i, p)| {
-            let rgba = rgba(0.0, 0.0, 0.0, 1.0);
+        .map(|p| {
+            let rgba = Color::srgba(0.0, 0.0, 0.0, 1.0);
             (p, rgba)
         });
 
@@ -109,11 +107,11 @@ fn view(app: &App, model: &Model, frame: Frame) {
         draw.ellipse()
             .x_y(win.left() + 125.0, 0.0)
             .radius(100.0)
-            .stroke(gray(0.0))
+            .stroke(Color::gray(0.0))
             .no_fill();
 
         // Lines
-        let mut c = rgba(0.0, 0.0, 0.0, 0.5);
+        let mut c = Color::srgba(0.0, 0.0, 0.0, 0.5);
         draw.line()
             .start(pt2(x_start, -100.0))
             .end(pt2(x_start, 100.0))
@@ -137,7 +135,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
 
         let t = fmod(app.elapsed_frames() as f32 / model.point_count as f32, 1.0);
 
-        c = rgba(0.0, 0.5, 0.63, 1.0);
+        c = Color::srgba(0.0, 0.5, 0.63, 1.0);
         draw.line()
             .start(pt2(x_start + t * model.point_count as f32, model.y))
             .end(pt2(x_start + t * model.point_count as f32, 0.0))
@@ -153,7 +151,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
         let phi_y = deg_to_rad(model.phi).sin() * 100.0;
 
         // phi line
-        c = rgba(0.0, 0.0, 0.0, 0.5);
+        c = Color::srgba(0.0, 0.0, 0.0, 0.5);
         draw.line()
             .start(pt2(x_start - 125.0, 0.0))
             .end(pt2(x_start + phi_x, phi_y))
@@ -161,18 +159,18 @@ fn view(app: &App, model: &Model, frame: Frame) {
             .color(c);
 
         // phi dots
-        c = rgba(0.0, 0.0, 0.0, 1.0);
+        c = Color::srgba(0.0, 0.0, 0.0, 1.0);
         draw.ellipse()
             .x_y(x_start, phi_y)
             .radius(4.0)
             .color(c)
-            .stroke(gray(1.0))
+            .stroke(Color::gray(1.0))
             .stroke_weight(2.0);
         draw.ellipse()
             .x_y(x_start + phi_x, phi_y)
             .radius(4.0)
             .color(c)
-            .stroke(gray(1.0))
+            .stroke(Color::gray(1.0))
             .stroke_weight(2.0);
 
         // dot on curve
@@ -180,7 +178,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
             .x_y(x_start + t * model.point_count as f32, model.y)
             .radius(5.0)
             .color(c)
-            .stroke(gray(1.0))
+            .stroke(Color::gray(1.0))
             .stroke_weight(2.0);
 
         // dot on circle
@@ -188,34 +186,31 @@ fn view(app: &App, model: &Model, frame: Frame) {
             .x_y(x_start + model.x, model.y)
             .radius(5.0)
             .color(c)
-            .stroke(gray(1.0))
+            .stroke(Color::gray(1.0))
             .stroke_weight(2.0);
     }
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }
 
-fn key_pressed(app: &App, model: &mut Model, key: Key) {
+fn key_pressed(app: &App, model: &mut Model, key: KeyCode) {
     match key {
-        Key::Key1 => {
+        KeyCode::Digit1 => {
             model.freq -= 1.0;
         }
-        Key::Key2 => {
+        KeyCode::Digit2 => {
             model.freq += 1.0;
         }
-        Key::A => {
+        KeyCode::KeyA => {
             model.do_draw_animation = !model.do_draw_animation;
         }
-        Key::Left => {
+        KeyCode::ArrowLeft => {
             model.phi -= 15.0;
         }
-        Key::Right => {
+        KeyCode::ArrowRight => {
             model.phi += 15.0;
         }
-        Key::S => {
+        KeyCode::KeyS => {
             app.main_window()
-                .capture_frame(app.exe_name().unwrap() + ".png");
+                .save_screenshot(app.exe_name().unwrap() + ".png");
         }
         _other_key => {}
     }

@@ -1,0 +1,19 @@
+[package]
+name = "nannou_derive"
+version.workspace = true
+description = "Procedural macros for nannou - the creative-coding framework."
+readme = "README.md"
+edition.workspace = true
+license.workspace = true
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = { workspace = true, features = ["full"] }
+quote.workspace = true
+
+[dev-dependencies]
+bevy.workspace = true
+nannou_draw = { path = "../nannou_draw" }
+nannou = { version = "0.19.0", path = "../nannou" }

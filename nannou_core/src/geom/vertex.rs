@@ -1,6 +1,7 @@
-use crate::geom::{scalar::Scalar, Point3};
-use crate::math::num_traits::{cast, NumCast};
 use core::ops::{Add, Div};
+
+use crate::geom::{Point3, scalar::Scalar};
+use crate::math::num_traits::{NumCast, cast};
 
 /// Types used as vertices that can be used to describe geometric points in space.
 pub trait Vertex: Clone + Copy + PartialEq {
@@ -43,7 +44,7 @@ pub struct IterFromIndices<'a, I, V: 'a = Default> {
 }
 
 /// Produce an iterator yielding a vertex for each index yielded by the given indices iterator.
-pub fn iter_from_indices<I, V>(indices: I, vertices: &[V]) -> IterFromIndices<I::IntoIter, V>
+pub fn iter_from_indices<I, V>(indices: I, vertices: &[V]) -> IterFromIndices<'_, I::IntoIter, V>
 where
     I: IntoIterator<Item = usize>,
 {
@@ -61,7 +62,7 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         let IterFromIndices {
             ref mut indices,
-            ref vertices,
+            vertices,
         } = *self;
         indices.next().map(|i| &vertices[i])
     }
@@ -78,7 +79,7 @@ where
     fn next_back(&mut self) -> Option<Self::Item> {
         let IterFromIndices {
             ref mut indices,
-            ref vertices,
+            vertices,
         } = *self;
         indices.next_back().map(|i| &vertices[i])
     }

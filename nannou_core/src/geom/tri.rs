@@ -1,6 +1,7 @@
-use crate::geom::{vertex, Cuboid, Range, Rect, Scalar, Vertex, Vertex2d, Vertex3d};
-use crate::math::num_traits::Zero;
 use core::ops::Deref;
+
+use crate::geom::{Cuboid, Range, Rect, Scalar, Vertex, Vertex2d, Vertex3d, vertex};
+use crate::math::num_traits::Zero;
 
 /// The number of vertices in a triangle.
 pub const NUM_VERTICES: u8 = 3;
@@ -243,15 +244,15 @@ impl<V> From<(V, V, V)> for Tri<V> {
     }
 }
 
-impl<V> Into<[V; 3]> for Tri<V> {
-    fn into(self) -> [V; 3] {
-        self.0
+impl<V> From<Tri<V>> for [V; 3] {
+    fn from(val: Tri<V>) -> Self {
+        val.0
     }
 }
 
-impl<V> Into<(V, V, V)> for Tri<V> {
-    fn into(self) -> (V, V, V) {
-        let Tri([a, b, c]) = self;
+impl<V> From<Tri<V>> for (V, V, V) {
+    fn from(val: Tri<V>) -> Self {
+        let Tri([a, b, c]) = val;
         (a, b, c)
     }
 }

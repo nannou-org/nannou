@@ -21,7 +21,7 @@ struct Mover {
 }
 
 impl Mover {
-    fn new(rect: Rect<f32>) -> Self {
+    fn new(rect: geom::Rect<f32>) -> Self {
         let position = pt2(rect.x(), rect.y());
         let velocity = vec2(0.0, 0.0);
         let acceleration = vec2(0.0, 0.0);
@@ -59,23 +59,20 @@ impl Mover {
 }
 
 fn model(app: &App) -> Model {
-    let _window = app.new_window().size(640, 360).view(view).build().unwrap();
+    let _window = app.new_window().size(640, 360).view(view).build();
     let mover = Mover::new(app.window_rect());
     Model { mover }
 }
 
-fn update(app: &App, m: &mut Model, _update: Update) {
+fn update(app: &App, m: &mut Model) {
     // update gets called just before view every frame
-    m.mover.update(pt2(app.mouse.x, app.mouse.y));
+    m.mover.update(pt2(app.mouse().x, app.mouse().y));
 }
 
-fn view(app: &App, m: &Model, frame: Frame) {
+fn view(app: &App, m: &Model) {
     // Begin drawing
     let draw = app.draw();
     draw.background().color(WHITE);
 
     m.mover.display(&draw);
-
-    // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
 }

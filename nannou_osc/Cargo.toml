@@ -5,10 +5,10 @@ authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
 description = "The OSC API for Nannou, the creative coding framework."
 readme = "README.md"
 keywords = ["OSC", "protocol", "cross-platform", "UDP", "socket"]
-license = "MIT OR Apache-2.0"
-repository = "https://github.com/nannou-org/nannou_osc.git"
-homepage = "https://nannou.cc"
-edition = "2018"
+repository.workspace = true
+homepage.workspace = true
+edition.workspace = true
+license.workspace = true
 
 [dependencies]
-rosc = "0.10"
+rosc.workspace = true
