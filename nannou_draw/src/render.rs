@@ -8,12 +8,13 @@ use crate::draw::{
 use bevy::{
     asset::{Asset, AssetEventSystems, UntypedAssetId, load_internal_asset, uuid_handle},
     camera::{
-        RenderTarget,
-        visibility::{NoFrustumCulling, RenderLayers, add_visibility_class},
+        Hdr, RenderTarget,
+        visibility::{NoFrustumCulling, RenderLayers, VisibilitySystems, add_visibility_class},
     },
     core_pipeline::core_3d::{Transparent3d, TransparentSortingInfo3d},
+    core_pipeline::tonemapping::{DebandDither, Tonemapping},
     ecs::{
-        query::{QueryFilter, QueryItem},
+        query::{Has, QueryFilter, QueryItem},
         system::{
             SystemParamItem,
             lifetimeless::{Read, SRes},
@@ -23,7 +24,7 @@ use bevy::{
     pbr::{
         DrawMesh, MATERIAL_BIND_GROUP_INDEX, MeshPipeline, MeshPipelineKey, MeshPipelineSystems,
         RenderMeshInstances, SetMeshBindGroup, SetMeshViewBindGroup,
-        SetMeshViewBindingArrayBindGroup,
+        SetMeshViewBindingArrayBindGroup, tonemapping_pipeline_key,
     },
     prelude::{TypePath, *},
     render::{
@@ -125,7 +126,14 @@ impl Plugin for NannouRenderPlugin {
             NannouShaderModelPlugin::<DefaultNannouShaderModel>::default(),
         ))
         .add_systems(First, clear_previous_frame)
-        .add_systems(PostUpdate, (update_draw_mesh,));
+        // `update_draw_mesh` (re)spawns the draw meshes each frame, so it must run
+        // before Bevy computes visibility - otherwise the freshly spawned meshes
+        // have `ViewVisibility == false` when the render-world extraction runs and
+        // get skipped (no draw output).
+        .add_systems(
+            PostUpdate,
+            update_draw_mesh.before(VisibilitySystems::VisibilityPropagate),
+        );
     }
 }
 
@@ -360,7 +368,13 @@ pub(crate) fn queue_shader_model<SM, QF, RC>(
         Res<RenderMeshInstances>,
         Query<(Entity, &MainEntity, &DrawIndex), QF>,
         ResMut<ViewSortedRenderPhases<Transparent3d>>,
-        Query<(&ExtractedView, &Msaa)>,
+        Query<(
+            &ExtractedView,
+            &Msaa,
+            Option<&Tonemapping>,
+            Option<&DebandDither>,
+            Has<Hdr>,
+        )>,
         Res<RenderAssets<PreparedShaderModel<SM>>>,
         Res<ExtractedInstances<ShaderModelAsset<SM>>>,
     ),
@@ -372,14 +386,27 @@ pub(crate) fn queue_shader_model<SM, QF, RC>(
 {
     let draw_function = draw_functions.read().id::<RC>();
 
-    for (view, msaa) in &mut views {
-        let msaa_key = MeshPipelineKey::from_msaa_samples(msaa.samples());
+    for (view, msaa, tonemapping, dither, has_hdr) in &mut views {
         let Some(phase) = phases.get_mut(&view.retained_view_entity) else {
             continue;
         };
 
-        // Bevy 0.19 dropped HDR from the mesh pipeline key (and `ExtractedView`).
-        let view_key = msaa_key;
+        // Mirror Bevy's mesh view-key construction so our pipeline is compatible
+        // with the `mesh_view_bind_group` Bevy prepares for the view. Bevy 0.19
+        // replaced the HDR key bit with the view's target format (which selects
+        // the color attachment format), and keys tonemapping/dithering for
+        // non-HDR views (these add the tonemapping LUT binding).
+        let mut view_key = MeshPipelineKey::from_msaa_samples(msaa.samples())
+            | MeshPipelineKey::from_target_format(view.target_format);
+        if !has_hdr {
+            if let Some(tonemapping) = tonemapping {
+                view_key |= MeshPipelineKey::TONEMAP_IN_SHADER;
+                view_key |= tonemapping_pipeline_key(*tonemapping);
+            }
+            if let Some(DebandDither::Enabled) = dither {
+                view_key |= MeshPipelineKey::DEBAND_DITHER;
+            }
+        }
         for (entity, main_entity, draw_idx) in &nannou_meshes {
             let Some(model_asset) = extracted_instances.get(main_entity) else {
                 continue;
@@ -394,12 +421,11 @@ pub(crate) fn queue_shader_model<SM, QF, RC>(
             let Some(mesh) = meshes.get(mesh_instance.mesh_asset_id()) else {
                 continue;
             };
-            let mesh_key =
-                view_key
-                    | MeshPipelineKey::from_primitive_topology_and_strip_index(
-                        mesh.primitive_topology(),
-                        None,
-                    );
+            let mesh_key = view_key
+                | MeshPipelineKey::from_primitive_topology_and_strip_index(
+                    mesh.primitive_topology(),
+                    None,
+                );
             let key = ShaderModelPipelineKey {
                 mesh_key,
                 bind_group_data: shader_model.key.clone(),
