@@ -1,7 +1,10 @@
 [package]
 name = "nannou_isf"
 version.workspace = true
+description = "Interactive Shader Format (ISF) support, built on Bevy for nannou - the creative-coding framework."
+readme = "README.md"
 edition.workspace = true
+license.workspace = true
 
 [dependencies]
 bevy = { workspace = true, features = ["shader_format_glsl"] }
