@@ -13,7 +13,7 @@ use bevy::asset::io::file::FileAssetReader;
 use bevy::{
     app::AppExit,
     diagnostic::{DiagnosticsStore, FrameCount, FrameTimeDiagnosticsPlugin},
-    ecs::{system::SystemParam, world::unsafe_world_cell::UnsafeWorldCell},
+    ecs::{component::Mutable, system::SystemParam, world::unsafe_world_cell::UnsafeWorldCell},
     input::{
         ButtonState,
         keyboard::{Key, KeyboardInput},
@@ -33,8 +33,11 @@ use bevy::{
 };
 #[cfg(feature = "egui")]
 use bevy_egui::EguiContext;
-#[cfg(feature = "egui")]
-use bevy_inspector_egui::quick::ResourceInspectorPlugin;
+// TODO: re-enable once `bevy-inspector-egui` supports Bevy 0.19 (see the
+// RC -> stable tracking issue), along with `Builder::model_ui` and the
+// `inspector_ui` example.
+//#[cfg(feature = "inspector")]
+//use bevy_inspector_egui::quick::ResourceInspectorPlugin;
 
 use crate::NannouPlugin;
 use crate::prelude::{draw, render::NannouCamera};
@@ -277,7 +280,13 @@ where
                 ..default()
             }),
             #[cfg(feature = "egui")]
-            bevy_egui::EguiPlugin::default(),
+            // Single-pass mode lets nannou users build egui UI imperatively from
+            // their `update`/`view` functions (the multi-pass default expects UI
+            // to be built within the dedicated `EguiPrimaryContextPass` schedule).
+            bevy_egui::EguiPlugin {
+                enable_multipass_for_primary_context: false,
+                ..bevy_egui::EguiPlugin::default()
+            },
             NannouPlugin,
         ))
         .init_resource::<RunMode>();
@@ -481,17 +490,19 @@ where
     }
 }
 
-impl<M> Builder<M>
-where
-    M: Reflect + GetTypeRegistration + 'static,
-{
-    #[cfg(feature = "egui")]
-    pub fn model_ui(mut self) -> Self {
-        self.app
-            .add_plugins(ResourceInspectorPlugin::<ModelHolder<M>>::default());
-        self
-    }
-}
+// TODO: re-enable once `bevy-inspector-egui` supports Bevy 0.19 (see the
+// RC -> stable tracking issue).
+//impl<M> Builder<M>
+//where
+//    M: Reflect + GetTypeRegistration + 'static,
+//{
+//    #[cfg(feature = "inspector")]
+//    pub fn model_ui(mut self) -> Self {
+//        self.app
+//            .add_plugins(ResourceInspectorPlugin::<ModelHolder<M>>::default());
+//        self
+//    }
+//}
 
 impl SketchBuilder {
     /// The size of the sketch window.
@@ -692,7 +703,7 @@ impl<'w> App<'w> {
         std::cell::Ref::map(world, |world| world.resource::<T>())
     }
 
-    pub fn resource_mut<T: Resource>(&self) -> std::cell::RefMut<'_, T> {
+    pub fn resource_mut<T: Resource<Mutability = Mutable>>(&self) -> std::cell::RefMut<'_, T> {
         let world = self.resource_world_mut();
         std::cell::RefMut::map(world, |world| world.resource_mut::<T>().into_inner())
     }
@@ -714,13 +725,37 @@ impl<'w> App<'w> {
     #[cfg(feature = "egui")]
     /// Get the egui context for the provided window.
     pub fn egui_for_window(&self, window: Entity) -> RefMut<'_, EguiContext> {
+        // `bevy_egui` attaches the `EguiContext` to the camera rather than the
+        // window, so resolve the `NannouCamera` that renders to this window.
+        let camera = self
+            .camera_for_window(window)
+            .expect("no camera found for window");
         let world = self.component_world_mut();
         RefMut::map(world, |world| {
             world
-                .get_mut::<EguiContext>(window)
+                .get_mut::<EguiContext>(camera)
                 .expect("No egui context")
                 .into_inner()
         })
+    }
+
+    /// Find the `NannouCamera` entity that renders to the given window, if any.
+    #[cfg(feature = "egui")]
+    fn camera_for_window(&self, window: Entity) -> Option<Entity> {
+        use bevy::camera::RenderTarget;
+        use bevy::window::WindowRef;
+        let mut cameras = self
+            .component_world_mut()
+            .query_filtered::<(Entity, &RenderTarget), With<NannouCamera>>();
+        let world = self.component_world();
+        cameras
+            .iter(&world)
+            .find_map(|(camera, target)| match target {
+                RenderTarget::Window(WindowRef::Entity(entity)) if *entity == window => {
+                    Some(camera)
+                }
+                _ => None,
+            })
     }
 
     #[cfg(feature = "egui")]
@@ -1053,7 +1088,8 @@ fn get_app_and_state<'w, 's, S: SystemParam + 'static>(
     state: &'s mut SystemState<S>,
 ) -> (App<'w>, <S as SystemParam>::Item<'w, 's>) {
     let app = App::new(world);
-    let param = unsafe { state.get_unchecked(*app.resource_world.borrow_mut()) };
+    let param = unsafe { state.get_unchecked(*app.resource_world.borrow_mut()) }
+        .expect("failed to fetch system params");
     (app, param)
 }
 
