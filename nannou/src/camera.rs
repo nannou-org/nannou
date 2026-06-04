@@ -13,11 +13,19 @@ use bevy::{
     window::WindowRef,
 };
 
+/// A handle to an existing camera [`Entity`], used to update its configuration.
+///
+/// Construct one via [`Camera::new`] (or `app.camera(entity)`) and use the [`SetCamera`] methods
+/// to mutate the camera's transform, projection and rendering options in place.
 pub struct Camera<'a, 'w> {
     entity: Entity,
     app: &'a App<'w>,
 }
 
+/// The set of components that make up a nannou camera.
+///
+/// Used by the camera [`Builder`] to accumulate configuration before spawning, and by [`Camera`]
+/// when reading back and updating an existing camera entity.
 #[derive(Default)]
 pub struct CameraComponents {
     pub transform: Transform,
@@ -30,11 +38,20 @@ pub struct CameraComponents {
     pub render_target: Option<RenderTarget>,
 }
 
+/// A context for building and spawning a new camera.
+///
+/// Created via `app.new_camera()`. Configure it with the [`SetCamera`] methods, then call
+/// [`Builder::build`] to spawn the camera and obtain its [`Entity`].
 pub struct Builder<'a, 'w> {
     app: &'a App<'w>,
     camera: CameraComponents,
 }
 
+/// Shared camera configuration methods, implemented by both the camera `Builder` and `Camera`.
+///
+/// Implementors only need to provide [`map_camera`](SetCamera::map_camera); all other methods are
+/// expressed in terms of it. This allows the same fluent API to be used whether configuring a new
+/// camera before it is spawned or updating an existing one.
 pub trait SetCamera: Sized {
     fn layer(self, layer: RenderLayers) -> Self {
         self.map_camera(|mut camera| {

@@ -6,7 +6,7 @@ authors = [
     "mitchmindtree <mitchell.nordine@gmail.com>",
 ]
 description = "An implementation of the Generative Gestaltung examples."
-readme = "README.md"
+readme = "../README.md"
 keywords = ["creative", "sketch", "generative", "design", "gestaltung"]
 repository.workspace = true
 homepage.workspace = true

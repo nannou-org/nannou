@@ -60,7 +60,7 @@ If you `cargo run` your app, you'll see an empty window.
 
 ## Setting up a Texture
 
-Now, at the top of your `main.rs` file, add a [WGPU Texture](https://docs.rs/nannou/latest/nannou/wgpu/struct.Texture.html) type field named `texture` to the `Model` struct.
+Now, at the top of your `main.rs` file, add an image [`Handle<Image>`](https://docs.rs/bevy/latest/bevy/asset/struct.Handle.html) field named `texture` to the `Model` struct. A `Handle` is a lightweight reference to an asset (in this case an image/texture) managed by Bevy's asset system.
 
 ```rust,no_run
 # #![allow(unreachable_code, unused_variables, dead_code)]
@@ -81,7 +81,7 @@ struct Model {
 # }
 ```
 
-Next, we'll need to create a GPU texture to initialize the struct with. We can accomplish this by loading a texture from an image file after we create the window in our `model` function. We will let nannou find the assets directory for us using the app's [`assets_path()`](https://docs.rs/nannou/0.14.1/nannou/app/struct.App.html#method.assets_path) method, so we only need to spell out the image path from the root of that directory.
+Next, we'll need to load an image to initialize the struct with. We can accomplish this by asking Bevy's asset server to load an image file after we create the window in our `model` function, via the app's [`asset_server()`](https://docs.rs/nannou/latest/nannou/app/struct.App.html#method.asset_server) method. The asset server looks for files within the project's `assets` directory, so we only need to spell out the image path from the root of that directory. Loading happens in the background, and the returned `Handle` can be drawn as soon as the asset is ready.
 
 ```rust,no_run
 # #![allow(unreachable_code, unused_variables, dead_code)]
@@ -129,7 +129,6 @@ fn view(app: &App, model: &Model) {
   let draw = app.draw();
   draw.background().color(BLACK);
 
-  let draw = app.draw();
   draw
     .rect()
     .texture(&model.texture);
@@ -165,7 +164,6 @@ fn view(app: &App, model: &Model) {
   let win = app.window_rect();
   let r = geom::Rect::from_w_h(100.0, 100.0).top_left_of(win);
 
-  let draw = app.draw();
   draw
     .rect()
     .texture(&model.texture)

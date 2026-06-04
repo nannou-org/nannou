@@ -9,16 +9,25 @@ The project was started out of a desire for a creative coding framework inspired
 by Processing, OpenFrameworks and Cinder, but for Rust. <sup>Named after
 [this](https://www.youtube.com/watch?v=A-Pkx37kYf4).</sup>
 
+Today, nannou is built on top of the [Bevy](https://bevyengine.org) game engine.
+nannou's crates are exposed as a set of Bevy plugins, which means you get
+nannou's friendly sketch/app API and `Draw` interface while also being able to
+reach for the wider Bevy ecosystem (its ECS, renderer, asset system and plugins)
+whenever you need it.
+
 ## Goals
 
 Nannou aims to provide easy, cross-platform access to the things that artists
 need:
 
-- [x] **Windowing & Events** via [winit](https://crates.io/crates/winit).
+- [x] **Windowing & Events** via [Bevy](https://bevyengine.org) (which uses
+  [winit](https://crates.io/crates/winit) under the hood).
 - [x] **Audio** via [CPAL](https://crates.io/crates/cpal). *Input and
   output streams. Duplex are not yet supported.*
-- [ ] **Video** input, playback and processing (*would love suggestions and
-  ideas*).
+- [x] **Video** playback via the
+  [`nannou_video`](https://github.com/nannou-org/nannou/tree/master/nannou_video)
+  crate and webcam input via
+  [`nannou_webcam`](https://github.com/nannou-org/nannou/tree/master/nannou_webcam).
 - [x] **GUI** via [egui](https://crates.io/crates/egui). *May switch to a custom
   nannou solution [in the
   future](https://github.com/nannou-org/nannou/issues/383)*.
@@ -31,7 +40,8 @@ need:
   - [x] Vertex & index iterators.
   - [x] [Graph](https://docs.rs/nannou/latest/nannou/geom/graph/index.html) for
     composing geometry.
-- **Graphics** via WGPU (via [wgpu-rs](https://github.com/gfx-rs/wgpu-rs)):
+- **Graphics** via [Bevy](https://bevyengine.org)'s renderer (built on
+  [wgpu](https://github.com/gfx-rs/wgpu)):
   - [x] [Draw](https://docs.rs/nannou/latest/nannou/draw/index.html) API. E.g.
     `draw.ellipse().w_h(20.0, 20.0).color(RED)`.
   - [x] [Mesh](https://docs.rs/nannou/latest/nannou/mesh/index.html) API.
@@ -54,7 +64,9 @@ need:
     lighting and effects.
   - [x] [Serial](https://crates.io/crates/serial) - commonly used for
     interfacing with LEDs and other hardware.
-  - [ ] MIDI - No friendly nannou API is provided yet, but cross-platform MIDI I/O is possible via [midir](https://crates.io/crates/midir).
+  - [x] [MIDI](https://github.com/nannou-org/nannou/tree/master/nannou_midi) -
+    cross-platform MIDI I/O via the `nannou_midi` crate (built on
+    [midir](https://crates.io/crates/midir)).
   - [x] [UDP](https://doc.rust-lang.org/std/net/struct.UdpSocket.html) via
     std.
   - [x] TCP
@@ -65,7 +77,8 @@ need:
   - [x] Windowing.
   - [x] Application events.
   - [x] [Audio](https://docs.rs/nannou/latest/nannou/app/struct.Audio.html).
-  - [ ] Video.
+  - [x] [Video](https://github.com/nannou-org/nannou/tree/master/nannou_video)
+    and [Webcam](https://github.com/nannou-org/nannou/tree/master/nannou_webcam).
   - [x] [Lasers](https://github.com/nannou-org/nannou/tree/master/nannou_laser).
   - [ ] Lights. *For now, we recommend DMX via the [sacn crate](https://docs.rs/sacn/0.4.4/sacn/).*
   - [ ] LEDs. *For now, we recommend DMX via the [sacn crate](https://docs.rs/sacn/0.4.4/sacn/).*

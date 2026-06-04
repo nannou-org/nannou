@@ -1,7 +1,10 @@
 [package]
 name = "nannou_video"
 version.workspace = true
+description = "Video decoding and playback, built on Bevy for nannou - the creative-coding framework."
+readme = "README.md"
 edition.workspace = true
+license.workspace = true
 
 [dependencies]
 bevy = { workspace = true, default-features = false, features = [

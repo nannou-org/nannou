@@ -1,3 +1,9 @@
+//! Items related to the **Frame** - a window's render target for a single update.
+//!
+//! A [`Frame`] wraps Bevy's [`ViewTarget`] for a particular window, giving access to the
+//! intermediary texture that nannou draws into and the window's final surface texture, along with
+//! the GPU device and render context used to encode draw commands.
+
 use bevy::ecs::entity::EntityHashMap;
 use bevy::prelude::*;
 use bevy::render::render_resource::Extent3d;
@@ -64,13 +70,13 @@ impl<'a, 'r, 'w, 's> Frame<'a, 'r, 'w, 's> {
         }
     }
 
-    /// Access the command encoder in order to encode commands that will be submitted to the swap
-    /// chain queue at the end of the call to **view**.
+    /// Access the command encoder in order to encode commands that will be submitted to the GPU
+    /// queue at the end of the call to **view**.
     pub fn command_encoder(&self) -> std::cell::RefMut<'_, wgpu::CommandEncoder> {
         std::cell::RefMut::map(self.render_context.borrow_mut(), |x| x.command_encoder())
     }
 
-    /// The `Id` of the window whose wgpu surface is associated with this frame.
+    /// The [`Entity`] of the window whose surface is associated with this frame.
     pub fn window_id(&self) -> Entity {
         self.window_id
     }
@@ -99,7 +105,7 @@ impl<'a, 'r, 'w, 's> Frame<'a, 'r, 'w, 's> {
         todo!()
     }
 
-    /// The swap chain texture that will be the target for drawing this frame.
+    /// The window's surface texture that will be the target for presenting this frame.
     pub fn swap_chain_texture(&self) -> &wgpu::TextureView {
         // Bevy 0.19's `ViewTarget` exposes the output texture as an `Option`.
         self.view_target
@@ -107,25 +113,21 @@ impl<'a, 'r, 'w, 's> Frame<'a, 'r, 'w, 's> {
             .expect("frame has no output texture")
     }
 
-    /// The texture format of the frame's swap chain texture.
+    /// The texture format of the window's surface texture.
     pub fn swap_chain_texture_format(&self) -> wgpu::TextureFormat {
         self.view_target
             .out_texture_view_format()
             .expect("frame has no output texture")
     }
 
-    /// The device and queue on which the swap chain was created and which will be used to submit
-    /// the **RawFrame**'s encoded commands.
-    ///
-    /// This refers to the same **DeviceQueuePair** as held by the window associated with this
-    /// frame.
+    /// The GPU device used to submit this frame's encoded commands.
     pub fn device(&self) -> &wgpu::Device {
         self.render_device.wgpu_device()
     }
 
     /// The texture to which all graphics should be drawn this frame.
     ///
-    /// This is **not** the swapchain texture, but rather an intermediary linear sRGBA image. This
+    /// This is **not** the window's surface texture, but rather an intermediary linear sRGBA image. This
     /// intermediary image is used in order to:
     ///
     /// - Ensure consistent MSAA resolve behaviour across platforms.
@@ -139,7 +141,7 @@ impl<'a, 'r, 'w, 's> Frame<'a, 'r, 'w, 's> {
     /// supported by the platform), this will be a multisampled texture. After the **view**
     /// function returns, this texture will be resolved to a non-multisampled linear sRGBA texture.
     /// After the texture has been resolved if necessary, it will then be used as a shader input
-    /// within a graphics pipeline used to draw the swapchain texture.
+    /// within a graphics pipeline used to draw to the window's surface texture.
     pub fn texture(&self) -> &wgpu::Texture {
         self.view_target.main_texture()
     }
@@ -193,7 +195,7 @@ impl<'a, 'r, 'w, 's> Frame<'a, 'r, 'w, 's> {
     ///
     /// Note that this method will not perform any resolving. In the case that `msaa_samples` is
     /// greater than `1`, a render pass will be automatically added after the `view` completes and
-    /// before the texture is drawn to the swapchain.
+    /// before the texture is drawn to the window's surface.
     pub fn color_attachment_descriptor(&self) -> wgpu::RenderPassColorAttachment<'_> {
         self.view_target.get_color_attachment()
     }

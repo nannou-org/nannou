@@ -1,7 +1,10 @@
 [package]
 name = "nannou_draw"
 version.workspace = true
+description = "A simple and expressive API for drawing 2D and 3D graphics, built on Bevy for nannou - the creative-coding framework."
+readme = "README.md"
 edition.workspace = true
+license.workspace = true
 
 [dependencies]
 bevy = { workspace = true, default-features = false, features = [
