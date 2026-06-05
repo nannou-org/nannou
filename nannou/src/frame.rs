@@ -146,19 +146,31 @@ impl<'a, 'r, 'w, 's> Frame<'a, 'r, 'w, 's> {
         self.view_target.main_texture()
     }
 
-    /// A full view into the frame's texture.
+    /// A full view into the frame's single-sample texture.
+    ///
+    /// This is the texture that is presented to the window's surface (after tonemapping).
+    /// When MSAA is enabled it is the *resolve target* - the multisampled texture returned by
+    /// [`Frame::resolve_target_view`] is resolved into it. Prefer [`Frame::color_attachment`],
+    /// which wires this up for you, over targeting these views by hand.
     ///
     /// See `texture` for details.
     pub fn texture_view(&self) -> &wgpu::TextureView {
         self.view_target.main_texture_view()
     }
 
-    /// Returns the resolve target texture in the case that MSAA is enabled.
+    /// Returns the multisampled texture in the case that MSAA is enabled.
+    ///
+    /// This is the texture a render pass should draw *into* when MSAA is enabled; it is
+    /// resolved into the single-sample [`Frame::texture`] before presentation.
     pub fn resolve_target(&self) -> Option<&wgpu::Texture> {
         self.view_target.sampled_main_texture().map(|x| x.deref())
     }
 
-    /// Returns the resolve target texture view in the case that MSAA is enabled.
+    /// Returns the multisampled texture view in the case that MSAA is enabled.
+    ///
+    /// This is the view a render pass should draw *into* when MSAA is enabled; it is resolved
+    /// into the single-sample [`Frame::texture_view`] before presentation. Prefer
+    /// [`Frame::color_attachment`], which wires this up for you.
     pub fn resolve_target_view(&self) -> Option<&wgpu::TextureView> {
         self.view_target
             .sampled_main_texture_view()
@@ -189,15 +201,36 @@ impl<'a, 'r, 'w, 's> Frame<'a, 'r, 'w, 's> {
         [width, height]
     }
 
-    /// Short-hand for constructing a `wgpu::RenderPassColorAttachment` for use within a
-    /// render pass that targets this frame's texture. The returned descriptor's `attachment` will
-    /// the same `wgpu::TextureView` returned by the `Frame::texture` method.
+    /// A [`wgpu::RenderPassColorAttachment`] that targets this frame, with the MSAA resolve
+    /// already wired up.
     ///
-    /// Note that this method will not perform any resolving. In the case that `msaa_samples` is
-    /// greater than `1`, a render pass will be automatically added after the `view` completes and
-    /// before the texture is drawn to the window's surface.
-    pub fn color_attachment_descriptor(&self) -> wgpu::RenderPassColorAttachment<'_> {
-        self.view_target.get_color_attachment()
+    /// This is the recommended way to target the frame from a custom render pass. When MSAA is
+    /// enabled the frame's multisampled texture is used as the attachment and is automatically
+    /// resolved into the single-sample texture presented to the window's surface; when MSAA is
+    /// disabled the single-sample texture is targeted directly. Either way the result is read
+    /// by Bevy's tonemapping pass and drawn to the surface.
+    ///
+    /// `load` selects how the target is initialised at the start of the pass - e.g.
+    /// [`wgpu::LoadOp::Clear`] to clear it each frame, or [`wgpu::LoadOp::Load`] to build upon
+    /// the previous frame's contents.
+    pub fn color_attachment(
+        &self,
+        load: wgpu::LoadOp<wgpu::Color>,
+    ) -> wgpu::RenderPassColorAttachment<'_> {
+        let (view, resolve_target): (&wgpu::TextureView, Option<&wgpu::TextureView>) =
+            match self.view_target.sampled_main_texture_view() {
+                Some(sampled) => (sampled, Some(self.view_target.main_texture_view())),
+                None => (self.view_target.main_texture_view(), None),
+            };
+        wgpu::RenderPassColorAttachment {
+            view,
+            resolve_target,
+            ops: wgpu::Operations {
+                load,
+                store: wgpu::StoreOp::Store,
+            },
+            depth_slice: None,
+        }
     }
 
     /// Clear the texture with the given color.
