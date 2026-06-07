@@ -98,7 +98,9 @@ fn model(app: &App) -> Model {
 fn render(_app: &RenderApp, model: &Model, frame: Frame) {
     let mut encoder = frame.command_encoder();
     let mut render_pass = wgpu::RenderPassBuilder::new()
-        .color_attachment(frame.resolve_target_view().unwrap(), |color| color)
+        .color_attachment_descriptor(
+            frame.color_attachment(wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT)),
+        )
         .begin(&mut encoder);
     render_pass.set_bind_group(0, &*model.bind_group, &[]);
     render_pass.set_pipeline(&model.render_pipeline);

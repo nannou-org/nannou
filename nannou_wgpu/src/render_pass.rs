@@ -174,6 +174,20 @@ impl<'a> Builder<'a> {
         self
     }
 
+    /// Add a prebuilt color attachment descriptor to the render pass descriptor.
+    ///
+    /// Useful for attachments configured elsewhere, e.g. the one returned by
+    /// `Frame::color_attachment`, which already wires up the MSAA resolve target.
+    ///
+    /// Call this multiple times in succession to add multiple color attachments.
+    pub fn color_attachment_descriptor(
+        mut self,
+        descriptor: wgpu::RenderPassColorAttachment<'a>,
+    ) -> Self {
+        self.color_attachments.push(Some(descriptor));
+        self
+    }
+
     /// Add a depth stencil attachment to the render pass.
     ///
     /// This should only be called once, as only a single depth stencil attachment is valid. Only

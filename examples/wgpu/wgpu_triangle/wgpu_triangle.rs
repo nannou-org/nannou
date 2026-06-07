@@ -91,7 +91,9 @@ fn render(_app: &RenderApp, model: &Model, frame: Frame) {
     // begin a render pass that outputs to the frame's texture. Then we add sub-commands for
     // setting the bind group, render pipeline, vertex buffers and then finally drawing.
     let mut render_pass = wgpu::RenderPassBuilder::new()
-        .color_attachment(frame.resolve_target_view().unwrap(), |color| color)
+        .color_attachment_descriptor(
+            frame.color_attachment(wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT)),
+        )
         .begin(&mut encoder);
     render_pass.set_bind_group(0, &*model.bind_group, &[]);
     render_pass.set_pipeline(&model.render_pipeline);

@@ -344,7 +344,9 @@ fn render(app: &RenderApp, model: &Model, frame: Frame) {
     let mut encoder = frame.command_encoder();
     encoder.copy_buffer_to_buffer(&new_uniform_buffer, 0, &g.uniform_buffer, 0, uniforms_size);
     let mut render_pass = wgpu::RenderPassBuilder::new()
-        .color_attachment(frame.resolve_target_view().unwrap(), |color| color)
+        .color_attachment_descriptor(
+            frame.color_attachment(wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT)),
+        )
         // We'll use a depth texture to assist with the order of rendering fragments based on depth.
         .depth_stencil_attachment(&g.depth_texture_view, |depth| depth)
         .begin(&mut encoder);
