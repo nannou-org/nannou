@@ -87,7 +87,7 @@ fn update(_app: &App, model: &mut Model) {
     if model.display == model.texture_a {
         model.display = model.texture_b.clone();
     } else {
-        model.display = model.texture_b.clone();
+        model.display = model.texture_a.clone();
     }
 }
 

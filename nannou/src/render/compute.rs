@@ -82,9 +82,15 @@ fn sync_pipeline_cache<CM>(
                 match pipelines.get_compute_pipeline_state(*id) {
                     CachedPipelineState::Queued => {}
                     CachedPipelineState::Creating(_) => {}
+                    // Only signal that `next` is ready - the main world performs the actual
+                    // advancement so that `current` and the `ComputeModel` bind group are
+                    // updated together. Advancing `current` here would race with component
+                    // extraction and leave the dispatched entry point bound to the previous
+                    // state's bind group.
                     CachedPipelineState::Ok(_) => {
-                        state.current = next_state.clone();
-                        state.next = None;
+                        if !state.next_ready {
+                            state.next_ready = true;
+                        }
                     }
                     CachedPipelineState::Err(e) => {
                         error!("Failed to create pipeline {:?}", e);
@@ -161,6 +167,11 @@ fn prepare_bind_group<CM>(
 pub(crate) struct ComputeState<S: Default + Clone + Send + Sync + 'static> {
     pub current: S,
     pub next: Option<S>,
+    /// Set by `sync_pipeline_cache` in the render world once the pipeline for `next` has
+    /// compiled. The main-world compute system reads this to advance `current` to `next`
+    /// while it rebuilds the matching bind group, keeping the dispatched entry point and
+    /// bind group in sync.
+    pub next_ready: bool,
 }
 
 #[derive(Resource, Deref, DerefMut)]

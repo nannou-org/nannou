@@ -401,6 +401,7 @@ where
                         commands.entity(view).insert(ComputeState {
                             current: CM::State::default(),
                             next: None,
+                            next_ready: false,
                         });
                     }
                 },
@@ -1217,19 +1218,24 @@ fn compute<M, CM>(
     let (app, (model, compute, mut views_q)) = get_app_and_state(world, state);
     let compute = compute.0;
     for (view, state) in views_q.iter_mut() {
-        let (new_state, compute_model) = compute(&app, &model, state.current.clone(), view);
+        // Advance to the state queued last frame once the render world has signalled that its
+        // pipeline is ready. Doing this here (rather than in the render world) keeps `current`
+        // and the `ComputeModel` bind group built below in sync for the same state.
+        let current = match (state.next_ready, &state.next) {
+            (true, Some(next)) => next.clone(),
+            _ => state.current.clone(),
+        };
+        let (new_state, compute_model) = compute(&app, &model, current.clone(), view);
+        let next = (new_state != current).then_some(new_state);
         unsafe {
             app.component_world
                 .borrow_mut()
                 .world_mut()
                 .entity_mut(view)
                 .insert(ComputeState {
-                    current: state.current.clone(),
-                    next: if new_state != state.current {
-                        Some(new_state)
-                    } else {
-                        None
-                    },
+                    current,
+                    next,
+                    next_ready: false,
                 })
                 .insert(ComputeModel(compute_model));
         }
