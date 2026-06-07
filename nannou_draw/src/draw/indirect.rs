@@ -206,7 +206,16 @@ impl<P: PhaseItem> RenderCommand<P> for DrawMeshIndirect {
             return RenderCommandResult::Skip;
         };
 
-        pass.set_vertex_buffer(0, vertex_buffer_slice.buffer.slice(..));
+        // The mesh shares a `MeshAllocator` slab with other meshes, so its vertex and
+        // index data generally sit at a non-zero offset within the slab buffers. The
+        // indirect args buffer (written on the GPU / CPU without knowledge of those
+        // offsets) uses `first_index`/`base_vertex`/`first_vertex` of `0`, so we slice
+        // the bound buffers to start at the mesh's data. That makes the zero-based args
+        // address this mesh's geometry rather than whatever happens to sit at slab
+        // offset 0. (`MeshBufferSlice::range` is measured in elements, not bytes.)
+        let vertex_stride = gpu_mesh.layout.0.layout().array_stride;
+        let vertex_offset = vertex_buffer_slice.range.start as u64 * vertex_stride;
+        pass.set_vertex_buffer(0, vertex_buffer_slice.buffer.slice(vertex_offset..));
 
         match &gpu_mesh.buffer_info {
             RenderMeshBufferInfo::Indexed { index_format, .. } => {
@@ -216,7 +225,12 @@ impl<P: PhaseItem> RenderCommand<P> for DrawMeshIndirect {
                     return RenderCommandResult::Skip;
                 };
 
-                pass.set_index_buffer(index_buffer_slice.buffer.slice(..), *index_format);
+                let index_offset =
+                    index_buffer_slice.range.start as u64 * index_format.byte_size() as u64;
+                pass.set_index_buffer(
+                    index_buffer_slice.buffer.slice(index_offset..),
+                    *index_format,
+                );
                 pass.draw_indexed_indirect(&indirect_buffer.buffer, 0);
             }
             RenderMeshBufferInfo::NonIndexed => {
