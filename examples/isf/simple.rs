@@ -36,15 +36,20 @@ fn model(app: &App) -> Model {
 }
 
 fn update(app: &App, model: &mut Model) {
-    let Some(_isf) = app.assets_mut::<Isf>().get(&model.isf) else {
-        return;
-    };
-
-    let mut inputs = app.resource_mut::<IsfInputs>();
-    inputs.insert(
-        "inputImage".to_string(),
-        IsfInputValue::Image(model.texture_1.clone()),
-    );
+    let isf = model.isf.clone();
+    let texture = model.texture_1.clone();
+    app.command_scope(move |mut commands| {
+        commands.queue(move |world: &mut World| {
+            // Wait until the ISF asset has loaded before setting its inputs.
+            if world.resource::<bevy_asset::Assets<Isf>>().get(&isf).is_none() {
+                return;
+            }
+            world.resource_mut::<IsfInputs>().insert(
+                "inputImage".to_string(),
+                IsfInputValue::Image(texture.clone()),
+            );
+        });
+    });
 }
 
 fn view(app: &App, _model: &Model) {

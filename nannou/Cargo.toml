@@ -56,7 +56,9 @@ default = [
 ]
 config_json = ["bevy_common_assets/json"]
 config_toml = ["bevy_common_assets/toml"]
-egui = ["dep:bevy_egui"]
+# `immutable_ctx` lets nannou read the egui context through `&self` (the classic `app.egui()`
+# returns a cheap `egui::Context` handle), matching nannou's imperative single-pass UI usage.
+egui = ["dep:bevy_egui", "bevy_egui/immutable_ctx"]
 # TODO: re-enable once `bevy-inspector-egui` supports Bevy 0.19.
 #inspector = ["egui", "dep:bevy-inspector-egui"]
 hot_reload = ["bevy/file_watcher", "bevy/multi_threaded"]

@@ -61,6 +61,8 @@ use crate::app::find_project_path;
 use crate::camera::{CameraComponents, SetCamera};
 use crate::light::{LightComponents, SetLight};
 use crate::prelude::render::NannouCamera;
+#[cfg(feature = "egui")]
+use bevy_egui::EguiContext;
 
 /// A Bevy [`SystemParam`] providing nannou's application conveniences.
 ///
@@ -84,6 +86,12 @@ pub struct App<'w, 's> {
     monitors: Query<'w, 's, (Entity, &'static Monitor)>,
     primary_monitor: Query<'w, 's, Entity, With<PrimaryMonitor>>,
     camera_msaa: Query<'w, 's, (&'static RenderTarget, &'static Msaa), With<NannouCamera>>,
+    // `bevy_egui` attaches the `EguiContext` to the camera, so we resolve the `NannouCamera`
+    // rendering to a given window to find its context.
+    #[cfg(feature = "egui")]
+    egui_cameras: Query<'w, 's, (Entity, &'static RenderTarget), With<NannouCamera>>,
+    #[cfg(feature = "egui")]
+    egui_contexts: Query<'w, 's, &'static EguiContext>,
     asset_server: Res<'w, AssetServer>,
     images: Res<'w, Assets<Image>>,
     text_cx: Res<'w, SharedTextCx>,
@@ -193,6 +201,38 @@ impl<'w, 's> App<'w, 's> {
     /// The primary monitor of the system, if one can be detected.
     pub fn primary_monitor(&self) -> Option<Entity> {
         self.primary_monitor.single().ok()
+    }
+
+    /// The [`egui`](bevy_egui::egui) context for the given window.
+    ///
+    /// The returned context is a cheap, internally-shared handle - build your UI on it directly
+    /// (e.g. `egui::Window::new(..).show(&ctx, ..)`).
+    ///
+    /// **Panics** if no camera renders to the given window.
+    #[cfg(feature = "egui")]
+    pub fn egui_for_window(&self, window: Entity) -> bevy_egui::egui::Context {
+        use bevy::window::WindowRef;
+        let camera = self
+            .egui_cameras
+            .iter()
+            .find_map(|(camera, target)| match target {
+                RenderTarget::Window(WindowRef::Entity(entity)) if *entity == window => Some(camera),
+                _ => None,
+            })
+            .expect("no camera found for window");
+        self.egui_contexts
+            .get(camera)
+            .expect("no egui context for the window's camera")
+            .get()
+            .clone()
+    }
+
+    /// The [`egui`](bevy_egui::egui) context for the focused window.
+    ///
+    /// See [`egui_for_window`](Self::egui_for_window).
+    #[cfg(feature = "egui")]
+    pub fn egui(&self) -> bevy_egui::egui::Context {
+        self.egui_for_window(self.window_id())
     }
 
     /// The [`Draw`] API for the window whose `view` is currently running, or the focused window.

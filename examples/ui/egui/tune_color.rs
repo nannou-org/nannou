@@ -36,8 +36,7 @@ fn update(app: &App, model: &mut Model) {
         ref mut color,
     } = *model;
 
-    let mut egui_ctx = app.egui_for_window(window);
-    let ctx = &egui_ctx.get_mut();
+    let ctx = app.egui_for_window(window);
     egui::Window::new("EGUI window")
         .default_size(egui::vec2(0.0, 200.0))
         .show(&ctx, |ui| {
