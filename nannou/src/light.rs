@@ -1,29 +1,14 @@
-// FIXME: Remove deprecated `DirectionalLightBundle`.
-#![allow(deprecated)]
-
 use bevy::{
     camera::visibility::RenderLayers,
     light::DirectionalLight,
     prelude::{Color, Transform, Vec2},
 };
 
-use crate::prelude::{Entity, Vec3, default};
-
-use crate::App;
-
-/// A handle to an existing directional light [`Entity`], used to update its configuration.
-///
-/// Construct one via [`Light::new`] (or `app.light(entity)`) and use the [`SetLight`] methods to
-/// mutate the light's transform and properties in place.
-pub struct Light<'a, 'w> {
-    entity: Entity,
-    app: &'a App<'w>,
-}
+use crate::prelude::Vec3;
 
 /// The set of components that make up a nannou directional light.
 ///
-/// Used by the light [`Builder`] to accumulate configuration before spawning, and by [`Light`]
-/// when reading back and updating an existing light entity.
+/// Used by the light builder to accumulate configuration before spawning.
 #[derive(Default)]
 pub struct LightComponents {
     pub transform: Transform,
@@ -31,20 +16,10 @@ pub struct LightComponents {
     pub render_layers: RenderLayers,
 }
 
-/// A context for building and spawning a new directional light.
-///
-/// Created via `app.new_light()`. Configure it with the [`SetLight`] methods, then call
-/// [`Builder::build`] to spawn the light and obtain its [`Entity`].
-pub struct Builder<'a, 'w> {
-    app: &'a App<'w>,
-    light: LightComponents,
-}
-
-/// Shared light configuration methods, implemented by both the light `Builder` and `Light`.
+/// Shared light configuration methods, implemented by the light builder.
 ///
 /// Implementors only need to provide [`map_light`](SetLight::map_light); all other methods are
-/// expressed in terms of it, so the same fluent API configures a new light before it is spawned
-/// or updates an existing one.
+/// expressed in terms of it.
 pub trait SetLight: Sized {
     fn x_y(self, x: f32, y: f32) -> Self {
         self.map_light(|mut light| {
@@ -106,74 +81,4 @@ pub trait SetLight: Sized {
     fn map_light<F>(self, f: F) -> Self
     where
         F: FnOnce(LightComponents) -> LightComponents;
-}
-
-impl<'a, 'w> Builder<'a, 'w> {
-    pub fn new(app: &'a App<'w>) -> Self {
-        Self {
-            app,
-            light: LightComponents {
-                transform: Transform::from_xyz(0.0, 0.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
-                ..default()
-            },
-        }
-    }
-
-    pub fn build(self) -> Entity {
-        let entity = self
-            .app
-            .component_world_mut()
-            .spawn((
-                self.light.transform,
-                self.light.directional_light,
-                self.light.render_layers,
-            ))
-            .id();
-        entity
-    }
-}
-
-impl<'a, 'w> SetLight for Builder<'a, 'w> {
-    fn map_light<F>(self, f: F) -> Self
-    where
-        F: FnOnce(LightComponents) -> LightComponents,
-    {
-        Self {
-            light: f(self.light),
-            ..self
-        }
-    }
-}
-
-impl<'a, 'w> Light<'a, 'w> {
-    pub fn new(app: &'a App<'w>, entity: Entity) -> Self {
-        Self { entity, app }
-    }
-}
-
-impl<'a, 'w> SetLight for Light<'a, 'w> {
-    fn map_light<F>(self, f: F) -> Self
-    where
-        F: FnOnce(LightComponents) -> LightComponents,
-    {
-        let mut world = self.app.component_world_mut();
-        let mut camera_q = world.query::<(&Transform, &DirectionalLight, &RenderLayers)>();
-        let (transform, light, render_layers) = camera_q.get_mut(&mut world, self.entity).unwrap();
-        let bundle = LightComponents {
-            transform: transform.clone(),
-            directional_light: light.clone(),
-            render_layers: render_layers.clone(),
-        };
-
-        let bundle = f(bundle);
-        world.entity_mut(self.entity).insert({
-            let LightComponents {
-                transform,
-                directional_light,
-                render_layers,
-            } = bundle;
-            (transform, directional_light, render_layers)
-        });
-        self
-    }
 }

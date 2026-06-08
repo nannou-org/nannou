@@ -38,16 +38,15 @@
 
 #[cfg(not(target_arch = "wasm32"))]
 use bevy::asset::io::file::FileAssetReader;
+use bevy::render::view::screenshot::{Screenshot, save_to_disk};
 use bevy::{
     app::AppExit,
-    camera::{Hdr, RenderTarget, visibility::RenderLayers},
     diagnostic::{DiagnosticsStore, FrameCount, FrameTimeDiagnosticsPlugin},
     ecs::system::{ParallelCommands, SystemParam},
     prelude::*,
-    window::{Monitor, PrimaryMonitor, PrimaryWindow, WindowRef},
+    window::{Monitor, PrimaryMonitor, PrimaryWindow},
     winit::{UpdateMode, WinitSettings},
 };
-use bevy::render::view::screenshot::{Screenshot, save_to_disk};
 use nannou_core::geom;
 use nannou_draw::draw::Draw;
 use nannou_draw::text::font::SharedTextCx;
@@ -300,24 +299,11 @@ impl<'w, 's> App<'w, 's> {
 
     /// Begin building a new window.
     ///
-    /// The returned [`WindowBuilder`] spawns the window along with a [`NannouCamera`] targeting it
-    /// (so its [`Draw`] is rendered), and returns the window [`Entity`] from
-    /// [`build`](WindowBuilder::build).
-    ///
-    /// The window is assigned a [`RenderLayers`] based on the current window count, so the first
-    /// window renders on layer `0`. When spawning multiple windows within a single system run,
-    /// assign distinct layers explicitly via [`WindowBuilder::layer`] (deferred spawns are not yet
-    /// reflected in the window count).
-    pub fn new_window(&self) -> WindowBuilder<'_, 'w, 's> {
-        let layer = RenderLayers::layer(self.window_count());
-        WindowBuilder {
-            commands: &self.par_commands,
-            window: bevy::window::Window::default(),
-            primary: false,
-            clear_color: None,
-            hdr: false,
-            layer,
-        }
+    /// The returned [`window::Builder`](crate::window::Builder) spawns the window along with a
+    /// [`NannouCamera`] targeting it (so its [`Draw`] is rendered), and returns the window
+    /// [`Entity`] from [`build`](crate::window::Builder::build).
+    pub fn new_window<M: 'static>(&self) -> crate::window::Builder<'_, 'w, 's, M> {
+        crate::window::Builder::new(self)
     }
 
     /// Begin building a new [`NannouCamera`].
@@ -444,100 +430,6 @@ impl Window<'_, '_, '_> {
                 .spawn(Screenshot::window(entity))
                 .observe(save_to_disk(path));
         });
-    }
-}
-
-/// A context for building and spawning a new window via [`App::new_window`].
-pub struct WindowBuilder<'a, 'w, 's> {
-    commands: &'a ParallelCommands<'w, 's>,
-    window: bevy::window::Window,
-    primary: bool,
-    clear_color: Option<Color>,
-    hdr: bool,
-    layer: RenderLayers,
-}
-
-impl WindowBuilder<'_, '_, '_> {
-    /// Use the given [`Window`](bevy::window::Window) component, replacing any prior configuration.
-    pub fn window(mut self, window: bevy::window::Window) -> Self {
-        self.window = window;
-        self
-    }
-
-    /// Request the window be a specific size in points.
-    pub fn size(mut self, width: u32, height: u32) -> Self {
-        self.window.resolution.set(width as f32, height as f32);
-        self
-    }
-
-    /// Request a specific title for the window.
-    pub fn title(mut self, title: impl Into<String>) -> Self {
-        self.window.title = title.into();
-        self
-    }
-
-    /// Mark this window as the primary window.
-    pub fn primary(mut self) -> Self {
-        self.primary = true;
-        self
-    }
-
-    /// Set the initial clear color for the window's camera.
-    pub fn clear_color(mut self, color: impl Into<Color>) -> Self {
-        self.clear_color = Some(color.into());
-        self
-    }
-
-    /// Render the window's camera in HDR.
-    pub fn hdr(mut self, hdr: bool) -> Self {
-        self.hdr = hdr;
-        self
-    }
-
-    /// Set the [`RenderLayers`] used by the window and its camera.
-    pub fn layer(mut self, layer: RenderLayers) -> Self {
-        self.layer = layer;
-        self
-    }
-
-    /// Spawn the window and its camera, returning the window [`Entity`].
-    pub fn build(self) -> Entity {
-        let WindowBuilder {
-            commands,
-            window,
-            primary,
-            clear_color,
-            hdr,
-            layer,
-        } = self;
-        commands.command_scope(move |mut commands| {
-            let window_entity = {
-                let mut window = commands.spawn((window, layer.clone()));
-                if primary {
-                    window.insert(PrimaryWindow);
-                }
-                window.id()
-            };
-
-            let mut camera = commands.spawn((
-                Camera {
-                    clear_color: clear_color
-                        .map(ClearColorConfig::Custom)
-                        .unwrap_or(ClearColorConfig::None),
-                    ..default()
-                },
-                RenderTarget::Window(WindowRef::Entity(window_entity)),
-                Transform::from_xyz(0.0, 0.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
-                Projection::Orthographic(OrthographicProjection::default_3d()),
-                layer,
-                NannouCamera,
-            ));
-            if hdr {
-                camera.insert(Hdr);
-            }
-
-            window_entity
-        })
     }
 }
 

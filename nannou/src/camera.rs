@@ -1,7 +1,3 @@
-use crate::App;
-use crate::prelude::{
-    ClearColorConfig, Entity, OrthographicProjection, Vec3, default, render::NannouCamera,
-};
 use bevy::camera::RenderTarget;
 use bevy::{
     camera::Hdr,
@@ -13,19 +9,11 @@ use bevy::{
     window::WindowRef,
 };
 
-/// A handle to an existing camera [`Entity`], used to update its configuration.
-///
-/// Construct one via [`Camera::new`] (or `app.camera(entity)`) and use the [`SetCamera`] methods
-/// to mutate the camera's transform, projection and rendering options in place.
-pub struct Camera<'a, 'w> {
-    entity: Entity,
-    app: &'a App<'w>,
-}
+use crate::prelude::{ClearColorConfig, Entity, Vec3};
 
 /// The set of components that make up a nannou camera.
 ///
-/// Used by the camera [`Builder`] to accumulate configuration before spawning, and by [`Camera`]
-/// when reading back and updating an existing camera entity.
+/// Used by the camera builder to accumulate configuration before spawning.
 #[derive(Default)]
 pub struct CameraComponents {
     pub transform: Transform,
@@ -38,20 +26,10 @@ pub struct CameraComponents {
     pub render_target: Option<RenderTarget>,
 }
 
-/// A context for building and spawning a new camera.
-///
-/// Created via `app.new_camera()`. Configure it with the [`SetCamera`] methods, then call
-/// [`Builder::build`] to spawn the camera and obtain its [`Entity`].
-pub struct Builder<'a, 'w> {
-    app: &'a App<'w>,
-    camera: CameraComponents,
-}
-
-/// Shared camera configuration methods, implemented by both the camera `Builder` and `Camera`.
+/// Shared camera configuration methods, implemented by the camera builder.
 ///
 /// Implementors only need to provide [`map_camera`](SetCamera::map_camera); all other methods are
-/// expressed in terms of it. This allows the same fluent API to be used whether configuring a new
-/// camera before it is spawned or updating an existing one.
+/// expressed in terms of it.
 pub trait SetCamera: Sized {
     fn layer(self, layer: RenderLayers) -> Self {
         self.map_camera(|mut camera| {
@@ -206,130 +184,4 @@ pub trait SetCamera: Sized {
     fn map_camera<F>(self, f: F) -> Self
     where
         F: FnOnce(CameraComponents) -> CameraComponents;
-}
-
-impl<'a, 'w> Builder<'a, 'w> {
-    pub fn new(app: &'a App<'w>) -> Self {
-        Self {
-            app,
-            camera: CameraComponents {
-                transform: Transform::from_xyz(0.0, 0.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
-                projection: OrthographicProjection::default_3d().into(),
-                ..default()
-            },
-        }
-    }
-
-    pub fn build(self) -> Entity {
-        let entity = self
-            .app
-            .component_world_mut()
-            .spawn((
-                self.camera.transform,
-                self.camera.camera,
-                self.camera.projection,
-                self.camera.tonemapping,
-                self.camera.render_layers,
-                NannouCamera,
-            ))
-            .id();
-        if let Some(bloom_settings) = self.camera.bloom_settings {
-            self.app
-                .component_world_mut()
-                .entity_mut(entity)
-                .insert(bloom_settings);
-        }
-        if let Some(hdr) = self.camera.hdr {
-            self.app
-                .component_world_mut()
-                .entity_mut(entity)
-                .insert(hdr);
-        }
-        if let Some(render_target) = self.camera.render_target {
-            self.app
-                .component_world_mut()
-                .entity_mut(entity)
-                .insert(render_target);
-        }
-        entity
-    }
-}
-
-impl<'a, 'w> SetCamera for Builder<'a, 'w> {
-    fn map_camera<F>(self, f: F) -> Self
-    where
-        F: FnOnce(CameraComponents) -> CameraComponents,
-    {
-        Self {
-            camera: f(self.camera),
-            ..self
-        }
-    }
-}
-
-impl<'a, 'w> Camera<'a, 'w> {
-    pub fn new(app: &'a App<'w>, entity: Entity) -> Self {
-        Self { entity, app }
-    }
-}
-
-impl<'a, 'w> SetCamera for Camera<'a, 'w> {
-    fn map_camera<F>(self, f: F) -> Self
-    where
-        F: FnOnce(CameraComponents) -> CameraComponents,
-    {
-        let mut world = self.app.component_world_mut();
-        let mut camera_q = world.query::<(
-            &Transform,
-            &camera::Camera,
-            Option<&Hdr>,
-            &Projection,
-            &Tonemapping,
-            &RenderLayers,
-            Option<&Bloom>,
-            Option<&RenderTarget>,
-        )>();
-        let (
-            transform,
-            camera,
-            hdr,
-            projection,
-            tonemapping,
-            render_layers,
-            bloom_settings,
-            render_target,
-        ) = camera_q.get(&mut world, self.entity).unwrap();
-        let camera = CameraComponents {
-            transform: transform.clone(),
-            camera: camera.clone(),
-            hdr: hdr.cloned(),
-            projection: projection.clone(),
-            tonemapping: tonemapping.clone(),
-            render_layers: render_layers.clone(),
-            bloom_settings: bloom_settings.cloned(),
-            render_target: render_target.cloned(),
-        };
-        let mut camera = f(camera);
-        if let Some(bloom_settings) = camera.bloom_settings.take() {
-            world.entity_mut(self.entity).insert(bloom_settings);
-        }
-        if let Some(hdr) = camera.hdr.take() {
-            world.entity_mut(self.entity).insert(hdr);
-        }
-        if let Some(render_target) = camera.render_target.take() {
-            world.entity_mut(self.entity).insert(render_target);
-        }
-        world.entity_mut(self.entity).insert({
-            let CameraComponents {
-                transform,
-                camera,
-                projection,
-                tonemapping,
-                render_layers,
-                ..
-            } = camera;
-            (transform, camera, projection, tonemapping, render_layers)
-        });
-        self
-    }
 }

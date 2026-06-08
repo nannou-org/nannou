@@ -8,12 +8,8 @@
 //!   thread.
 //! - [**LoopMode**](./enum.LoopMode.html) - describes the behaviour of the application event loop.
 use bevy::asset::UnapprovedPathMode;
-#[cfg(not(target_arch = "wasm32"))]
-use bevy::asset::io::file::FileAssetReader;
 use bevy::{
     app::AppExit,
-    diagnostic::{DiagnosticsStore, FrameCount, FrameTimeDiagnosticsPlugin},
-    ecs::{component::Mutable, system::SystemParam, world::unsafe_world_cell::UnsafeWorldCell},
     input::{
         ButtonState,
         keyboard::{Key, KeyboardInput},
@@ -25,14 +21,9 @@ use bevy::{
         TypeInfo,
     },
     render::extract_resource::ExtractResource,
-    window::{
-        ExitCondition, Monitor, PrimaryMonitor, PrimaryWindow, WindowClosed, WindowEvent,
-        WindowFocused, WindowResized,
-    },
-    winit::{UpdateMode, WinitSettings},
+    window::{ExitCondition, WindowClosed, WindowEvent, WindowFocused, WindowResized},
+    winit::UpdateMode,
 };
-#[cfg(feature = "egui")]
-use bevy_egui::EguiContext;
 // TODO: re-enable once `bevy-inspector-egui` supports Bevy 0.19 (see the
 // RC -> stable tracking issue), along with `Builder::model_ui` and the
 // `inspector_ui` example.
@@ -40,11 +31,10 @@ use bevy_egui::EguiContext;
 //use bevy_inspector_egui::quick::ResourceInspectorPlugin;
 
 use crate::NannouPlugin;
-use crate::prelude::{draw, render::NannouCamera};
+use crate::context::App;
+use crate::prelude::render::NannouCamera;
 use crate::{
-    camera,
     frame::{Frame, FramePlugin},
-    geom, light,
     prelude::{
         bevy_ecs::system::SystemState,
         bevy_reflect::{DynamicTyped, ReflectCloneError},
@@ -58,43 +48,34 @@ use crate::{
     window::WindowUserFunctions,
 };
 use find_folder;
-use std::{
-    any::Any,
-    cell::{RefCell, RefMut},
-    hash::Hash,
-    path::PathBuf,
-    rc::Rc,
-    sync::atomic::{AtomicUsize, Ordering},
-    time::Duration,
-    {self},
-};
+use std::{any::Any, hash::Hash, path::PathBuf, time::Duration};
 
 /// The user function type for initialising their model.
-pub type ModelFn<Model> = fn(&App) -> Model;
+pub type ModelFn<Model> = fn(&App<'_, '_>) -> Model;
 
 /// The user function type for producing the compute model post-update.
 pub type ComputeUpdateFn<Model, ComputeModel> =
     fn(
-        &App,
+        &App<'_, '_>,
         &Model,
         <ComputeModel as Compute>::State,
         Entity,
     ) -> (<ComputeModel as Compute>::State, ComputeModel);
 
 /// The user function type for updating their model in accordance with some event.
-pub type EventFn<Model, Event> = fn(&App, &mut Model, &Event);
+pub type EventFn<Model, Event> = fn(&App<'_, '_>, &mut Model, &Event);
 
 /// The user function type for updating the user model within the application loop.
-pub type UpdateFn<Model> = fn(&App, &mut Model);
+pub type UpdateFn<Model> = fn(&App<'_, '_>, &mut Model);
 
 /// The user function type for drawing their model to the surface of a single window.
-pub type ViewFn<Model> = fn(&App, &Model, view: Entity);
+pub type ViewFn<Model> = fn(&App<'_, '_>, &Model, view: Entity);
 
 /// A shorthand version of `ViewFn` for sketches where the user does not need a model.
-pub type SketchViewFn = fn(&App);
+pub type SketchViewFn = fn(&App<'_, '_>);
 
 /// The user function type allowing them to consume the `model` when the application exits.
-pub type ExitFn<Model> = fn(&App, Model);
+pub type ExitFn<Model> = fn(&App<'_, '_>, Model);
 
 /// The user function type for rendering their model to the surface of a single window.
 pub type RenderFn<Model> = fn(&RenderApp, &Model, Frame);
@@ -142,28 +123,7 @@ enum DefaultWindowSize {
 }
 
 /// The default `model` function used when none is specified by the user.
-fn default_model(_: &App) {}
-
-/// Each nannou application has a single **App** instance. This **App** represents the entire
-/// context of the application.
-///
-/// The **App** provides access to most application, windowing and "IO" related APIs. In other
-/// words, if you need access to windowing, the active wgpu devices, etc, the **App** will provide
-/// access to this.
-///
-/// The **App** owns and manages:
-///
-/// - The **window and input event loop** used to drive the application forward.
-/// - **All windows** for graphics and user input. Windows can be referenced via their IDs.
-/// - The sharing of wgpu devices between windows.
-/// - A default **Draw** instance for ease of use.
-/// - A map of channels for submitting user input updates to active **Ui**s.
-pub struct App<'w> {
-    current_view: Option<Entity>,
-    resource_world: Rc<RefCell<UnsafeWorldCell<'w>>>,
-    component_world: Rc<RefCell<UnsafeWorldCell<'w>>>,
-    window_count: AtomicUsize,
-}
+fn default_model(_: &App<'_, '_>) {}
 
 #[derive(Resource, Deref, DerefMut)]
 struct ModelFnRes<M>(ModelFn<M>);
@@ -200,8 +160,6 @@ struct ExitFnRes<M>(Option<ExitFn<M>>);
 /// Miscellaneous app configuration parameters.
 #[derive(Resource, Debug, Clone)]
 struct Config {
-    exit_on_escape: bool,
-    fullscreen_on_shortcut: bool,
     default_window_size: Option<DefaultWindowSize>,
 }
 
@@ -536,11 +494,7 @@ impl Builder<()> {
 
 impl Default for Config {
     fn default() -> Self {
-        let exit_on_escape = App::DEFAULT_EXIT_ON_ESCAPE;
-        let fullscreen_on_shortcut = App::DEFAULT_FULLSCREEN_ON_SHORTCUT;
         Config {
-            exit_on_escape,
-            fullscreen_on_shortcut,
             default_window_size: None,
         }
     }
@@ -675,481 +629,50 @@ where
     }
 }
 
-impl<'w> App<'w> {
-    pub const DEFAULT_EXIT_ON_ESCAPE: bool = true;
-    pub const DEFAULT_FULLSCREEN_ON_SHORTCUT: bool = true;
-
-    /// Retrieve a mutable reference to the [`AssetServer`] resource.
-    pub fn asset_server(&self) -> RefMut<'_, AssetServer> {
-        let world = self.resource_world_mut();
-        RefMut::map(world, |world| {
-            world.resource_mut::<AssetServer>().into_inner()
-        })
-    }
-
-    pub fn assets_mut<T: Asset>(&self) -> RefMut<'_, Assets<T>> {
-        let world = self.resource_world_mut();
-        RefMut::map(world, |world| {
-            world.resource_mut::<Assets<T>>().into_inner()
-        })
-    }
-
-    pub fn assets<T: Asset>(&self) -> std::cell::Ref<'_, Assets<T>> {
-        let world = self.resource_world();
-        std::cell::Ref::map(world, |world| world.resource::<Assets<T>>())
-    }
-
-    pub fn resource<T: Resource>(&self) -> std::cell::Ref<'_, T> {
-        let world = self.resource_world();
-        std::cell::Ref::map(world, |world| world.resource::<T>())
-    }
-
-    pub fn resource_mut<T: Resource<Mutability = Mutable>>(&self) -> std::cell::RefMut<'_, T> {
-        let world = self.resource_world_mut();
-        std::cell::RefMut::map(world, |world| world.resource_mut::<T>().into_inner())
-    }
-
-    /// Build a text layout for measurement or glyph extraction.
-    ///
-    /// `App`-level equivalent of `draw.text_layout()`.
-    pub fn text_layout<'b>(&self, s: &'b str) -> nannou_draw::text::Builder<'b> {
-        let text_cx = self.resource::<nannou_draw::text::font::SharedTextCx>();
-        nannou_draw::text::Builder::new(s, text_cx.clone())
-    }
-
-    /// Retrieve the path to the assets directory.
-    #[cfg(not(target_arch = "wasm32"))]
-    pub fn assets_path(&self) -> PathBuf {
-        FileAssetReader::get_base_path().join("assets")
-    }
-
-    #[cfg(feature = "egui")]
-    /// Get the egui context for the provided window.
-    pub fn egui_for_window(&self, window: Entity) -> RefMut<'_, EguiContext> {
-        // `bevy_egui` attaches the `EguiContext` to the camera rather than the
-        // window, so resolve the `NannouCamera` that renders to this window.
-        let camera = self
-            .camera_for_window(window)
-            .expect("no camera found for window");
-        let world = self.component_world_mut();
-        RefMut::map(world, |world| {
-            world
-                .get_mut::<EguiContext>(camera)
-                .expect("No egui context")
-                .into_inner()
-        })
-    }
-
-    /// Find the `NannouCamera` entity that renders to the given window, if any.
-    #[cfg(feature = "egui")]
-    fn camera_for_window(&self, window: Entity) -> Option<Entity> {
-        use bevy::camera::RenderTarget;
-        use bevy::window::WindowRef;
-        let mut cameras = self
-            .component_world_mut()
-            .query_filtered::<(Entity, &RenderTarget), With<NannouCamera>>();
-        let world = self.component_world();
-        cameras
-            .iter(&world)
-            .find_map(|(camera, target)| match target {
-                RenderTarget::Window(WindowRef::Entity(entity)) if *entity == window => {
-                    Some(camera)
-                }
-                _ => None,
-            })
-    }
-
-    #[cfg(feature = "egui")]
-    /// Get the egui context for the currently focused window.
-    pub fn egui(&self) -> RefMut<'_, EguiContext> {
-        self.egui_for_window(self.window_id())
-    }
-
-    /// Get the current mouse position in points.
-    pub fn mouse(&self) -> Vec2 {
-        let window = self.window_id();
-        let world = self.component_world();
-
-        let window = world
-            .entity(window)
-            .get::<Window>()
-            .expect("Entity is not a window");
-        let screen_position = window.cursor_position().unwrap_or(Vec2::ZERO);
-        Vec2::new(
-            screen_position.x - window.width() / 2.0,
-            -(screen_position.y - window.height() / 2.0),
-        )
-    }
-
-    /// Get the current input state for the mouse.
-    pub fn mouse_buttons(&self) -> ButtonInput<MouseButton> {
-        let mouse_input = self.resource::<ButtonInput<MouseButton>>();
-        mouse_input.clone()
-    }
-
-    /// Get the current input state for the keyboard.
-    pub fn keys(&self) -> ButtonInput<KeyCode> {
-        let keyboard_input = self.resource::<ButtonInput<KeyCode>>();
-        keyboard_input.clone()
-    }
-
-    /// Get the elapsed seconds since startup.
-    pub fn time(&self) -> f32 {
-        let time = self.resource::<Time>();
-        time.elapsed_secs()
-    }
-
-    /// Get the elapsed seconds since the last frame.
-    pub fn time_delta(&self) -> f32 {
-        let time = self.resource::<Time>();
-        time.delta_secs()
-    }
-
-    // Create a new `App`.
-    fn new(world: &'w mut World) -> Self {
-        let world = world.as_unsafe_world_cell();
-        let window_count = unsafe { world.world_mut() }
-            .query::<&Window>()
-            .iter(unsafe { world.world_mut() })
-            .count();
-
-        App {
-            current_view: None,
-            resource_world: Rc::new(RefCell::new(world)),
-            component_world: Rc::new(RefCell::new(world)),
-            window_count: window_count.into(),
-        }
-    }
-
-    pub(crate) fn resource_world(&self) -> std::cell::Ref<'_, World> {
-        let world = self.resource_world.borrow();
-        std::cell::Ref::map(world, |world| unsafe { world.world() })
-    }
-
-    pub(crate) fn resource_world_mut(&self) -> RefMut<'_, World> {
-        let world = self.resource_world.borrow_mut();
-        RefMut::map(world, |world| unsafe { world.world_mut() })
-    }
-
-    pub(crate) fn component_world(&self) -> std::cell::Ref<'_, World> {
-        let world = self.component_world.borrow();
-        std::cell::Ref::map(world, |world| unsafe { world.world() })
-    }
-
-    pub(crate) fn component_world_mut(&self) -> RefMut<'_, World> {
-        let world = self.component_world.borrow_mut();
-        RefMut::map(world, |world| unsafe { world.world_mut() })
-    }
-
-    /// Returns the list of all the monitors available on the system.
-    pub fn available_monitors(&self) -> Vec<(Entity, Monitor)> {
-        let mut monitor_q = self.component_world_mut().query::<(Entity, &Monitor)>();
-        monitor_q
-            .iter(&self.component_world())
-            .map(|(entity, monitor)| (entity, monitor.clone()))
-            .collect()
-    }
-
-    /// Returns the primary monitor of the system.
-    /// May return None if none can be detected. For example, this can happen when running on Linux
-    /// with Wayland.
-    pub fn primary_monitor(&self) -> Option<Entity> {
-        let mut monitor_q = self
-            .component_world_mut()
-            .query_filtered::<Entity, With<PrimaryMonitor>>();
-        monitor_q.single(&self.component_world()).ok()
-    }
-
-    pub fn new_light<'a>(&'a self) -> light::Builder<'a, 'w> {
-        light::Builder::new(self)
-    }
-
-    /// Begin building a new camera.
-    pub fn new_camera<'a>(&'a self) -> camera::Builder<'a, 'w> {
-        camera::Builder::new(self)
-    }
-
-    /// Begin building a new window.
-    pub fn new_window<'a, M>(&'a self) -> window::Builder<'a, 'w, M>
-    where
-        M: 'static,
-    {
-        self.window_count.fetch_add(1usize, Ordering::SeqCst);
-        let builder = window::Builder::new(self);
-        let world = self.resource_world();
-        let config = world.resource::<Config>();
-        let builder = match config.default_window_size {
-            Some(DefaultWindowSize::Fullscreen) => builder.fullscreen(),
-            Some(DefaultWindowSize::Logical([w, h])) => builder.size(w, h),
-            None => builder,
-        };
-        builder
-    }
-
-    /// The number of windows currently in the application.
-    pub fn window_count(&self) -> usize {
-        self.window_count.load(Ordering::SeqCst)
-    }
-
-    /// A reference to the window with the given `Id`.
-    pub fn window<'a>(&'a self, id: Entity) -> window::Window<'a, 'w> {
-        window::Window::new(self, id)
-    }
-
-    pub fn camera<'a>(&'a self, id: Entity) -> camera::Camera<'a, 'w> {
-        camera::Camera::new(self, id)
-    }
-
-    pub fn light<'a>(&'a self, id: Entity) -> light::Light<'a, 'w> {
-        light::Light::new(self, id)
-    }
-
-    /// Return the [Entity] of the currently focused window.
-    ///
-    /// **Panics** if there are no windows or if no window is in focus.
-    pub fn window_id(&self) -> Entity {
-        let mut window_q = self.component_world_mut().query::<(Entity, &Window)>();
-        for (entity, window) in window_q.iter(&self.component_world()) {
-            if window.focused {
-                return entity;
-            }
-        }
-
-        let mut primary_window = self
-            .component_world_mut()
-            .query_filtered::<Entity, With<PrimaryWindow>>();
-        primary_window
-            .single(&self.component_world())
-            .expect("No windows are open in the App")
-    }
-
-    /// Return a [Vec] containing a unique [Entity] for each currently open window managed by
-    /// the [App].
-    pub fn window_ids(&self) -> Vec<Entity> {
-        let mut window_q = self.component_world_mut().query::<(Entity, &Window)>();
-        window_q
-            .iter(&self.component_world())
-            .map(|(entity, _)| entity)
-            .collect()
-    }
-
-    /// Return the **Rect** for the currently focused window.
-    ///
-    /// The **Rect** coords are described in "points" (pixels divided by the hidpi factor).
-    ///
-    /// **Panics** if there are no windows or if no window is in focus.
-    pub fn window_rect(&self) -> geom::Rect<f32> {
-        let window = self.window_id();
-        let world = self.component_world();
-
-        let window = world
-            .entity(window)
-            .get::<Window>()
-            .expect("Entity is not a window");
-        geom::Rect::from_w_h(window.width(), window.height())
-    }
-
-    /// A reference to the window currently in focus.
-    ///
-    /// **Panics** if their are no windows open in the **App**.
-    pub fn main_window<'a>(&'a self) -> crate::window::Window<'a, 'w> {
-        let mut window_q = self
-            .component_world_mut()
-            .query_filtered::<Entity, With<PrimaryWindow>>();
-        let main_window = window_q
-            .single(&self.component_world())
-            .expect("No windows are open in the App");
-        window::Window::new(self, main_window)
-    }
-
-    /// Return whether or not the `App` is currently set to exit when the `Escape` key is pressed.
-    pub fn exit_on_escape(&self) -> bool {
-        let world = self.resource_world();
-        let config = world.resource::<Config>();
-        config.exit_on_escape
-    }
-
-    /// Specify whether or not the app should close when the `Escape` key is pressed.
-    ///
-    /// By default this is `true`.
-    pub fn set_exit_on_escape(&mut self, b: bool) {
-        let mut world = self.resource_world_mut();
-        let mut config = world.resource_mut::<Config>();
-        config.exit_on_escape = b;
-    }
-
-    /// Returns whether or not the `App` is currently allows the focused window to enter or exit
-    /// fullscreen via typical platform-specific shortcuts.
-    ///
-    /// - Linux uses F11.
-    /// - macOS uses apple key + f.
-    /// - Windows uses windows key + f.
-    pub fn fullscreen_on_shortcut(&mut self) -> bool {
-        let world = self.resource_world();
-        let config = world.resource::<Config>();
-        config.fullscreen_on_shortcut
-    }
-
-    /// Set whether or not the `App` should allow the focused window to enter or exit fullscreen
-    /// via typical platform-specific shortcuts.
-    ///
-    /// - Linux uses F11.
-    /// - macOS uses apple key + f.
-    /// - Windows uses windows key + f.
-    pub fn set_fullscreen_on_shortcut(&mut self, b: bool) {
-        let mut world = self.resource_world_mut();
-        let mut config = world.resource_mut::<Config>();
-        config.fullscreen_on_shortcut = b;
-    }
-
-    /// Produce the [App]'s [draw::Draw] API for drawing geometry and text with colors and textures.
-    pub fn draw(&self) -> draw::Draw {
-        let window_id = match self.current_view {
-            Some(window_id) => window_id,
-            None => self.window_id(),
-        };
-        let world = self.component_world();
-        let draw = world.entity(window_id).get::<draw::Draw>();
-        draw.unwrap().clone()
-    }
-
-    pub fn draw_for_window(&self, window: Entity) -> draw::Draw {
-        let world = self.component_world();
-        let draw = world.entity(window).get::<draw::Draw>();
-        draw.unwrap().clone()
-    }
-
-    /// The number of times the focused window's **view** function has been called since the start
-    /// of the program.
-    pub fn elapsed_frames(&self) -> u64 {
-        let world = self.component_world();
-        let frame_count = world.resource::<FrameCount>();
-        (frame_count.0 as u64).saturating_sub(1)
-    }
-
-    /// The number of frames that can currently be displayed a second
-    pub fn fps(&self) -> f64 {
-        let world = self.resource_world();
-        let diagnostics = world.resource::<DiagnosticsStore>();
-        diagnostics
-            .get(&FrameTimeDiagnosticsPlugin::FPS)
-            .expect("FrameTime diagnostics not found")
-            .smoothed()
-            .expect("Could not get smoothed fps")
-    }
-
-    /// The name of the nannou executable that is currently running.
-    pub fn exe_name(&self) -> std::io::Result<String> {
-        let string = std::env::current_exe()?
-            .file_stem()
-            .expect("exe path contained no file stem")
-            .to_string_lossy()
-            .to_string();
-        Ok(string)
-    }
-
-    /// The path to the current project directory.
-    ///
-    /// The current project directory is considered to be the directory containing the cargo
-    /// manifest (aka the `Cargo.toml` file).
-    ///
-    /// **Note:** Be careful not to rely on this directory for apps or sketches that you wish to
-    /// distribute! This directory is mostly useful for local sketches, experiments and testing.
-    pub fn project_path(&self) -> Result<PathBuf, find_folder::Error> {
-        find_project_path()
-    }
-
-    /// Quits the currently running application.
-    pub fn quit(&mut self) {
-        self.resource_world_mut().write_message(AppExit::Success);
-    }
-
-    pub fn set_update_mode(&self, mode: UpdateMode) {
-        let mut world = self.resource_world_mut();
-        let mut winit_settings = world.resource_mut::<WinitSettings>();
-        winit_settings.unfocused_mode = mode;
-        winit_settings.focused_mode = mode;
-    }
-
-    pub fn set_unfocused_update_mode(&self, mode: UpdateMode) {
-        let mut world = self.resource_world_mut();
-        let mut winit_settings = world.resource_mut::<WinitSettings>();
-        winit_settings.unfocused_mode = mode;
-    }
-
-    pub fn set_focused_update_mode(&self, mode: UpdateMode) {
-        let mut world = self.resource_world_mut();
-        let mut winit_settings = world.resource_mut::<WinitSettings>();
-        winit_settings.focused_mode = mode;
-    }
-}
-
-fn get_app_and_state<'w, 's, S: SystemParam + 'static>(
-    world: &'w mut World,
-    state: &'s mut SystemState<S>,
-) -> (App<'w>, <S as SystemParam>::Item<'w, 's>) {
-    let app = App::new(world);
-    let param = unsafe { state.get_unchecked(*app.resource_world.borrow_mut()) }
-        .expect("failed to fetch system params");
-    (app, param)
-}
-
-fn startup<M>(world: &mut World)
-where
+fn startup<M>(
+    app: App,
+    config: Res<Config>,
+    model_fn: Res<ModelFnRes<M>>,
+    create_default_window: Option<Res<CreateDefaultWindow>>,
+) where
     M: 'static + Send + Sync,
 {
-    let default_window_size = world.resource::<Config>().default_window_size.clone();
-    let model_fn = world.resource::<ModelFnRes<M>>().0;
-
-    let mut app = App::new(world);
-
-    // Create our default window if necessary
-    if app
-        .resource_world()
-        .get_resource::<CreateDefaultWindow>()
-        .is_some()
-    {
-        let mut window: window::Builder<'_, '_, M> = app.new_window();
-        match default_window_size {
+    // Create our default window if necessary.
+    if create_default_window.is_some() {
+        let mut window = app.new_window::<M>();
+        match &config.default_window_size {
             None => {}
-            Some(default_window) => {
-                match default_window {
-                    DefaultWindowSize::Logical([w, h]) => {
-                        window = window.size(w, h);
-                    }
-                    DefaultWindowSize::Fullscreen => {
-                        window = window.fullscreen();
-                    }
-                };
+            Some(DefaultWindowSize::Logical([w, h])) => {
+                window = window.size(*w, *h);
             }
-        };
-
+            Some(DefaultWindowSize::Fullscreen) => {
+                window = window.fullscreen();
+            }
+        }
         let _ = window.primary().build();
     }
 
-    // Initialise the model.
-    let model = model_fn(&mut app);
-    world.insert_resource(ModelHolder(model));
+    // Initialise the model and insert it as a resource.
+    let model_fn = model_fn.0;
+    let model = model_fn(&app);
+    app.command_scope(move |mut commands| {
+        commands.insert_resource(ModelHolder(model));
+    });
 }
 
 #[allow(clippy::type_complexity)]
 fn update<M>(
-    world: &mut World,
-    state: &mut SystemState<(
-        Res<UpdateFnRes<M>>,
-        Res<ViewFnRes<M>>,
-        ResMut<ModelHolder<M>>,
-        Res<RunMode>,
-        Res<Time>,
-        Local<u64>,
-        Query<(Entity, &WindowUserFunctions<M>)>,
-    )>,
+    app: App,
+    update_fn: Res<UpdateFnRes<M>>,
+    view_fn: Res<ViewFnRes<M>>,
+    mut model: ResMut<ModelHolder<M>>,
+    run_mode: Res<RunMode>,
+    time: Res<Time>,
+    mut ticks: Local<u64>,
+    windows: Query<(Entity, &WindowUserFunctions<M>)>,
 ) where
     M: 'static + Send + Sync,
 {
-    let (mut app, (update_fn, view_fn, mut model, run_mode, time, mut ticks, windows)) =
-        get_app_and_state(world, state);
-
     match *run_mode {
         RunMode::UntilExit => {
             // Do nothing, we'll quit when the user closes the window.
@@ -1175,10 +698,9 @@ fn update<M>(
 
     // Run the view function for each window's draw.
     for (entity, user_fns) in windows.iter() {
-        // Makes sure we return the correct draw component
-        app.current_view = Some(entity);
+        // Makes sure `app.draw()` returns the draw for the correct window.
+        app.set_current_view(Some(entity));
 
-        // Run user fns
         if let Some(view) = &user_fns.view {
             match view {
                 window::View::WithModel(view_fn) => {
@@ -1191,7 +713,7 @@ fn update<M>(
         } else if let Some(view) = view_fn.0.as_ref() {
             match view {
                 View::WithModel(view_fn) => {
-                    view_fn(&app, &mut model, entity);
+                    view_fn(&app, &model, entity);
                 }
                 View::Sketch(view_fn) => {
                     view_fn(&app);
@@ -1200,24 +722,21 @@ fn update<M>(
         }
     }
 
-    // Increment the frame count.
     *ticks += 1;
 }
 
+#[allow(clippy::type_complexity)]
 fn compute<M, CM>(
-    world: &mut World,
-    state: &mut SystemState<(
-        ResMut<ModelHolder<M>>,
-        Res<ComputeUpdateFnRes<M, CM>>,
-        Query<(Entity, &mut ComputeState<CM::State>)>,
-    )>,
+    app: App,
+    model: Res<ModelHolder<M>>,
+    compute: Res<ComputeUpdateFnRes<M, CM>>,
+    views_q: Query<(Entity, &ComputeState<CM::State>)>,
 ) where
     M: 'static + Send + Sync,
     CM: Compute,
 {
-    let (app, (model, compute, mut views_q)) = get_app_and_state(world, state);
     let compute = compute.0;
-    for (view, state) in views_q.iter_mut() {
+    for (view, state) in views_q.iter() {
         // Advance to the state queued last frame once the render world has signalled that its
         // pipeline is ready. Doing this here (rather than in the render world) keeps `current`
         // and the `ComputeModel` bind group built below in sync for the same state.
@@ -1227,33 +746,28 @@ fn compute<M, CM>(
         };
         let (new_state, compute_model) = compute(&app, &model, current.clone(), view);
         let next = (new_state != current).then_some(new_state);
-        unsafe {
-            app.component_world
-                .borrow_mut()
-                .world_mut()
-                .entity_mut(view)
-                .insert(ComputeState {
+        app.command_scope(move |mut commands| {
+            commands.entity(view).insert((
+                ComputeState {
                     current,
                     next,
                     next_ready: false,
-                })
-                .insert(ComputeModel(compute_model));
-        }
+                },
+                ComputeModel(compute_model),
+            ));
+        });
     }
 }
 
 fn events<M, E>(
-    world: &mut World,
-    state: &mut SystemState<(
-        MessageReader<E>,
-        Res<EventFnRes<M, E>>,
-        ResMut<ModelHolder<M>>,
-    )>,
+    app: App,
+    mut events: MessageReader<E>,
+    event_fn: Res<EventFnRes<M, E>>,
+    mut model: ResMut<ModelHolder<M>>,
 ) where
     M: Send + Sync + 'static,
     E: Message,
 {
-    let (app, (mut events, event_fn, mut model)) = get_app_and_state(world, state);
     for evt in events.read() {
         if let Some(f) = event_fn.0.as_ref() {
             f(&app, &mut model, evt);
@@ -1263,29 +777,25 @@ fn events<M, E>(
 
 #[allow(clippy::type_complexity)]
 fn key_events<M>(
-    world: &mut World,
-    state: &mut SystemState<(
-        MessageReader<KeyboardInput>,
-        Query<&WindowUserFunctions<M>>,
-        ResMut<ModelHolder<M>>,
-    )>,
+    app: App,
+    mut key_events: MessageReader<KeyboardInput>,
+    user_fns: Query<&WindowUserFunctions<M>>,
+    mut model: ResMut<ModelHolder<M>>,
 ) where
     M: 'static + Send + Sync,
 {
-    let (mut app, (mut key_events, user_fns, mut model)) = get_app_and_state(world, state);
-
     for evt in key_events.read() {
         if let Ok(user_fns) = user_fns.get(evt.window) {
             match evt.state {
                 ButtonState::Pressed => {
                     if let Some(f) = user_fns.key_pressed {
-                        app.current_view = Some(evt.window);
+                        app.set_current_view(Some(evt.window));
                         f(&app, &mut model, evt.key_code);
                     }
                 }
                 ButtonState::Released => {
                     if let Some(f) = user_fns.key_released {
-                        app.current_view = Some(evt.window);
+                        app.set_current_view(Some(evt.window));
                         f(&app, &mut model, evt.key_code);
                     }
                 }
@@ -1296,24 +806,18 @@ fn key_events<M>(
 
 #[allow(clippy::type_complexity)]
 fn received_char_events<M>(
-    world: &mut World,
-    state: &mut SystemState<(
-        MessageReader<KeyboardInput>,
-        Query<&WindowUserFunctions<M>>,
-        ResMut<ModelHolder<M>>,
-    )>,
+    app: App,
+    mut received_char_events: MessageReader<KeyboardInput>,
+    user_fns: Query<&WindowUserFunctions<M>>,
+    mut model: ResMut<ModelHolder<M>>,
 ) where
     M: 'static + Send + Sync,
 {
-    let (mut app, (mut received_char_events, user_fns, mut model)) =
-        get_app_and_state(world, state);
-
     for evt in received_char_events.read() {
         if let Ok(user_fns) = user_fns.get(evt.window) {
             if let Some(f) = user_fns.received_character {
-                app.current_view = Some(evt.window);
-                let key = &evt.logical_key;
-                if let Key::Character(char) = key {
+                app.set_current_view(Some(evt.window));
+                if let Key::Character(char) = &evt.logical_key {
                     for char in char.chars() {
                         f(&app, &mut model, char);
                     }
@@ -1325,21 +829,17 @@ fn received_char_events<M>(
 
 #[allow(clippy::type_complexity)]
 fn cursor_moved_events<M>(
-    world: &mut World,
-    state: &mut SystemState<(
-        MessageReader<CursorMoved>,
-        Query<&WindowUserFunctions<M>>,
-        ResMut<ModelHolder<M>>,
-    )>,
+    app: App,
+    mut cursor_moved_events: MessageReader<CursorMoved>,
+    user_fns: Query<&WindowUserFunctions<M>>,
+    mut model: ResMut<ModelHolder<M>>,
 ) where
     M: 'static + Send + Sync,
 {
-    let (mut app, (mut cursor_moved_events, user_fns, mut model)) = get_app_and_state(world, state);
-
     for evt in cursor_moved_events.read() {
         if let Ok(user_fns) = user_fns.get(evt.window) {
             if let Some(f) = user_fns.mouse_moved {
-                app.current_view = Some(evt.window);
+                app.set_current_view(Some(evt.window));
                 f(&app, &mut model, evt.position);
             }
         }
@@ -1348,29 +848,25 @@ fn cursor_moved_events<M>(
 
 #[allow(clippy::type_complexity)]
 fn mouse_button_events<M>(
-    world: &mut World,
-    state: &mut SystemState<(
-        MessageReader<MouseButtonInput>,
-        Query<&WindowUserFunctions<M>>,
-        ResMut<ModelHolder<M>>,
-    )>,
+    app: App,
+    mut mouse_button_events: MessageReader<MouseButtonInput>,
+    user_fns: Query<&WindowUserFunctions<M>>,
+    mut model: ResMut<ModelHolder<M>>,
 ) where
     M: 'static + Send + Sync,
 {
-    let (mut app, (mut mouse_button_events, user_fns, mut model)) = get_app_and_state(world, state);
-
     for evt in mouse_button_events.read() {
         if let Ok(user_fns) = user_fns.get(evt.window) {
             match evt.state {
                 ButtonState::Pressed => {
                     if let Some(f) = user_fns.mouse_pressed {
-                        app.current_view = Some(evt.window);
+                        app.set_current_view(Some(evt.window));
                         f(&app, &mut model, evt.button);
                     }
                 }
                 ButtonState::Released => {
                     if let Some(f) = user_fns.mouse_released {
-                        app.current_view = Some(evt.window);
+                        app.set_current_view(Some(evt.window));
                         f(&app, &mut model, evt.button);
                     }
                 }
@@ -1381,22 +877,17 @@ fn mouse_button_events<M>(
 
 #[allow(clippy::type_complexity)]
 fn cursor_entered_events<M>(
-    world: &mut World,
-    state: &mut SystemState<(
-        MessageReader<CursorEntered>,
-        Query<&WindowUserFunctions<M>>,
-        ResMut<ModelHolder<M>>,
-    )>,
+    app: App,
+    mut cursor_entered_events: MessageReader<CursorEntered>,
+    user_fns: Query<&WindowUserFunctions<M>>,
+    mut model: ResMut<ModelHolder<M>>,
 ) where
     M: 'static + Send + Sync,
 {
-    let (mut app, (mut cursor_entered_events, user_fns, mut model)) =
-        get_app_and_state(world, state);
-
     for evt in cursor_entered_events.read() {
         if let Ok(user_fns) = user_fns.get(evt.window) {
             if let Some(f) = user_fns.mouse_entered {
-                app.current_view = Some(evt.window);
+                app.set_current_view(Some(evt.window));
                 f(&app, &mut model);
             }
         }
@@ -1405,21 +896,17 @@ fn cursor_entered_events<M>(
 
 #[allow(clippy::type_complexity)]
 fn cursor_left_events<M>(
-    world: &mut World,
-    state: &mut SystemState<(
-        MessageReader<CursorLeft>,
-        Query<&WindowUserFunctions<M>>,
-        ResMut<ModelHolder<M>>,
-    )>,
+    app: App,
+    mut cursor_left_events: MessageReader<CursorLeft>,
+    user_fns: Query<&WindowUserFunctions<M>>,
+    mut model: ResMut<ModelHolder<M>>,
 ) where
     M: 'static + Send + Sync,
 {
-    let (mut app, (mut cursor_left_events, user_fns, mut model)) = get_app_and_state(world, state);
-
     for evt in cursor_left_events.read() {
         if let Ok(user_fns) = user_fns.get(evt.window) {
             if let Some(f) = user_fns.mouse_exited {
-                app.current_view = Some(evt.window);
+                app.set_current_view(Some(evt.window));
                 f(&app, &mut model);
             }
         }
@@ -1428,21 +915,17 @@ fn cursor_left_events<M>(
 
 #[allow(clippy::type_complexity)]
 fn mouse_wheel_events<M>(
-    world: &mut World,
-    state: &mut SystemState<(
-        MessageReader<MouseWheel>,
-        Query<&WindowUserFunctions<M>>,
-        ResMut<ModelHolder<M>>,
-    )>,
+    app: App,
+    mut mouse_wheel_events: MessageReader<MouseWheel>,
+    user_fns: Query<&WindowUserFunctions<M>>,
+    mut model: ResMut<ModelHolder<M>>,
 ) where
     M: 'static + Send + Sync,
 {
-    let (mut app, (mut mouse_wheel_events, user_fns, mut model)) = get_app_and_state(world, state);
-
     for evt in mouse_wheel_events.read() {
         if let Ok(user_fns) = user_fns.get(evt.window) {
             if let Some(f) = user_fns.mouse_wheel {
-                app.current_view = Some(evt.window);
+                app.set_current_view(Some(evt.window));
                 f(&app, &mut model, *evt);
             }
         }
@@ -1451,21 +934,17 @@ fn mouse_wheel_events<M>(
 
 #[allow(clippy::type_complexity)]
 fn window_moved_events<M>(
-    world: &mut World,
-    state: &mut SystemState<(
-        MessageReader<WindowMoved>,
-        Query<&WindowUserFunctions<M>>,
-        ResMut<ModelHolder<M>>,
-    )>,
+    app: App,
+    mut window_moved_events: MessageReader<WindowMoved>,
+    user_fns: Query<&WindowUserFunctions<M>>,
+    mut model: ResMut<ModelHolder<M>>,
 ) where
     M: 'static + Send + Sync,
 {
-    let (mut app, (mut window_moved_events, user_fns, mut model)) = get_app_and_state(world, state);
-
     for evt in window_moved_events.read() {
         if let Ok(user_fns) = user_fns.get(evt.window) {
             if let Some(f) = user_fns.moved {
-                app.current_view = Some(evt.window);
+                app.set_current_view(Some(evt.window));
                 f(&app, &mut model, evt.position);
             }
         }
@@ -1474,22 +953,17 @@ fn window_moved_events<M>(
 
 #[allow(clippy::type_complexity)]
 fn window_resized_events<M>(
-    world: &mut World,
-    state: &mut SystemState<(
-        MessageReader<WindowResized>,
-        Query<&WindowUserFunctions<M>>,
-        ResMut<ModelHolder<M>>,
-    )>,
+    app: App,
+    mut window_resized_events: MessageReader<WindowResized>,
+    user_fns: Query<&WindowUserFunctions<M>>,
+    mut model: ResMut<ModelHolder<M>>,
 ) where
     M: 'static + Send + Sync,
 {
-    let (mut app, (mut window_resized_events, user_fns, mut model)) =
-        get_app_and_state(world, state);
-
     for evt in window_resized_events.read() {
         if let Ok(user_fns) = user_fns.get(evt.window) {
             if let Some(f) = user_fns.resized {
-                app.current_view = Some(evt.window);
+                app.set_current_view(Some(evt.window));
                 f(&app, &mut model, Vec2::new(evt.width, evt.height));
             }
         }
@@ -1498,21 +972,17 @@ fn window_resized_events<M>(
 
 #[allow(clippy::type_complexity)]
 fn touch_events<M>(
-    world: &mut World,
-    state: &mut SystemState<(
-        MessageReader<TouchInput>,
-        Query<&WindowUserFunctions<M>>,
-        ResMut<ModelHolder<M>>,
-    )>,
+    app: App,
+    mut touch_events: MessageReader<TouchInput>,
+    user_fns: Query<&WindowUserFunctions<M>>,
+    mut model: ResMut<ModelHolder<M>>,
 ) where
     M: 'static + Send + Sync,
 {
-    let (mut app, (mut touch_events, user_fns, mut model)) = get_app_and_state(world, state);
-
     for evt in touch_events.read() {
         if let Ok(user_fns) = user_fns.get(evt.window) {
             if let Some(f) = user_fns.touch {
-                app.current_view = Some(evt.window);
+                app.set_current_view(Some(evt.window));
                 f(&app, &mut model, *evt);
             }
         }
@@ -1521,23 +991,19 @@ fn touch_events<M>(
 
 #[allow(clippy::type_complexity)]
 fn file_drop_events<M>(
-    world: &mut World,
-    state: &mut SystemState<(
-        MessageReader<FileDragAndDrop>,
-        Query<&WindowUserFunctions<M>>,
-        ResMut<ModelHolder<M>>,
-    )>,
+    app: App,
+    mut file_drop_events: MessageReader<FileDragAndDrop>,
+    user_fns: Query<&WindowUserFunctions<M>>,
+    mut model: ResMut<ModelHolder<M>>,
 ) where
     M: 'static + Send + Sync,
 {
-    let (mut app, (mut file_drop_events, user_fns, mut model)) = get_app_and_state(world, state);
-
     for evt in file_drop_events.read() {
         match evt {
             FileDragAndDrop::DroppedFile { window, path_buf } => {
                 if let Ok(user_fns) = user_fns.get(*window) {
                     if let Some(f) = user_fns.dropped_file {
-                        app.current_view = Some(*window);
+                        app.set_current_view(Some(*window));
                         f(&app, &mut model, path_buf.clone());
                     }
                 }
@@ -1545,7 +1011,7 @@ fn file_drop_events<M>(
             FileDragAndDrop::HoveredFile { window, path_buf } => {
                 if let Ok(user_fns) = user_fns.get(*window) {
                     if let Some(f) = user_fns.hovered_file {
-                        app.current_view = Some(*window);
+                        app.set_current_view(Some(*window));
                         f(&app, &mut model, path_buf.clone());
                     }
                 }
@@ -1553,7 +1019,7 @@ fn file_drop_events<M>(
             FileDragAndDrop::HoveredFileCanceled { window } => {
                 if let Ok(user_fns) = user_fns.get(*window) {
                     if let Some(f) = user_fns.hovered_file_cancelled {
-                        app.current_view = Some(*window);
+                        app.set_current_view(Some(*window));
                         f(&app, &mut model);
                     }
                 }
@@ -1564,26 +1030,22 @@ fn file_drop_events<M>(
 
 #[allow(clippy::type_complexity)]
 fn window_focus_events<M>(
-    world: &mut World,
-    state: &mut SystemState<(
-        MessageReader<WindowFocused>,
-        Query<&WindowUserFunctions<M>>,
-        ResMut<ModelHolder<M>>,
-    )>,
+    app: App,
+    mut window_focus_events: MessageReader<WindowFocused>,
+    user_fns: Query<&WindowUserFunctions<M>>,
+    mut model: ResMut<ModelHolder<M>>,
 ) where
     M: 'static + Send + Sync,
 {
-    let (mut app, (mut window_focus_events, user_fns, mut model)) = get_app_and_state(world, state);
-
     for evt in window_focus_events.read() {
         if let Ok(user_fns) = user_fns.get(evt.window) {
             if evt.focused {
                 if let Some(f) = user_fns.focused {
-                    app.current_view = Some(evt.window);
+                    app.set_current_view(Some(evt.window));
                     f(&app, &mut model);
                 }
             } else if let Some(f) = user_fns.unfocused {
-                app.current_view = Some(evt.window);
+                app.set_current_view(Some(evt.window));
                 f(&app, &mut model);
             }
         }
@@ -1592,48 +1054,48 @@ fn window_focus_events<M>(
 
 #[allow(clippy::type_complexity)]
 fn window_closed_events<M>(
-    world: &mut World,
-    state: &mut SystemState<(
-        MessageReader<WindowClosed>,
-        Query<&WindowUserFunctions<M>>,
-        ResMut<ModelHolder<M>>,
-    )>,
+    app: App,
+    mut window_closed_events: MessageReader<WindowClosed>,
+    user_fns: Query<&WindowUserFunctions<M>>,
+    mut model: ResMut<ModelHolder<M>>,
 ) where
     M: 'static + Send + Sync,
 {
-    let (mut app, (mut window_closed_events, user_fns, mut model)) =
-        get_app_and_state(world, state);
-
     for evt in window_closed_events.read() {
         if let Ok(user_fns) = user_fns.get(evt.window) {
             if let Some(f) = user_fns.closed {
-                app.current_view = Some(evt.window);
+                app.set_current_view(Some(evt.window));
                 f(&app, &mut model);
             }
         }
     }
 }
 
-#[allow(clippy::type_complexity)]
-fn last<M>(world: &mut World, state: &mut SystemState<(MessageReader<AppExit>, Res<ExitFnRes<M>>)>)
+fn last<M>(world: &mut World, exit_state: &mut SystemState<MessageReader<AppExit>>)
 where
     M: 'static + Send + Sync,
 {
-    let (app, (exit_events, exit_fn)) = get_app_and_state(world, state);
-
-    let should_exit = !exit_events.is_empty();
+    let should_exit = {
+        let exit_events = exit_state
+            .get(world)
+            .expect("failed to fetch system params");
+        !exit_events.is_empty()
+    };
     if !should_exit {
         return;
     }
 
-    let model = app
-        .resource_world_mut()
-        .remove_resource::<ModelHolder<M>>()
-        .expect("ModelHolder resource not found")
-        .0;
+    let exit_fn = world.resource::<ExitFnRes<M>>().0;
+    let Some(model) = world.remove_resource::<ModelHolder<M>>() else {
+        return;
+    };
 
-    if let Some(exit_fn) = exit_fn.0 {
-        exit_fn(&app, model);
+    if let Some(exit_fn) = exit_fn {
+        let mut app_state = SystemState::<App>::new(world);
+        let app = app_state
+            .get(world)
+            .expect("failed to fetch system params");
+        exit_fn(&app, model.0);
     }
 }
 

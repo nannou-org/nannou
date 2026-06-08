@@ -48,7 +48,8 @@ pub use crate::wgpu;
 pub use crate::wgpu::util::{BufferInitDescriptor, DeviceExt};
 pub use nannou_core::prelude::*;
 
-pub use crate::app::{self, App, RunMode, UpdateModeExt};
+pub use crate::app::{self, RunMode, UpdateModeExt};
+pub use crate::context::{self, App};
 pub use crate::camera::SetCamera;
 #[cfg(feature = "serde")]
 pub use crate::io::{load_from_json, load_from_toml, safe_file_save, save_to_json, save_to_toml};

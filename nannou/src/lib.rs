@@ -32,7 +32,7 @@ pub use lyon;
 #[doc(inline)]
 pub use nannou_core::{glam, math, rand};
 
-pub use self::app::App;
+pub use self::context::App;
 
 pub mod app;
 pub mod context;
