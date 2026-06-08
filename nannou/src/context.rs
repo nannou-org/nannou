@@ -47,11 +47,12 @@ use bevy::{
     window::{Monitor, PrimaryMonitor, PrimaryWindow, WindowRef},
     winit::{UpdateMode, WinitSettings},
 };
+use bevy::render::view::screenshot::{Screenshot, save_to_disk};
 use nannou_core::geom;
 use nannou_draw::draw::Draw;
 use nannou_draw::text::font::SharedTextCx;
 use std::cell::Cell;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::app::find_project_path;
 use crate::camera::{CameraComponents, SetCamera};
@@ -74,7 +75,7 @@ pub struct App<'w, 's> {
     diagnostics: Option<Res<'w, DiagnosticsStore>>,
     keys: Res<'w, ButtonInput<KeyCode>>,
     mouse_buttons: Res<'w, ButtonInput<MouseButton>>,
-    windows: Query<'w, 's, (Entity, &'static Window)>,
+    windows: Query<'w, 's, (Entity, &'static bevy::window::Window)>,
     primary_window: Query<'w, 's, Entity, With<PrimaryWindow>>,
     draws: Query<'w, 's, &'static Draw>,
     monitors: Query<'w, 's, (Entity, &'static Monitor)>,
@@ -311,7 +312,7 @@ impl<'w, 's> App<'w, 's> {
         let layer = RenderLayers::layer(self.window_count());
         WindowBuilder {
             commands: &self.par_commands,
-            window: Window::default(),
+            window: bevy::window::Window::default(),
             primary: false,
             clear_color: None,
             hdr: false,
@@ -347,12 +348,109 @@ impl<'w, 's> App<'w, 's> {
             },
         }
     }
+
+    /// A handle for reading and updating the window with the given [`Entity`].
+    pub fn window(&self, entity: Entity) -> Window<'_, 'w, 's> {
+        Window { app: self, entity }
+    }
+
+    /// A handle for reading and updating the primary window.
+    ///
+    /// **Panics** if there is no primary window.
+    pub fn main_window(&self) -> Window<'_, 'w, 's> {
+        let entity = self
+            .primary_window
+            .single()
+            .expect("no primary window is open in the App");
+        Window { app: self, entity }
+    }
+}
+
+/// A handle to a window [`Entity`], for reading and updating its state. Created via [`App::window`].
+///
+/// Reads are served from the window component directly; updates are deferred through the `App`'s
+/// command queue.
+pub struct Window<'a, 'w, 's> {
+    app: &'a App<'w, 's>,
+    entity: Entity,
+}
+
+impl Window<'_, '_, '_> {
+    /// The window's [`Entity`].
+    pub fn id(&self) -> Entity {
+        self.entity
+    }
+
+    fn component(&self) -> &bevy::window::Window {
+        let (_, window) = self
+            .app
+            .windows
+            .get(self.entity)
+            .expect("entity is not a window");
+        window
+    }
+
+    /// The scale factor mapping logical points to physical pixels for this window.
+    pub fn scale_factor(&self) -> f32 {
+        self.component().scale_factor()
+    }
+
+    /// The width and height of the window's client area in physical pixels.
+    pub fn size_pixels(&self) -> UVec2 {
+        self.component().physical_size()
+    }
+
+    /// The width and height of the window's client area in points.
+    pub fn size_points(&self) -> Vec2 {
+        self.component().size()
+    }
+
+    /// The [`geom::Rect`] of the window in points, centred on the origin.
+    pub fn rect(&self) -> geom::Rect<f32> {
+        let window = self.component();
+        geom::Rect::from_w_h(window.width(), window.height())
+    }
+
+    /// Set the window's title.
+    pub fn set_title(&self, title: impl Into<String>) {
+        let entity = self.entity;
+        let title = title.into();
+        self.app.command_scope(move |mut commands| {
+            commands.queue(move |world: &mut World| {
+                if let Some(mut window) = world.get_mut::<bevy::window::Window>(entity) {
+                    window.title = title;
+                }
+            });
+        });
+    }
+
+    /// Set the window's inner size in points.
+    pub fn set_size_points(&self, width: f32, height: f32) {
+        let entity = self.entity;
+        self.app.command_scope(move |mut commands| {
+            commands.queue(move |world: &mut World| {
+                if let Some(mut window) = world.get_mut::<bevy::window::Window>(entity) {
+                    window.resolution.set(width, height);
+                }
+            });
+        });
+    }
+
+    /// Save a screenshot of the window to the given path once it has been rendered.
+    pub fn save_screenshot<P: AsRef<Path> + Send + 'static>(&self, path: P) {
+        let entity = self.entity;
+        self.app.command_scope(move |mut commands| {
+            commands
+                .spawn(Screenshot::window(entity))
+                .observe(save_to_disk(path));
+        });
+    }
 }
 
 /// A context for building and spawning a new window via [`App::new_window`].
 pub struct WindowBuilder<'a, 'w, 's> {
     commands: &'a ParallelCommands<'w, 's>,
-    window: Window,
+    window: bevy::window::Window,
     primary: bool,
     clear_color: Option<Color>,
     hdr: bool,
@@ -360,8 +458,8 @@ pub struct WindowBuilder<'a, 'w, 's> {
 }
 
 impl WindowBuilder<'_, '_, '_> {
-    /// Use the given [`Window`] component, replacing any prior window configuration.
-    pub fn window(mut self, window: Window) -> Self {
+    /// Use the given [`Window`](bevy::window::Window) component, replacing any prior configuration.
+    pub fn window(mut self, window: bevy::window::Window) -> Self {
         self.window = window;
         self
     }
