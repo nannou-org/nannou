@@ -38,15 +38,19 @@
 
 #[cfg(not(target_arch = "wasm32"))]
 use bevy::asset::io::file::FileAssetReader;
+use bevy::camera::RenderTarget;
+use bevy::render::renderer::{RenderDevice, RenderQueue};
+use bevy::render::view::Msaa;
 use bevy::render::view::screenshot::{Screenshot, save_to_disk};
 use bevy::{
     app::AppExit,
     diagnostic::{DiagnosticsStore, FrameCount, FrameTimeDiagnosticsPlugin},
     ecs::system::{ParallelCommands, SystemParam},
     prelude::*,
-    window::{Monitor, PrimaryMonitor, PrimaryWindow},
+    window::{Monitor, PrimaryMonitor, PrimaryWindow, WindowRef},
     winit::{UpdateMode, WinitSettings},
 };
+use std::ops::Deref;
 use nannou_core::geom;
 use nannou_draw::draw::Draw;
 use nannou_draw::text::font::SharedTextCx;
@@ -79,8 +83,14 @@ pub struct App<'w, 's> {
     draws: Query<'w, 's, &'static Draw>,
     monitors: Query<'w, 's, (Entity, &'static Monitor)>,
     primary_monitor: Query<'w, 's, Entity, With<PrimaryMonitor>>,
+    camera_msaa: Query<'w, 's, (&'static RenderTarget, &'static Msaa), With<NannouCamera>>,
     asset_server: Res<'w, AssetServer>,
+    images: Res<'w, Assets<Image>>,
     text_cx: Res<'w, SharedTextCx>,
+    // The render device and queue, available in the main world for wgpu interop. Optional so `App`
+    // still resolves under a minimal plugin set without a renderer.
+    render_device: Option<Res<'w, RenderDevice>>,
+    render_queue: Option<Res<'w, RenderQueue>>,
     // The window whose `view` is currently being run, set by the classic driver systems so that
     // `draw()` targets the right window. `None` falls back to the focused window.
     current_view: Local<'s, Cell<Option<Entity>>>,
@@ -215,6 +225,14 @@ impl<'w, 's> App<'w, 's> {
     /// A reference to the [`AssetServer`] for loading assets.
     pub fn asset_server(&self) -> &AssetServer {
         &self.asset_server
+    }
+
+    /// A reference to the [`Image`] assets, for reading texture data.
+    ///
+    /// To add a new asset, use [`asset_server().add(..)`](AssetServer::add); for arbitrary asset
+    /// types or mutable access, take the relevant `Assets<T>` parameter in your own Bevy system.
+    pub fn image_assets(&self) -> &Assets<Image> {
+        &self.images
     }
 
     /// Build a text layout for measurement or glyph extraction.
@@ -430,6 +448,47 @@ impl Window<'_, '_, '_> {
                 .spawn(Screenshot::window(entity))
                 .observe(save_to_disk(path));
         });
+    }
+
+    /// The wgpu [`Device`](crate::wgpu::Device) used by the renderer.
+    pub fn device(&self) -> &crate::wgpu::Device {
+        self.app
+            .render_device
+            .as_ref()
+            .expect("the RenderDevice resource is not available")
+            .wgpu_device()
+    }
+
+    /// The wgpu [`Queue`](crate::wgpu::Queue) used by the renderer.
+    pub fn queue(&self) -> &crate::wgpu::Queue {
+        self.app
+            .render_queue
+            .as_ref()
+            .expect("the RenderQueue resource is not available")
+            .deref()
+            .deref()
+            .deref()
+    }
+
+    /// The number of MSAA samples used by the camera rendering to this window.
+    pub fn msaa_samples(&self) -> u32 {
+        for (render_target, msaa) in self.app.camera_msaa.iter() {
+            if let RenderTarget::Window(WindowRef::Entity(entity)) = render_target {
+                if *entity == self.entity {
+                    return msaa.samples();
+                }
+            }
+        }
+        panic!("no camera found for window");
+    }
+}
+
+impl nannou_wgpu::WithDeviceQueuePair for &Window<'_, '_, '_> {
+    fn with_device_queue_pair<F, O>(self, f: F) -> O
+    where
+        F: FnOnce(&crate::wgpu::Device, &crate::wgpu::Queue) -> O,
+    {
+        f(self.device(), self.queue())
     }
 }
 

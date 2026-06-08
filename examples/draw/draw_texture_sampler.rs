@@ -19,13 +19,7 @@ fn model(app: &App) -> Model {
 }
 
 fn update(app: &App, model: &mut Model) {
-    let mut images = app.assets_mut::<Image>();
-    let Some(mut image) = images.get_mut(&model.texture) else {
-        return;
-    };
-
-    let win = app.main_window();
-    let win_r = win.rect();
+    let win_r = app.main_window().rect();
 
     // Let's choose the address mode based on the mouse position.
     let address_mode = match map_range(app.mouse().y, win_r.top(), win_r.bottom(), 0.0, 3.0) as i8 {
@@ -40,7 +34,18 @@ fn update(app: &App, model: &mut Model) {
         ..default()
     };
 
-    image.sampler = ImageSampler::Descriptor(descriptor);
+    // Update the texture's sampler via the app's deferred command queue.
+    let texture = model.texture.clone();
+    app.command_scope(move |mut commands| {
+        commands.queue(move |world: &mut World| {
+            if let Some(mut image) = world
+                .resource_mut::<bevy_asset::Assets<Image>>()
+                .get_mut(&texture)
+            {
+                image.sampler = ImageSampler::Descriptor(descriptor);
+            }
+        });
+    });
 }
 
 // Draw the state of your `Model` into the given `Frame` here.

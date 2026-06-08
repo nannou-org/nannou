@@ -105,7 +105,7 @@ fn model(app: &App) -> Model {
     particles.buffer_description.label = Some("particles");
     particles.buffer_description.usage |= BufferUsages::STORAGE | BufferUsages::VERTEX;
 
-    let particles = app.assets_mut().add(particles);
+    let particles = app.asset_server().add(particles);
 
     Model {
         particles,

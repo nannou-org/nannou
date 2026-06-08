@@ -245,7 +245,7 @@ fn create_particle_buffer(app: &App, size: u32) -> Handle<ShaderBuffer> {
     );
     particles.buffer_description.label = Some("particles");
     particles.buffer_description.usage |= BufferUsages::STORAGE | BufferUsages::VERTEX;
-    let particles = app.assets_mut().add(particles);
+    let particles = app.asset_server().add(particles);
     particles
 }
 
@@ -259,6 +259,6 @@ fn create_indirect_params_buffer(app: &App, size: u32) -> Handle<ShaderBuffer> {
     });
     indirect_params.buffer_description.label = Some("indirect_params");
     indirect_params.buffer_description.usage |= BufferUsages::STORAGE | BufferUsages::INDIRECT;
-    let indirect_params = app.assets_mut().add(indirect_params);
+    let indirect_params = app.asset_server().add(indirect_params);
     indirect_params
 }

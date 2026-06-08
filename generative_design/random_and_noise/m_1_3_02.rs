@@ -69,8 +69,7 @@ fn view(app: &App, model: &Model) {
         .into();
 
     let image = Image::from_dynamic(image, true, default());
-    let mut images = app.assets_mut::<Image>();
-    let image = images.add(image);
+    let image = app.asset_server().add(image);
 
     let draw = app.draw();
     draw.rect().w_h(win.w(), win.h()).texture(&image);

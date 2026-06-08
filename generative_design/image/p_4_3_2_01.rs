@@ -86,7 +86,7 @@ fn view(app: &App, model: &Model) {
     let mut y = win.top();
     let mut counter = 0;
 
-    let images = app.assets::<Image>();
+    let images = app.image_assets();
     let image = images.get(&model.image).unwrap();
     let image = image.clone().try_into_dynamic().unwrap();
     let (w, h) = image.dimensions();
