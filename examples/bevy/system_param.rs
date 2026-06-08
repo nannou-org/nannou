@@ -19,9 +19,10 @@ fn main() {
         .run();
 }
 
-fn setup(mut commands: Commands) {
-    // Spawn a camera so the focused window gets a `Draw` we can render to.
-    commands.spawn(render::NannouCamera);
+fn setup(mut app: nannou::context::App) {
+    // Spawn a camera so the focused window gets a `Draw` we can render to. `App::new_camera`
+    // builds a `NannouCamera` for us; `commands.spawn(render::NannouCamera)` would work too.
+    app.new_camera().build();
 }
 
 // `nannou::context::App` is a normal Bevy system param, so it composes with any others you need.

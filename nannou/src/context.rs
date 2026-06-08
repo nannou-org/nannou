@@ -36,10 +36,11 @@
 use bevy::asset::io::file::FileAssetReader;
 use bevy::{
     app::AppExit,
+    camera::{Hdr, RenderTarget, visibility::RenderLayers},
     diagnostic::{DiagnosticsStore, FrameCount, FrameTimeDiagnosticsPlugin},
     ecs::system::SystemParam,
     prelude::*,
-    window::{Monitor, PrimaryMonitor, PrimaryWindow},
+    window::{Monitor, PrimaryMonitor, PrimaryWindow, WindowRef},
     winit::{UpdateMode, WinitSettings},
 };
 use nannou_core::geom;
@@ -48,6 +49,9 @@ use nannou_draw::text::font::SharedTextCx;
 use std::path::PathBuf;
 
 use crate::app::find_project_path;
+use crate::camera::{CameraComponents, SetCamera};
+use crate::light::{LightComponents, SetLight};
+use crate::prelude::render::NannouCamera;
 
 /// A Bevy [`SystemParam`] providing nannou's application conveniences.
 ///
@@ -255,5 +259,219 @@ impl<'w, 's> App<'w, 's> {
     #[cfg(not(target_arch = "wasm32"))]
     pub fn assets_path(&self) -> PathBuf {
         FileAssetReader::get_base_path().join("assets")
+    }
+
+    /// Begin building a new window.
+    ///
+    /// The returned [`WindowBuilder`] spawns the window along with a [`NannouCamera`] targeting it
+    /// (so its [`Draw`] is rendered), and returns the window [`Entity`] from
+    /// [`build`](WindowBuilder::build).
+    ///
+    /// The window is assigned a [`RenderLayers`] based on the current window count, so the first
+    /// window renders on layer `0`. When spawning multiple windows within a single system run,
+    /// assign distinct layers explicitly via [`WindowBuilder::layer`] (deferred spawns are not yet
+    /// reflected in the window count).
+    pub fn new_window(&mut self) -> WindowBuilder<'_, 'w, 's> {
+        let layer = RenderLayers::layer(self.window_count());
+        WindowBuilder {
+            commands: &mut self.commands,
+            window: Window::default(),
+            primary: false,
+            clear_color: None,
+            hdr: false,
+            layer,
+        }
+    }
+
+    /// Begin building a new [`NannouCamera`].
+    ///
+    /// Configure it with the [`SetCamera`] methods, then call [`build`](CameraBuilder::build) to
+    /// spawn it and obtain its [`Entity`].
+    pub fn new_camera(&mut self) -> CameraBuilder<'_, 'w, 's> {
+        CameraBuilder {
+            commands: &mut self.commands,
+            components: CameraComponents {
+                transform: Transform::from_xyz(0.0, 0.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
+                projection: OrthographicProjection::default_3d().into(),
+                ..default()
+            },
+        }
+    }
+
+    /// Begin building a new directional light.
+    ///
+    /// Configure it with the [`SetLight`] methods, then call [`build`](LightBuilder::build) to
+    /// spawn it and obtain its [`Entity`].
+    pub fn new_light(&mut self) -> LightBuilder<'_, 'w, 's> {
+        LightBuilder {
+            commands: &mut self.commands,
+            components: LightComponents {
+                transform: Transform::from_xyz(0.0, 0.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
+                ..default()
+            },
+        }
+    }
+}
+
+/// A context for building and spawning a new window via [`App::new_window`].
+pub struct WindowBuilder<'a, 'w, 's> {
+    commands: &'a mut Commands<'w, 's>,
+    window: Window,
+    primary: bool,
+    clear_color: Option<Color>,
+    hdr: bool,
+    layer: RenderLayers,
+}
+
+impl WindowBuilder<'_, '_, '_> {
+    /// Use the given [`Window`] component, replacing any prior window configuration.
+    pub fn window(mut self, window: Window) -> Self {
+        self.window = window;
+        self
+    }
+
+    /// Request the window be a specific size in points.
+    pub fn size(mut self, width: u32, height: u32) -> Self {
+        self.window.resolution.set(width as f32, height as f32);
+        self
+    }
+
+    /// Request a specific title for the window.
+    pub fn title(mut self, title: impl Into<String>) -> Self {
+        self.window.title = title.into();
+        self
+    }
+
+    /// Mark this window as the primary window.
+    pub fn primary(mut self) -> Self {
+        self.primary = true;
+        self
+    }
+
+    /// Set the initial clear color for the window's camera.
+    pub fn clear_color(mut self, color: impl Into<Color>) -> Self {
+        self.clear_color = Some(color.into());
+        self
+    }
+
+    /// Render the window's camera in HDR.
+    pub fn hdr(mut self, hdr: bool) -> Self {
+        self.hdr = hdr;
+        self
+    }
+
+    /// Set the [`RenderLayers`] used by the window and its camera.
+    pub fn layer(mut self, layer: RenderLayers) -> Self {
+        self.layer = layer;
+        self
+    }
+
+    /// Spawn the window and its camera, returning the window [`Entity`].
+    pub fn build(self) -> Entity {
+        let mut window = self.commands.spawn((self.window, self.layer.clone()));
+        if self.primary {
+            window.insert(PrimaryWindow);
+        }
+        let window_entity = window.id();
+
+        let mut camera = self.commands.spawn((
+            Camera {
+                clear_color: self
+                    .clear_color
+                    .map(ClearColorConfig::Custom)
+                    .unwrap_or(ClearColorConfig::None),
+                ..default()
+            },
+            RenderTarget::Window(WindowRef::Entity(window_entity)),
+            Transform::from_xyz(0.0, 0.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
+            Projection::Orthographic(OrthographicProjection::default_3d()),
+            self.layer,
+            NannouCamera,
+        ));
+        if self.hdr {
+            camera.insert(Hdr);
+        }
+
+        window_entity
+    }
+}
+
+/// A context for building and spawning a new [`NannouCamera`] via [`App::new_camera`].
+pub struct CameraBuilder<'a, 'w, 's> {
+    commands: &'a mut Commands<'w, 's>,
+    components: CameraComponents,
+}
+
+impl SetCamera for CameraBuilder<'_, '_, '_> {
+    fn map_camera<F>(mut self, f: F) -> Self
+    where
+        F: FnOnce(CameraComponents) -> CameraComponents,
+    {
+        self.components = f(self.components);
+        self
+    }
+}
+
+impl CameraBuilder<'_, '_, '_> {
+    /// Spawn the camera, returning its [`Entity`].
+    pub fn build(self) -> Entity {
+        let CameraComponents {
+            transform,
+            camera,
+            hdr,
+            projection,
+            tonemapping,
+            bloom_settings,
+            render_layers,
+            render_target,
+        } = self.components;
+        let mut entity = self.commands.spawn((
+            transform,
+            camera,
+            projection,
+            tonemapping,
+            render_layers,
+            NannouCamera,
+        ));
+        if let Some(bloom_settings) = bloom_settings {
+            entity.insert(bloom_settings);
+        }
+        if let Some(hdr) = hdr {
+            entity.insert(hdr);
+        }
+        if let Some(render_target) = render_target {
+            entity.insert(render_target);
+        }
+        entity.id()
+    }
+}
+
+/// A context for building and spawning a new directional light via [`App::new_light`].
+pub struct LightBuilder<'a, 'w, 's> {
+    commands: &'a mut Commands<'w, 's>,
+    components: LightComponents,
+}
+
+impl SetLight for LightBuilder<'_, '_, '_> {
+    fn map_light<F>(mut self, f: F) -> Self
+    where
+        F: FnOnce(LightComponents) -> LightComponents,
+    {
+        self.components = f(self.components);
+        self
+    }
+}
+
+impl LightBuilder<'_, '_, '_> {
+    /// Spawn the directional light, returning its [`Entity`].
+    pub fn build(self) -> Entity {
+        let LightComponents {
+            transform,
+            directional_light,
+            render_layers,
+        } = self.components;
+        self.commands
+            .spawn((transform, directional_light, render_layers))
+            .id()
     }
 }
