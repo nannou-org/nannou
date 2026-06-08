@@ -6,6 +6,12 @@
 //! contains no `unsafe`: it is just a normal `SystemParam`, so the Bevy scheduler grants and
 //! checks its world access like any other system parameter.
 //!
+//! Every method takes `&self`. Reads are served from the bundled resources and queries; mutations
+//! (spawning windows/cameras/lights, quitting, changing the update mode, ...) are deferred through
+//! [`ParallelCommands`], which provides shared (`&self`) command access. This is what lets the same
+//! `App` be used both as a system parameter (`fn system(app: App)`) and behind a shared reference
+//! (`fn view(app: &App, ..)`), which the classic `nannou::app`/`sketch` builders rely on.
+//!
 //! Use it directly from your own Bevy systems after adding [`crate::NannouPlugin`]:
 //!
 //! ```ignore
@@ -15,9 +21,7 @@
 //! fn main() {
 //!     bevy::app::App::new()
 //!         .add_plugins((DefaultPlugins, nannou::NannouPlugin))
-//!         .add_systems(Startup, |mut commands: Commands| {
-//!             commands.spawn(render::NannouCamera);
-//!         })
+//!         .add_systems(Startup, |app: nannou::context::App| { app.new_camera().build(); })
 //!         .add_systems(Update, update)
 //!         .run();
 //! }
@@ -38,7 +42,7 @@ use bevy::{
     app::AppExit,
     camera::{Hdr, RenderTarget, visibility::RenderLayers},
     diagnostic::{DiagnosticsStore, FrameCount, FrameTimeDiagnosticsPlugin},
-    ecs::system::SystemParam,
+    ecs::system::{ParallelCommands, SystemParam},
     prelude::*,
     window::{Monitor, PrimaryMonitor, PrimaryWindow, WindowRef},
     winit::{UpdateMode, WinitSettings},
@@ -46,6 +50,7 @@ use bevy::{
 use nannou_core::geom;
 use nannou_draw::draw::Draw;
 use nannou_draw::text::font::SharedTextCx;
+use std::cell::Cell;
 use std::path::PathBuf;
 
 use crate::app::find_project_path;
@@ -58,7 +63,9 @@ use crate::prelude::render::NannouCamera;
 /// See the [module documentation](self) for an overview and example.
 #[derive(SystemParam)]
 pub struct App<'w, 's> {
-    commands: Commands<'w, 's>,
+    // Deferred command access usable through `&self` (unlike `Commands`, which needs `&mut`). This
+    // is how every mutation - spawning, quitting, changing the update mode - is performed safely.
+    par_commands: ParallelCommands<'w, 's>,
     time: Res<'w, Time>,
     frame_count: Res<'w, FrameCount>,
     // `DiagnosticsStore` is registered by `DefaultPlugins`, but the FPS diagnostic itself is only
@@ -74,8 +81,9 @@ pub struct App<'w, 's> {
     primary_monitor: Query<'w, 's, Entity, With<PrimaryMonitor>>,
     asset_server: Res<'w, AssetServer>,
     text_cx: Res<'w, SharedTextCx>,
-    winit_settings: ResMut<'w, WinitSettings>,
-    exit: MessageWriter<'w, AppExit>,
+    // The window whose `view` is currently being run, set by the classic driver systems so that
+    // `draw()` targets the right window. `None` falls back to the focused window.
+    current_view: Local<'s, Cell<Option<Entity>>>,
 }
 
 impl<'w, 's> App<'w, 's> {
@@ -177,11 +185,12 @@ impl<'w, 's> App<'w, 's> {
         self.primary_monitor.single().ok()
     }
 
-    /// The [`Draw`] API for the currently focused window.
+    /// The [`Draw`] API for the window whose `view` is currently running, or the focused window.
     ///
     /// **Panics** if there are no windows open.
     pub fn draw(&self) -> Draw {
-        self.draw_for_window(self.window_id())
+        let window = self.current_view.get().unwrap_or_else(|| self.window_id());
+        self.draw_for_window(window)
     }
 
     /// The [`Draw`] API for the given window.
@@ -192,6 +201,15 @@ impl<'w, 's> App<'w, 's> {
             .get(window)
             .expect("no `Draw` found for the given window")
             .clone()
+    }
+
+    /// Set the window whose `view` is currently being run, so [`draw`](Self::draw) targets it.
+    ///
+    /// Used by the classic driver systems; pass `None` to fall back to the focused window.
+    // Wired up by the classic `app`/`sketch` driver systems in a follow-up step.
+    #[allow(dead_code)]
+    pub(crate) fn set_current_view(&self, view: Option<Entity>) {
+        self.current_view.set(view);
     }
 
     /// A reference to the [`AssetServer`] for loading assets.
@@ -206,38 +224,56 @@ impl<'w, 's> App<'w, 's> {
         nannou_draw::text::Builder::new(s, self.text_cx.clone())
     }
 
-    /// Access the inner [`Commands`] to spawn windows, cameras, lights or any other entities.
+    /// Run a closure with deferred [`Commands`] access, returning its result.
     ///
-    /// For example, spawn an additional nannou camera bound to a window:
+    /// A convenience around [`ParallelCommands::command_scope`] for spawning entities or queueing
+    /// world mutations from a shared `&App`. For example, spawn a camera bound to a window:
     ///
     /// ```ignore
-    /// app.commands().spawn(render::NannouCamera::for_window(window));
+    /// app.command_scope(|mut commands| {
+    ///     commands.spawn(render::NannouCamera::for_window(window));
+    /// });
     /// ```
-    pub fn commands(&mut self) -> &mut Commands<'w, 's> {
-        &mut self.commands
+    pub fn command_scope<R>(&self, f: impl FnOnce(Commands) -> R) -> R {
+        self.par_commands.command_scope(f)
     }
 
     /// Quit the currently running application.
-    pub fn quit(&mut self) {
-        self.exit.write(AppExit::Success);
+    pub fn quit(&self) {
+        self.par_commands.command_scope(|mut commands| {
+            commands.queue(|world: &mut World| {
+                world.write_message(AppExit::Success);
+            });
+        });
     }
 
     /// Set the update mode used while the window is both focused and unfocused.
     ///
     /// See [`UpdateModeExt`](crate::app::UpdateModeExt) for convenient `wait`/`freeze` modes.
-    pub fn set_update_mode(&mut self, mode: UpdateMode) {
-        self.winit_settings.unfocused_mode = mode;
-        self.winit_settings.focused_mode = mode;
+    pub fn set_update_mode(&self, mode: UpdateMode) {
+        self.set_winit_settings(move |settings| {
+            settings.focused_mode = mode;
+            settings.unfocused_mode = mode;
+        });
     }
 
     /// Set the update mode used while the window is unfocused.
-    pub fn set_unfocused_update_mode(&mut self, mode: UpdateMode) {
-        self.winit_settings.unfocused_mode = mode;
+    pub fn set_unfocused_update_mode(&self, mode: UpdateMode) {
+        self.set_winit_settings(move |settings| settings.unfocused_mode = mode);
     }
 
     /// Set the update mode used while the window is focused.
-    pub fn set_focused_update_mode(&mut self, mode: UpdateMode) {
-        self.winit_settings.focused_mode = mode;
+    pub fn set_focused_update_mode(&self, mode: UpdateMode) {
+        self.set_winit_settings(move |settings| settings.focused_mode = mode);
+    }
+
+    /// Queue a mutation of the [`WinitSettings`] resource.
+    fn set_winit_settings(&self, f: impl FnOnce(&mut WinitSettings) + Send + 'static) {
+        self.par_commands.command_scope(move |mut commands| {
+            commands.queue(move |world: &mut World| {
+                f(&mut world.resource_mut::<WinitSettings>());
+            });
+        });
     }
 
     /// The name of the nannou executable that is currently running.
@@ -271,10 +307,10 @@ impl<'w, 's> App<'w, 's> {
     /// window renders on layer `0`. When spawning multiple windows within a single system run,
     /// assign distinct layers explicitly via [`WindowBuilder::layer`] (deferred spawns are not yet
     /// reflected in the window count).
-    pub fn new_window(&mut self) -> WindowBuilder<'_, 'w, 's> {
+    pub fn new_window(&self) -> WindowBuilder<'_, 'w, 's> {
         let layer = RenderLayers::layer(self.window_count());
         WindowBuilder {
-            commands: &mut self.commands,
+            commands: &self.par_commands,
             window: Window::default(),
             primary: false,
             clear_color: None,
@@ -287,9 +323,9 @@ impl<'w, 's> App<'w, 's> {
     ///
     /// Configure it with the [`SetCamera`] methods, then call [`build`](CameraBuilder::build) to
     /// spawn it and obtain its [`Entity`].
-    pub fn new_camera(&mut self) -> CameraBuilder<'_, 'w, 's> {
+    pub fn new_camera(&self) -> CameraBuilder<'_, 'w, 's> {
         CameraBuilder {
-            commands: &mut self.commands,
+            commands: &self.par_commands,
             components: CameraComponents {
                 transform: Transform::from_xyz(0.0, 0.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
                 projection: OrthographicProjection::default_3d().into(),
@@ -302,9 +338,9 @@ impl<'w, 's> App<'w, 's> {
     ///
     /// Configure it with the [`SetLight`] methods, then call [`build`](LightBuilder::build) to
     /// spawn it and obtain its [`Entity`].
-    pub fn new_light(&mut self) -> LightBuilder<'_, 'w, 's> {
+    pub fn new_light(&self) -> LightBuilder<'_, 'w, 's> {
         LightBuilder {
-            commands: &mut self.commands,
+            commands: &self.par_commands,
             components: LightComponents {
                 transform: Transform::from_xyz(0.0, 0.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
                 ..default()
@@ -315,7 +351,7 @@ impl<'w, 's> App<'w, 's> {
 
 /// A context for building and spawning a new window via [`App::new_window`].
 pub struct WindowBuilder<'a, 'w, 's> {
-    commands: &'a mut Commands<'w, 's>,
+    commands: &'a ParallelCommands<'w, 's>,
     window: Window,
     primary: bool,
     clear_color: Option<Color>,
@@ -368,37 +404,48 @@ impl WindowBuilder<'_, '_, '_> {
 
     /// Spawn the window and its camera, returning the window [`Entity`].
     pub fn build(self) -> Entity {
-        let mut window = self.commands.spawn((self.window, self.layer.clone()));
-        if self.primary {
-            window.insert(PrimaryWindow);
-        }
-        let window_entity = window.id();
+        let WindowBuilder {
+            commands,
+            window,
+            primary,
+            clear_color,
+            hdr,
+            layer,
+        } = self;
+        commands.command_scope(move |mut commands| {
+            let window_entity = {
+                let mut window = commands.spawn((window, layer.clone()));
+                if primary {
+                    window.insert(PrimaryWindow);
+                }
+                window.id()
+            };
 
-        let mut camera = self.commands.spawn((
-            Camera {
-                clear_color: self
-                    .clear_color
-                    .map(ClearColorConfig::Custom)
-                    .unwrap_or(ClearColorConfig::None),
-                ..default()
-            },
-            RenderTarget::Window(WindowRef::Entity(window_entity)),
-            Transform::from_xyz(0.0, 0.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
-            Projection::Orthographic(OrthographicProjection::default_3d()),
-            self.layer,
-            NannouCamera,
-        ));
-        if self.hdr {
-            camera.insert(Hdr);
-        }
+            let mut camera = commands.spawn((
+                Camera {
+                    clear_color: clear_color
+                        .map(ClearColorConfig::Custom)
+                        .unwrap_or(ClearColorConfig::None),
+                    ..default()
+                },
+                RenderTarget::Window(WindowRef::Entity(window_entity)),
+                Transform::from_xyz(0.0, 0.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
+                Projection::Orthographic(OrthographicProjection::default_3d()),
+                layer,
+                NannouCamera,
+            ));
+            if hdr {
+                camera.insert(Hdr);
+            }
 
-        window_entity
+            window_entity
+        })
     }
 }
 
 /// A context for building and spawning a new [`NannouCamera`] via [`App::new_camera`].
 pub struct CameraBuilder<'a, 'w, 's> {
-    commands: &'a mut Commands<'w, 's>,
+    commands: &'a ParallelCommands<'w, 's>,
     components: CameraComponents,
 }
 
@@ -425,30 +472,32 @@ impl CameraBuilder<'_, '_, '_> {
             render_layers,
             render_target,
         } = self.components;
-        let mut entity = self.commands.spawn((
-            transform,
-            camera,
-            projection,
-            tonemapping,
-            render_layers,
-            NannouCamera,
-        ));
-        if let Some(bloom_settings) = bloom_settings {
-            entity.insert(bloom_settings);
-        }
-        if let Some(hdr) = hdr {
-            entity.insert(hdr);
-        }
-        if let Some(render_target) = render_target {
-            entity.insert(render_target);
-        }
-        entity.id()
+        self.commands.command_scope(move |mut commands| {
+            let mut entity = commands.spawn((
+                transform,
+                camera,
+                projection,
+                tonemapping,
+                render_layers,
+                NannouCamera,
+            ));
+            if let Some(bloom_settings) = bloom_settings {
+                entity.insert(bloom_settings);
+            }
+            if let Some(hdr) = hdr {
+                entity.insert(hdr);
+            }
+            if let Some(render_target) = render_target {
+                entity.insert(render_target);
+            }
+            entity.id()
+        })
     }
 }
 
 /// A context for building and spawning a new directional light via [`App::new_light`].
 pub struct LightBuilder<'a, 'w, 's> {
-    commands: &'a mut Commands<'w, 's>,
+    commands: &'a ParallelCommands<'w, 's>,
     components: LightComponents,
 }
 
@@ -470,8 +519,10 @@ impl LightBuilder<'_, '_, '_> {
             directional_light,
             render_layers,
         } = self.components;
-        self.commands
-            .spawn((transform, directional_light, render_layers))
-            .id()
+        self.commands.command_scope(move |mut commands| {
+            commands
+                .spawn((transform, directional_light, render_layers))
+                .id()
+        })
     }
 }

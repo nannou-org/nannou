@@ -19,7 +19,7 @@ fn main() {
         .run();
 }
 
-fn setup(mut app: nannou::context::App) {
+fn setup(app: nannou::context::App) {
     // Spawn a camera so the focused window gets a `Draw` we can render to. `App::new_camera`
     // builds a `NannouCamera` for us; `commands.spawn(render::NannouCamera)` would work too.
     app.new_camera().build();
