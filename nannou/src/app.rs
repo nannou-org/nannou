@@ -822,7 +822,10 @@ macro_rules! button_event_driver {
                     };
                     if let Some(f) = f {
                         app.set_current_view(Some(evt.window));
-                        f(&app, &mut model, { let $evt = evt; $arg });
+                        f(&app, &mut model, {
+                            let $evt = evt;
+                            $arg
+                        });
                     }
                 }
             }
@@ -830,7 +833,13 @@ macro_rules! button_event_driver {
     };
 }
 
-button_event_driver!(key_events, KeyboardInput, key_pressed, key_released, |evt| evt.key_code);
+button_event_driver!(
+    key_events,
+    KeyboardInput,
+    key_pressed,
+    key_released,
+    |evt| evt.key_code
+);
 
 #[allow(clippy::type_complexity)]
 fn received_char_events<M>(
@@ -855,7 +864,8 @@ fn received_char_events<M>(
     }
 }
 
-window_event_driver!(cursor_moved_events, CursorMoved, mouse_moved, |evt| evt.position);
+window_event_driver!(cursor_moved_events, CursorMoved, mouse_moved, |evt| evt
+    .position);
 
 button_event_driver!(
     mouse_button_events,
@@ -869,9 +879,9 @@ window_event_driver!(cursor_entered_events, CursorEntered, mouse_entered);
 window_event_driver!(cursor_left_events, CursorLeft, mouse_exited);
 window_event_driver!(mouse_wheel_events, MouseWheel, mouse_wheel, |evt| *evt);
 window_event_driver!(window_moved_events, WindowMoved, moved, |evt| evt.position);
-window_event_driver!(window_resized_events, WindowResized, resized, |evt| Vec2::new(
-    evt.width, evt.height
-));
+window_event_driver!(window_resized_events, WindowResized, resized, |evt| {
+    Vec2::new(evt.width, evt.height)
+});
 window_event_driver!(touch_events, TouchInput, touch, |evt| *evt);
 
 #[allow(clippy::type_complexity)]
@@ -961,9 +971,7 @@ where
     if let Some(exit_fn) = exit_fn {
         let mut app_state = SystemState::<App>::new(world);
         {
-            let app = app_state
-                .get(world)
-                .expect("failed to fetch system params");
+            let app = app_state.get(world).expect("failed to fetch system params");
             exit_fn(&app, model.0);
         }
         // Flush any commands the exit fn queued via the `App` (e.g. a final screenshot).

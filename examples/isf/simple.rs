@@ -41,7 +41,11 @@ fn update(app: &App, model: &mut Model) {
     app.command_scope(move |mut commands| {
         commands.queue(move |world: &mut World| {
             // Wait until the ISF asset has loaded before setting its inputs.
-            if world.resource::<bevy_asset::Assets<Isf>>().get(&isf).is_none() {
+            if world
+                .resource::<bevy_asset::Assets<Isf>>()
+                .get(&isf)
+                .is_none()
+            {
                 return;
             }
             world.resource_mut::<IsfInputs>().insert(

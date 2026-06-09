@@ -50,11 +50,11 @@ use bevy::{
     window::{Monitor, PrimaryMonitor, PrimaryWindow, WindowRef},
     winit::{UpdateMode, WinitSettings},
 };
-use std::ops::Deref;
 use nannou_core::geom;
 use nannou_draw::draw::Draw;
 use nannou_draw::text::font::SharedTextCx;
 use std::cell::{Cell, RefCell};
+use std::ops::Deref;
 use std::path::{Path, PathBuf};
 
 use crate::app::find_project_path;
@@ -271,7 +271,9 @@ impl<'w, 's> App<'w, 's> {
             .egui_cameras
             .iter()
             .find_map(|(camera, target)| match target {
-                RenderTarget::Window(WindowRef::Entity(entity)) if *entity == window => Some(camera),
+                RenderTarget::Window(WindowRef::Entity(entity)) if *entity == window => {
+                    Some(camera)
+                }
                 _ => None,
             })
             .expect("no camera found for window");

@@ -35,8 +35,8 @@ pub use nannou_core::{glam, math, rand};
 pub use self::context::App;
 
 pub mod app;
-pub mod context;
 mod camera;
+pub mod context;
 mod frame;
 pub mod geom;
 pub mod image;
