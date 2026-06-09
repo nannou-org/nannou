@@ -56,6 +56,9 @@ pub struct NannouPlugin;
 impl Plugin for NannouPlugin {
     fn build(&self, app: &mut BevyApp) {
         app.add_plugins(nannou_draw::NannouDrawPlugin);
+        // `FramePlugin` extracts per-window scale factors so a `Frame` can be constructed from a
+        // (custom or classic) render-world system.
+        app.add_plugins(crate::frame::FramePlugin);
         // Ensure the resources the `bevy::App` system param relies on are present regardless of
         // whether `NannouPlugin` is used standalone or via the `nannou::app`/`sketch` builders.
         // `FrameTimeDiagnosticsPlugin` backs `App::fps`; guard against a double-add in case the

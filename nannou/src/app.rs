@@ -34,7 +34,7 @@ use crate::NannouPlugin;
 use crate::context::App;
 use crate::prelude::render::NannouCamera;
 use crate::{
-    frame::{Frame, FramePlugin},
+    frame::Frame,
     prelude::{
         bevy_ecs::system::SystemState,
         bevy_reflect::{DynamicTyped, ReflectCloneError},
@@ -298,8 +298,7 @@ where
         M: Send + Sync + Clone + 'static,
     {
         self.render = Some(render);
-        self.app
-            .add_plugins((RenderPlugin::<M>::default(), FramePlugin));
+        self.app.add_plugins(RenderPlugin::<M>::default());
         self
     }
 

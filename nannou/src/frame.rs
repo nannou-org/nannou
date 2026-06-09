@@ -36,8 +36,11 @@ fn extract_scale_factors(
     }
 }
 
+/// The per-window scale factors extracted into the render world by [`FramePlugin`].
+///
+/// Take this as a `Res` in a render-world system to construct a [`Frame`] via [`Frame::new`].
 #[derive(Resource, Deref, DerefMut, Default)]
-pub(crate) struct ExtractedWindowsScaleFactor(EntityHashMap<f32>);
+pub struct ExtractedWindowsScaleFactor(EntityHashMap<f32>);
 
 pub struct Frame<'a, 'r, 'w, 's> {
     window_id: Entity,
@@ -52,7 +55,15 @@ impl<'a, 'r, 'w, 's> Frame<'a, 'r, 'w, 's> {
     pub const TEXTURE_FORMAT: wgpu::TextureFormat =
         nannou_wgpu::RenderPipelineBuilder::DEFAULT_COLOR_FORMAT;
 
-    pub(crate) fn new(
+    /// Construct a `Frame` from render-world resources.
+    ///
+    /// Use this to do custom wgpu rendering from your own render-world system: add
+    /// [`FramePlugin`] (bundled in [`NannouPlugin`](crate::NannouPlugin)), then take the
+    /// [`RenderContext`], a [`ViewTarget`] (e.g. via `ViewQuery`), and `Res`-access to
+    /// [`ExtractedWindows`], [`RenderDevice`] and [`ExtractedWindowsScaleFactor`]. See
+    /// `nannou::render` and the `wgpu_*` examples for the pattern the classic `app(..).render(..)`
+    /// builder uses internally.
+    pub fn new(
         render_device: &'r RenderDevice,
         scale_factors: &'r ExtractedWindowsScaleFactor,
         view_target_id: Entity,
