@@ -59,7 +59,7 @@ lasy = "0.4"
 lyon = "1.0"
 midir = "0.10"
 nokhwa = { version = "0.10", features = ["input-native", "camera-sync-impl"] }
-noise = "0.7"
+noise = "0.9"
 notosans = "0.1"
 num-traits = {version = "0.2", default-features = false }
 parley = { version = "0.7.0", default-features = false, features = ["std", "system"] }

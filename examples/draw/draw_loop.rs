@@ -19,8 +19,7 @@ struct Model {
 
 fn model(app: &App) -> Model {
     let _window = app.new_window().size_pixels(1024, 1024).view(view).build();
-    let mut noise = Perlin::new();
-    noise = noise.set_seed(1);
+    let noise = Perlin::new(1);
     Model { noise }
 }
 

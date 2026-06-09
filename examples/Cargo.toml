@@ -13,12 +13,6 @@ homepage.workspace = true
 license.workspace = true
 edition.workspace = true
 
-[lints.rust]
-# `noise` 0.7.0 defines `Perlin` in two modules (perlin and perlin_surflet),
-# both glob-exported, so `noise::Perlin` trips `ambiguous_glob_imports` - a hard
-# error on recent rustc. Allow it until the `noise` dependency is updated.
-ambiguous_glob_imports = "allow"
-
 [dev-dependencies]
 audrey.workspace = true
 bevy.workspace = true
