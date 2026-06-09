@@ -54,7 +54,7 @@ use std::ops::Deref;
 use nannou_core::geom;
 use nannou_draw::draw::Draw;
 use nannou_draw::text::font::SharedTextCx;
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::path::{Path, PathBuf};
 
 use crate::app::find_project_path;
@@ -102,6 +102,10 @@ pub struct App<'w, 's> {
     // The window whose `view` is currently being run, set by the classic driver systems so that
     // `draw()` targets the right window. `None` falls back to the focused window.
     current_view: Local<'s, Cell<Option<Entity>>>,
+    // Windows created this run via `new_window` but not yet spawned (spawns are deferred through the
+    // command queue). Lets the classic `model` read back a window it just created in the same call,
+    // e.g. `app.new_window().build(); let r = app.window_rect();`.
+    pending_windows: Local<'s, RefCell<Vec<(Entity, bevy::window::Window)>>>,
 }
 
 impl<'w, 's> App<'w, 's> {
@@ -142,30 +146,61 @@ impl<'w, 's> App<'w, 's> {
         self.mouse_buttons.clone()
     }
 
-    /// The current mouse position in points, relative to the centre of the focused window.
-    pub fn mouse(&self) -> Vec2 {
-        let (_, window) = self
-            .windows
-            .get(self.window_id())
-            .expect("focused window entity is not a window");
-        let screen_position = window.cursor_position().unwrap_or(Vec2::ZERO);
-        Vec2::new(
-            screen_position.x - window.width() / 2.0,
-            -(screen_position.y - window.height() / 2.0),
-        )
+    /// Run `f` with the [`Window`](bevy::window::Window) component for `entity`, from the world or
+    /// (for a window created this call but not yet spawned) the pending-window cache.
+    pub(crate) fn with_window<R>(
+        &self,
+        entity: Entity,
+        f: impl FnOnce(&bevy::window::Window) -> R,
+    ) -> Option<R> {
+        if let Ok((_, window)) = self.windows.get(entity) {
+            return Some(f(window));
+        }
+        let pending = self.pending_windows.borrow();
+        pending.iter().rev().find(|(e, _)| *e == entity).map(|(_, w)| f(w))
     }
 
-    /// The [`Entity`] of the currently focused window, falling back to the primary window.
+    /// Record a window created this call but not yet spawned, so it can be read back immediately.
+    pub(crate) fn record_pending_window(&self, entity: Entity, window: bevy::window::Window) {
+        self.pending_windows.borrow_mut().push((entity, window));
+    }
+
+    /// The current mouse position in points, relative to the centre of the focused window.
+    pub fn mouse(&self) -> Vec2 {
+        self.with_window(self.window_id(), |window| {
+            let screen_position = window.cursor_position().unwrap_or(Vec2::ZERO);
+            Vec2::new(
+                screen_position.x - window.width() / 2.0,
+                -(screen_position.y - window.height() / 2.0),
+            )
+        })
+        .expect("focused window entity is not a window")
+    }
+
+    /// The [`Entity`] of the "current" window: the focused window, else the primary window, else a
+    /// window created this call (but not yet spawned), else any open window.
     ///
     /// **Panics** if there are no windows open.
     pub fn window_id(&self) -> Entity {
+        // Prefer the focused window.
         for (entity, window) in self.windows.iter() {
             if window.focused {
                 return entity;
             }
         }
-        self.primary_window
-            .single()
+        // Then the primary window.
+        if let Ok(entity) = self.primary_window.single() {
+            return entity;
+        }
+        // Then a window created this call but not yet spawned (e.g. just built in `model`).
+        if let Some((entity, _)) = self.pending_windows.borrow().last() {
+            return *entity;
+        }
+        // Finally, any open window (e.g. a freshly-spawned window not yet focused).
+        self.windows
+            .iter()
+            .next()
+            .map(|(entity, _)| entity)
             .expect("no windows are open in the App")
     }
 
@@ -174,20 +209,25 @@ impl<'w, 's> App<'w, 's> {
         self.windows.iter().map(|(entity, _)| entity).collect()
     }
 
-    /// The number of windows currently open.
+    /// The number of windows currently open (including any created this call but not yet spawned).
     pub fn window_count(&self) -> usize {
-        self.windows.iter().count()
+        let query_count = self.windows.iter().count();
+        let pending = self.pending_windows.borrow();
+        let pending_count = pending
+            .iter()
+            .filter(|(e, _)| self.windows.get(*e).is_err())
+            .count();
+        query_count + pending_count
     }
 
     /// The [`geom::Rect`] of the currently focused window, in points.
     ///
     /// **Panics** if there are no windows open.
     pub fn window_rect(&self) -> geom::Rect<f32> {
-        let (_, window) = self
-            .windows
-            .get(self.window_id())
-            .expect("focused window entity is not a window");
-        geom::Rect::from_w_h(window.width(), window.height())
+        self.with_window(self.window_id(), |window| {
+            geom::Rect::from_w_h(window.width(), window.height())
+        })
+        .expect("focused window entity is not a window")
     }
 
     /// The list of all monitors available on the system.
@@ -361,6 +401,10 @@ impl<'w, 's> App<'w, 's> {
     /// [`NannouCamera`] targeting it (so its [`Draw`] is rendered), and returns the window
     /// [`Entity`] from [`build`](crate::window::Builder::build).
     pub fn new_window<M: 'static>(&self) -> crate::window::Builder<'_, 'w, 's, M> {
+        // Drop any pending windows that have since been spawned, so the cache stays bounded.
+        self.pending_windows
+            .borrow_mut()
+            .retain(|(e, _)| self.windows.get(*e).is_err());
         crate::window::Builder::new(self)
     }
 
@@ -398,13 +442,16 @@ impl<'w, 's> App<'w, 's> {
         Window { app: self, entity }
     }
 
-    /// A handle for reading and updating the primary window.
+    /// A handle for reading and updating the primary window, falling back to a primary window
+    /// created this call (but not yet spawned).
     ///
     /// **Panics** if there is no primary window.
     pub fn main_window(&self) -> Window<'_, 'w, 's> {
         let entity = self
             .primary_window
             .single()
+            .ok()
+            .or_else(|| self.pending_windows.borrow().last().map(|(e, _)| *e))
             .expect("no primary window is open in the App");
         Window { app: self, entity }
     }
@@ -425,34 +472,32 @@ impl Window<'_, '_, '_> {
         self.entity
     }
 
-    fn component(&self) -> &bevy::window::Window {
-        let (_, window) = self
-            .app
-            .windows
-            .get(self.entity)
-            .expect("entity is not a window");
-        window
-    }
-
     /// The scale factor mapping logical points to physical pixels for this window.
     pub fn scale_factor(&self) -> f32 {
-        self.component().scale_factor()
+        self.app
+            .with_window(self.entity, |w| w.scale_factor())
+            .expect("entity is not a window")
     }
 
     /// The width and height of the window's client area in physical pixels.
     pub fn size_pixels(&self) -> UVec2 {
-        self.component().physical_size()
+        self.app
+            .with_window(self.entity, |w| w.physical_size())
+            .expect("entity is not a window")
     }
 
     /// The width and height of the window's client area in points.
     pub fn size_points(&self) -> Vec2 {
-        self.component().size()
+        self.app
+            .with_window(self.entity, |w| w.size())
+            .expect("entity is not a window")
     }
 
     /// The [`geom::Rect`] of the window in points, centred on the origin.
     pub fn rect(&self) -> geom::Rect<f32> {
-        let window = self.component();
-        geom::Rect::from_w_h(window.width(), window.height())
+        self.app
+            .with_window(self.entity, |w| geom::Rect::from_w_h(w.width(), w.height()))
+            .expect("entity is not a window")
     }
 
     /// Set the window's title.
@@ -519,7 +564,9 @@ impl Window<'_, '_, '_> {
                 }
             }
         }
-        panic!("no camera found for window");
+        // The camera may not be spawned yet (e.g. when queried from `model`, before the deferred
+        // window/camera spawn is applied). Fall back to the default `NannouCamera` MSAA.
+        Msaa::default().samples()
     }
 }
 

@@ -384,6 +384,8 @@ where
 
         let layer = RenderLayers::layer(app.window_count());
         let user_functions = WindowUserFunctions(user_functions);
+        // Remember the window so it can be read back before the deferred spawn is applied.
+        let window_for_cache = window.clone();
 
         // On wasm we reuse the existing primary window (created up-front so the renderer has a
         // canvas) rather than spawning a new one.
@@ -392,7 +394,7 @@ where
         #[cfg(not(target_arch = "wasm32"))]
         let existing_primary: Option<Entity> = None;
 
-        app.command_scope(move |mut commands| {
+        let window_entity = app.command_scope(move |mut commands| {
             let window_entity = match existing_primary {
                 Some(entity) => {
                     commands
@@ -443,7 +445,9 @@ where
             }
 
             window_entity
-        })
+        });
+        app.record_pending_window(window_entity, window_for_cache);
+        window_entity
     }
 
     fn map_window<F>(self, map: F) -> Self
