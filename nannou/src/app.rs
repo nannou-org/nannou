@@ -777,34 +777,60 @@ fn events<M, E>(
     }
 }
 
-#[allow(clippy::type_complexity)]
-fn key_events<M>(
-    app: App,
-    mut key_events: MessageReader<KeyboardInput>,
-    user_fns: Query<&WindowUserFunctions<M>>,
-    mut model: ResMut<ModelHolder<M>>,
-) where
-    M: 'static + Send + Sync,
-{
-    for evt in key_events.read() {
-        if let Ok(user_fns) = user_fns.get(evt.window) {
-            match evt.state {
-                ButtonState::Pressed => {
-                    if let Some(f) = user_fns.key_pressed {
+// Each single-callback window-input driver has the same shape: for every message, look up the
+// target window's user functions, mark it the current view, and call the relevant callback
+// (optionally with a value derived from the event). Generate them from this macro.
+macro_rules! window_event_driver {
+    ($name:ident, $msg:ty, $field:ident $(, |$evt:ident| $arg:expr)?) => {
+        fn $name<M>(
+            app: App,
+            mut events: MessageReader<$msg>,
+            user_fns: Query<&WindowUserFunctions<M>>,
+            mut model: ResMut<ModelHolder<M>>,
+        ) where
+            M: 'static + Send + Sync,
+        {
+            for evt in events.read() {
+                if let Ok(user_fns) = user_fns.get(evt.window) {
+                    if let Some(f) = user_fns.$field {
                         app.set_current_view(Some(evt.window));
-                        f(&app, &mut model, evt.key_code);
-                    }
-                }
-                ButtonState::Released => {
-                    if let Some(f) = user_fns.key_released {
-                        app.set_current_view(Some(evt.window));
-                        f(&app, &mut model, evt.key_code);
+                        f(&app, &mut model $(, { let $evt = evt; $arg })?);
                     }
                 }
             }
         }
-    }
+    };
 }
+
+// Pressed/Released drivers (keyboard, mouse button) pick the press or release callback by
+// `ButtonState` and call it with a value derived from the event.
+macro_rules! button_event_driver {
+    ($name:ident, $msg:ty, $pressed:ident, $released:ident, |$evt:ident| $arg:expr) => {
+        fn $name<M>(
+            app: App,
+            mut events: MessageReader<$msg>,
+            user_fns: Query<&WindowUserFunctions<M>>,
+            mut model: ResMut<ModelHolder<M>>,
+        ) where
+            M: 'static + Send + Sync,
+        {
+            for evt in events.read() {
+                if let Ok(user_fns) = user_fns.get(evt.window) {
+                    let f = match evt.state {
+                        ButtonState::Pressed => user_fns.$pressed,
+                        ButtonState::Released => user_fns.$released,
+                    };
+                    if let Some(f) = f {
+                        app.set_current_view(Some(evt.window));
+                        f(&app, &mut model, { let $evt = evt; $arg });
+                    }
+                }
+            }
+        }
+    };
+}
+
+button_event_driver!(key_events, KeyboardInput, key_pressed, key_released, |evt| evt.key_code);
 
 #[allow(clippy::type_complexity)]
 fn received_char_events<M>(
@@ -829,167 +855,24 @@ fn received_char_events<M>(
     }
 }
 
-#[allow(clippy::type_complexity)]
-fn cursor_moved_events<M>(
-    app: App,
-    mut cursor_moved_events: MessageReader<CursorMoved>,
-    user_fns: Query<&WindowUserFunctions<M>>,
-    mut model: ResMut<ModelHolder<M>>,
-) where
-    M: 'static + Send + Sync,
-{
-    for evt in cursor_moved_events.read() {
-        if let Ok(user_fns) = user_fns.get(evt.window) {
-            if let Some(f) = user_fns.mouse_moved {
-                app.set_current_view(Some(evt.window));
-                f(&app, &mut model, evt.position);
-            }
-        }
-    }
-}
+window_event_driver!(cursor_moved_events, CursorMoved, mouse_moved, |evt| evt.position);
 
-#[allow(clippy::type_complexity)]
-fn mouse_button_events<M>(
-    app: App,
-    mut mouse_button_events: MessageReader<MouseButtonInput>,
-    user_fns: Query<&WindowUserFunctions<M>>,
-    mut model: ResMut<ModelHolder<M>>,
-) where
-    M: 'static + Send + Sync,
-{
-    for evt in mouse_button_events.read() {
-        if let Ok(user_fns) = user_fns.get(evt.window) {
-            match evt.state {
-                ButtonState::Pressed => {
-                    if let Some(f) = user_fns.mouse_pressed {
-                        app.set_current_view(Some(evt.window));
-                        f(&app, &mut model, evt.button);
-                    }
-                }
-                ButtonState::Released => {
-                    if let Some(f) = user_fns.mouse_released {
-                        app.set_current_view(Some(evt.window));
-                        f(&app, &mut model, evt.button);
-                    }
-                }
-            }
-        }
-    }
-}
+button_event_driver!(
+    mouse_button_events,
+    MouseButtonInput,
+    mouse_pressed,
+    mouse_released,
+    |evt| evt.button
+);
 
-#[allow(clippy::type_complexity)]
-fn cursor_entered_events<M>(
-    app: App,
-    mut cursor_entered_events: MessageReader<CursorEntered>,
-    user_fns: Query<&WindowUserFunctions<M>>,
-    mut model: ResMut<ModelHolder<M>>,
-) where
-    M: 'static + Send + Sync,
-{
-    for evt in cursor_entered_events.read() {
-        if let Ok(user_fns) = user_fns.get(evt.window) {
-            if let Some(f) = user_fns.mouse_entered {
-                app.set_current_view(Some(evt.window));
-                f(&app, &mut model);
-            }
-        }
-    }
-}
-
-#[allow(clippy::type_complexity)]
-fn cursor_left_events<M>(
-    app: App,
-    mut cursor_left_events: MessageReader<CursorLeft>,
-    user_fns: Query<&WindowUserFunctions<M>>,
-    mut model: ResMut<ModelHolder<M>>,
-) where
-    M: 'static + Send + Sync,
-{
-    for evt in cursor_left_events.read() {
-        if let Ok(user_fns) = user_fns.get(evt.window) {
-            if let Some(f) = user_fns.mouse_exited {
-                app.set_current_view(Some(evt.window));
-                f(&app, &mut model);
-            }
-        }
-    }
-}
-
-#[allow(clippy::type_complexity)]
-fn mouse_wheel_events<M>(
-    app: App,
-    mut mouse_wheel_events: MessageReader<MouseWheel>,
-    user_fns: Query<&WindowUserFunctions<M>>,
-    mut model: ResMut<ModelHolder<M>>,
-) where
-    M: 'static + Send + Sync,
-{
-    for evt in mouse_wheel_events.read() {
-        if let Ok(user_fns) = user_fns.get(evt.window) {
-            if let Some(f) = user_fns.mouse_wheel {
-                app.set_current_view(Some(evt.window));
-                f(&app, &mut model, *evt);
-            }
-        }
-    }
-}
-
-#[allow(clippy::type_complexity)]
-fn window_moved_events<M>(
-    app: App,
-    mut window_moved_events: MessageReader<WindowMoved>,
-    user_fns: Query<&WindowUserFunctions<M>>,
-    mut model: ResMut<ModelHolder<M>>,
-) where
-    M: 'static + Send + Sync,
-{
-    for evt in window_moved_events.read() {
-        if let Ok(user_fns) = user_fns.get(evt.window) {
-            if let Some(f) = user_fns.moved {
-                app.set_current_view(Some(evt.window));
-                f(&app, &mut model, evt.position);
-            }
-        }
-    }
-}
-
-#[allow(clippy::type_complexity)]
-fn window_resized_events<M>(
-    app: App,
-    mut window_resized_events: MessageReader<WindowResized>,
-    user_fns: Query<&WindowUserFunctions<M>>,
-    mut model: ResMut<ModelHolder<M>>,
-) where
-    M: 'static + Send + Sync,
-{
-    for evt in window_resized_events.read() {
-        if let Ok(user_fns) = user_fns.get(evt.window) {
-            if let Some(f) = user_fns.resized {
-                app.set_current_view(Some(evt.window));
-                f(&app, &mut model, Vec2::new(evt.width, evt.height));
-            }
-        }
-    }
-}
-
-#[allow(clippy::type_complexity)]
-fn touch_events<M>(
-    app: App,
-    mut touch_events: MessageReader<TouchInput>,
-    user_fns: Query<&WindowUserFunctions<M>>,
-    mut model: ResMut<ModelHolder<M>>,
-) where
-    M: 'static + Send + Sync,
-{
-    for evt in touch_events.read() {
-        if let Ok(user_fns) = user_fns.get(evt.window) {
-            if let Some(f) = user_fns.touch {
-                app.set_current_view(Some(evt.window));
-                f(&app, &mut model, *evt);
-            }
-        }
-    }
-}
+window_event_driver!(cursor_entered_events, CursorEntered, mouse_entered);
+window_event_driver!(cursor_left_events, CursorLeft, mouse_exited);
+window_event_driver!(mouse_wheel_events, MouseWheel, mouse_wheel, |evt| *evt);
+window_event_driver!(window_moved_events, WindowMoved, moved, |evt| evt.position);
+window_event_driver!(window_resized_events, WindowResized, resized, |evt| Vec2::new(
+    evt.width, evt.height
+));
+window_event_driver!(touch_events, TouchInput, touch, |evt| *evt);
 
 #[allow(clippy::type_complexity)]
 fn file_drop_events<M>(
@@ -1054,24 +937,7 @@ fn window_focus_events<M>(
     }
 }
 
-#[allow(clippy::type_complexity)]
-fn window_closed_events<M>(
-    app: App,
-    mut window_closed_events: MessageReader<WindowClosed>,
-    user_fns: Query<&WindowUserFunctions<M>>,
-    mut model: ResMut<ModelHolder<M>>,
-) where
-    M: 'static + Send + Sync,
-{
-    for evt in window_closed_events.read() {
-        if let Ok(user_fns) = user_fns.get(evt.window) {
-            if let Some(f) = user_fns.closed {
-                app.set_current_view(Some(evt.window));
-                f(&app, &mut model);
-            }
-        }
-    }
-}
+window_event_driver!(window_closed_events, WindowClosed, closed);
 
 fn last<M>(world: &mut World, exit_state: &mut SystemState<MessageReader<AppExit>>)
 where

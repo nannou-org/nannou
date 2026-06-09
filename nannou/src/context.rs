@@ -525,29 +525,28 @@ impl Window<'_, '_, '_> {
             .expect("entity is not a window")
     }
 
-    /// Set the window's title.
-    pub fn set_title(&self, title: impl Into<String>) {
+    /// Queue a mutation of this window's [`Window`](bevy::window::Window) component (deferred,
+    /// applied through the `App`'s command queue).
+    fn update_window(&self, f: impl FnOnce(&mut bevy::window::Window) + Send + 'static) {
         let entity = self.entity;
-        let title = title.into();
         self.app.command_scope(move |mut commands| {
             commands.queue(move |world: &mut World| {
                 if let Some(mut window) = world.get_mut::<bevy::window::Window>(entity) {
-                    window.title = title;
+                    f(&mut window);
                 }
             });
         });
     }
 
+    /// Set the window's title.
+    pub fn set_title(&self, title: impl Into<String>) {
+        let title = title.into();
+        self.update_window(move |w| w.title = title);
+    }
+
     /// Set the window's inner size in points.
     pub fn set_size_points(&self, width: f32, height: f32) {
-        let entity = self.entity;
-        self.app.command_scope(move |mut commands| {
-            commands.queue(move |world: &mut World| {
-                if let Some(mut window) = world.get_mut::<bevy::window::Window>(entity) {
-                    window.resolution.set(width, height);
-                }
-            });
-        });
+        self.update_window(move |w| w.resolution.set(width, height));
     }
 
     /// Save a screenshot of the window to the given path once it has been rendered.
