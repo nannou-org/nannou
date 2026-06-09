@@ -330,6 +330,32 @@ impl<'w, 's> App<'w, 's> {
         &self.images
     }
 
+    /// Queue a mutation of the [`Image`] behind `handle`, applied via the deferred command queue.
+    ///
+    /// A convenience for editing a texture from a classic `update`/`view` - e.g. overwriting its
+    /// pixel `data` or swapping its `sampler` - without dropping to a custom Bevy system. Bevy
+    /// re-uploads the image to its GPU texture on the next extract. The mutation lands after the
+    /// current `update`/`view` returns, and `f` is skipped if the handle no longer resolves.
+    ///
+    /// ```ignore
+    /// // Overwrite a texture's pixels each frame.
+    /// app.modify_image(&model.texture, move |image| image.data = Some(pixels));
+    /// ```
+    pub fn modify_image(
+        &self,
+        handle: &Handle<Image>,
+        f: impl FnOnce(&mut Image) + Send + 'static,
+    ) {
+        let handle = handle.clone();
+        self.command_scope(move |mut commands| {
+            commands.queue(move |world: &mut World| {
+                if let Some(mut image) = world.resource_mut::<Assets<Image>>().get_mut(&handle) {
+                    f(&mut image);
+                }
+            });
+        });
+    }
+
     /// Build a text layout for measurement or glyph extraction.
     ///
     /// `App`-level equivalent of `draw.text_layout()`.

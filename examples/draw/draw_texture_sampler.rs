@@ -34,17 +34,9 @@ fn update(app: &App, model: &mut Model) {
         ..default()
     };
 
-    // Update the texture's sampler via the app's deferred command queue.
-    let texture = model.texture.clone();
-    app.command_scope(move |mut commands| {
-        commands.queue(move |world: &mut World| {
-            if let Some(mut image) = world
-                .resource_mut::<bevy_asset::Assets<Image>>()
-                .get_mut(&texture)
-            {
-                image.sampler = ImageSampler::Descriptor(descriptor);
-            }
-        });
+    // Update the texture's sampler.
+    app.modify_image(&model.texture, move |image| {
+        image.sampler = ImageSampler::Descriptor(descriptor);
     });
 }
 
