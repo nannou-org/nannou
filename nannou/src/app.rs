@@ -690,7 +690,10 @@ fn update<M>(
         }
     };
 
-    // Run the model update function.
+    // Run the model update function. Reset the current view first so `app.draw()` called from
+    // `update` targets the focused window rather than the last window of the previous frame's
+    // view loop (`current_view` is a `Local` that persists across frames).
+    app.set_current_view(None);
     if let Some(update_fn) = update_fn.0 {
         update_fn(&app, &mut model);
     }
@@ -1091,10 +1094,14 @@ where
 
     if let Some(exit_fn) = exit_fn {
         let mut app_state = SystemState::<App>::new(world);
-        let app = app_state
-            .get(world)
-            .expect("failed to fetch system params");
-        exit_fn(&app, model.0);
+        {
+            let app = app_state
+                .get(world)
+                .expect("failed to fetch system params");
+            exit_fn(&app, model.0);
+        }
+        // Flush any commands the exit fn queued via the `App` (e.g. a final screenshot).
+        app_state.apply(world);
     }
 }
 

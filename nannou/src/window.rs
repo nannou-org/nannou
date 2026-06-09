@@ -26,7 +26,6 @@ pub struct Builder<'a, 'w, 's, M = ()> {
     camera: Option<Entity>,
     light: Option<Entity>,
     primary: bool,
-    title_was_set: bool,
     user_functions: UserFunctions<M>,
     clear_color: Option<Color>,
     hdr: bool,
@@ -207,7 +206,6 @@ where
             camera: None,
             light: None,
             primary: false,
-            title_was_set: false,
             user_functions: UserFunctions::<M>::default(),
             clear_color: None,
             hdr: false,
@@ -371,7 +369,6 @@ where
             camera,
             light,
             primary,
-            title_was_set: _,
             user_functions,
             clear_color,
             hdr,
@@ -446,7 +443,7 @@ where
 
             window_entity
         });
-        app.record_pending_window(window_entity, window_for_cache);
+        app.record_pending_window(window_entity, primary, window_for_cache);
         window_entity
     }
 
@@ -528,11 +525,10 @@ where
     }
 
     /// Requests a specific title for the window.
-    pub fn title<T>(mut self, title: T) -> Self
+    pub fn title<T>(self, title: T) -> Self
     where
         T: Into<String>,
     {
-        self.title_was_set = true;
         self.map_window(|mut w| {
             w.title = title.into();
             w

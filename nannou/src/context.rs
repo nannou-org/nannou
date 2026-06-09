@@ -104,9 +104,13 @@ pub struct App<'w, 's> {
     current_view: Local<'s, Cell<Option<Entity>>>,
     // Windows created this run via `new_window` but not yet spawned (spawns are deferred through the
     // command queue). Lets the classic `model` read back a window it just created in the same call,
-    // e.g. `app.new_window().build(); let r = app.window_rect();`.
-    pending_windows: Local<'s, RefCell<Vec<(Entity, bevy::window::Window)>>>,
+    // e.g. `app.new_window().build(); let r = app.window_rect();`. The `bool` records whether the
+    // window was requested as primary, so `main_window` can resolve it before it spawns.
+    pending_windows: Local<'s, RefCell<Vec<PendingWindow>>>,
 }
+
+/// A window created this call but not yet spawned: `(entity, primary, component)`.
+type PendingWindow = (Entity, bool, bevy::window::Window);
 
 impl<'w, 's> App<'w, 's> {
     /// The elapsed seconds since startup.
@@ -157,12 +161,23 @@ impl<'w, 's> App<'w, 's> {
             return Some(f(window));
         }
         let pending = self.pending_windows.borrow();
-        pending.iter().rev().find(|(e, _)| *e == entity).map(|(_, w)| f(w))
+        pending
+            .iter()
+            .rev()
+            .find(|(e, _, _)| *e == entity)
+            .map(|(_, _, w)| f(w))
     }
 
     /// Record a window created this call but not yet spawned, so it can be read back immediately.
-    pub(crate) fn record_pending_window(&self, entity: Entity, window: bevy::window::Window) {
-        self.pending_windows.borrow_mut().push((entity, window));
+    pub(crate) fn record_pending_window(
+        &self,
+        entity: Entity,
+        primary: bool,
+        window: bevy::window::Window,
+    ) {
+        self.pending_windows
+            .borrow_mut()
+            .push((entity, primary, window));
     }
 
     /// The current mouse position in points, relative to the centre of the focused window.
@@ -193,7 +208,7 @@ impl<'w, 's> App<'w, 's> {
             return entity;
         }
         // Then a window created this call but not yet spawned (e.g. just built in `model`).
-        if let Some((entity, _)) = self.pending_windows.borrow().last() {
+        if let Some((entity, _, _)) = self.pending_windows.borrow().last() {
             return *entity;
         }
         // Finally, any open window (e.g. a freshly-spawned window not yet focused).
@@ -215,7 +230,7 @@ impl<'w, 's> App<'w, 's> {
         let pending = self.pending_windows.borrow();
         let pending_count = pending
             .iter()
-            .filter(|(e, _)| self.windows.get(*e).is_err())
+            .filter(|(e, _, _)| self.windows.get(*e).is_err())
             .count();
         query_count + pending_count
     }
@@ -296,8 +311,6 @@ impl<'w, 's> App<'w, 's> {
     /// Set the window whose `view` is currently being run, so [`draw`](Self::draw) targets it.
     ///
     /// Used by the classic driver systems; pass `None` to fall back to the focused window.
-    // Wired up by the classic `app`/`sketch` driver systems in a follow-up step.
-    #[allow(dead_code)]
     pub(crate) fn set_current_view(&self, view: Option<Entity>) {
         self.current_view.set(view);
     }
@@ -332,6 +345,10 @@ impl<'w, 's> App<'w, 's> {
     ///     commands.spawn(render::NannouCamera::for_window(window));
     /// });
     /// ```
+    ///
+    /// Do not call another mutating `App` method (`quit`, `new_window().build()`,
+    /// `window(..).set_title(..)`, ...) from inside the closure - they re-enter `command_scope`,
+    /// which panics on the already-borrowed thread-local command queue. Use `commands` directly.
     pub fn command_scope<R>(&self, f: impl FnOnce(Commands) -> R) -> R {
         self.par_commands.command_scope(f)
     }
@@ -404,7 +421,7 @@ impl<'w, 's> App<'w, 's> {
         // Drop any pending windows that have since been spawned, so the cache stays bounded.
         self.pending_windows
             .borrow_mut()
-            .retain(|(e, _)| self.windows.get(*e).is_err());
+            .retain(|(e, _, _)| self.windows.get(*e).is_err());
         crate::window::Builder::new(self)
     }
 
@@ -451,7 +468,15 @@ impl<'w, 's> App<'w, 's> {
             .primary_window
             .single()
             .ok()
-            .or_else(|| self.pending_windows.borrow().last().map(|(e, _)| *e))
+            .or_else(|| {
+                // Fall back to a primary window created this call but not yet spawned.
+                self.pending_windows
+                    .borrow()
+                    .iter()
+                    .rev()
+                    .find(|(_, primary, _)| *primary)
+                    .map(|(e, _, _)| *e)
+            })
             .expect("no primary window is open in the App");
         Window { app: self, entity }
     }
