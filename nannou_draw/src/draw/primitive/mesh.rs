@@ -37,12 +37,7 @@ impl Vertexless {
     /// coordinates in that order, e.g. `(point, tex_coords)`. `point` may be of any type that
     /// implements `Into<Vec3>` and `tex_coords` may be of any type that implements
     /// `Into<Vec2>`.
-    pub fn points_textured<I, P, T>(
-        self,
-        inner_mesh: &mut Mesh,
-        texture_handle: Handle<Image>,
-        points: I,
-    ) -> PrimitiveMesh
+    pub fn points_textured<I, P, T>(self, inner_mesh: &mut Mesh, points: I) -> PrimitiveMesh
     where
         I: IntoIterator<Item = (P, T)>,
         P: Into<Vec3>,
@@ -54,7 +49,7 @@ impl Vertexless {
             let tex_coords = t.into();
             (point, color, tex_coords)
         });
-        self.points_inner(inner_mesh, points, Some(texture_handle))
+        self.points_inner(inner_mesh, points)
     }
 
     /// Describe the mesh with a sequence of colored points.
@@ -74,7 +69,7 @@ impl Vertexless {
             let tex_coords = Vec2::ZERO;
             (point, color, tex_coords)
         });
-        self.points_inner(inner_mesh, vertices, None)
+        self.points_inner(inner_mesh, vertices)
     }
 
     /// Describe the mesh with a sequence of points.
@@ -95,17 +90,12 @@ impl Vertexless {
             let tex_coords = Vec2::ZERO;
             (point, color, tex_coords)
         });
-        let mut mesh = self.points_inner(inner_mesh, vertices, None);
+        let mut mesh = self.points_inner(inner_mesh, vertices);
         mesh.fill_color = Some(FillColor(None));
         mesh
     }
 
-    fn points_inner<I>(
-        self,
-        inner_mesh: &mut Mesh,
-        vertices: I,
-        texture_handle: Option<Handle<Image>>,
-    ) -> PrimitiveMesh
+    fn points_inner<I>(self, inner_mesh: &mut Mesh, vertices: I) -> PrimitiveMesh
     where
         I: Iterator<Item = Vertex>,
     {
@@ -122,7 +112,7 @@ impl Vertexless {
         }
         let v_end = inner_mesh.count_vertices();
         let i_end = inner_mesh.count_indices();
-        PrimitiveMesh::new(v_start..v_end, i_start..i_end, texture_handle)
+        PrimitiveMesh::new(v_start..v_end, i_start..i_end)
     }
 
     /// Describe the mesh with a sequence of textured triangles.
@@ -131,12 +121,7 @@ impl Vertexless {
     /// coordinates in that order, e.g. `(point, tex_coords)`. `point` may be of any type that
     /// implements `Into<Vec3>` and `tex_coords` may be of any type that implements
     /// `Into<Vec2>`.
-    pub fn tris_textured<I, P, T>(
-        self,
-        inner_mesh: &mut Mesh,
-        texture_handle: Handle<Image>,
-        tris: I,
-    ) -> PrimitiveMesh
+    pub fn tris_textured<I, P, T>(self, inner_mesh: &mut Mesh, tris: I) -> PrimitiveMesh
     where
         I: IntoIterator<Item = geom::Tri<(P, T)>>,
         P: Into<Vec3>,
@@ -146,7 +131,7 @@ impl Vertexless {
             .into_iter()
             .map(|t| t.map_vertices(|(p, t)| (p.into(), t.into())))
             .flat_map(geom::Tri::vertices);
-        self.points_textured(inner_mesh, texture_handle, points)
+        self.points_textured(inner_mesh, points)
     }
 
     /// Describe the mesh with a sequence of colored triangles.
@@ -198,7 +183,6 @@ impl Vertexless {
     pub fn indexed_textured<V, I, P, T>(
         self,
         inner_mesh: &mut Mesh,
-        texture_handle: Handle<Image>,
         points: V,
         indices: I,
     ) -> PrimitiveMesh
@@ -214,7 +198,7 @@ impl Vertexless {
             let tex_coords = t.into();
             (point, color, tex_coords)
         });
-        self.indexed_inner(inner_mesh, vertices, indices, Some(texture_handle))
+        self.indexed_inner(inner_mesh, vertices, indices)
     }
 
     /// Describe the mesh with the given indexed, colored points.
@@ -242,7 +226,7 @@ impl Vertexless {
             let tex_coords = Vec2::ZERO;
             (point, color, tex_coords)
         });
-        self.indexed_inner(inner_mesh, vertices, indices, None)
+        self.indexed_inner(inner_mesh, vertices, indices)
     }
 
     /// Describe the mesh with the given indexed points.
@@ -262,18 +246,12 @@ impl Vertexless {
             let tex_coords = Vec2::ZERO;
             (point, color, tex_coords)
         });
-        let mut mesh = self.indexed_inner(inner_mesh, vertices, indices, None);
+        let mut mesh = self.indexed_inner(inner_mesh, vertices, indices);
         mesh.fill_color = Some(FillColor(None));
         mesh
     }
 
-    fn indexed_inner<V, I>(
-        self,
-        inner_mesh: &mut Mesh,
-        vertices: V,
-        indices: I,
-        texture_handle: Option<Handle<Image>>,
-    ) -> PrimitiveMesh
+    fn indexed_inner<V, I>(self, inner_mesh: &mut Mesh, vertices: V, indices: I) -> PrimitiveMesh
     where
         V: IntoIterator<Item = Vertex>,
         I: IntoIterator<Item = usize>,
@@ -295,18 +273,13 @@ impl Vertexless {
 
         let v_end = inner_mesh.count_vertices();
         let i_end = inner_mesh.count_indices();
-        PrimitiveMesh::new(v_start..v_end, i_start..i_end, texture_handle)
+        PrimitiveMesh::new(v_start..v_end, i_start..i_end)
     }
 }
 
 impl PrimitiveMesh {
     // Initialise a new `Mesh` with its ranges into the intermediary mesh, ready for drawing.
-    fn new(
-        vertex_range: ops::Range<usize>,
-        index_range: ops::Range<usize>,
-        // TODO: remove this?
-        _texture_handle: Option<Handle<Image>>,
-    ) -> Self {
+    fn new(vertex_range: ops::Range<usize>, index_range: ops::Range<usize>) -> Self {
         let orientation = Default::default();
         let position = Default::default();
         let fill_color = None;
@@ -369,7 +342,11 @@ where
         P: Into<Vec3>,
         T: Into<Vec2>,
     {
-        self.map_ty_with_context(|ty, ctxt| ty.points_textured(ctxt.mesh, texture_handle, points))
+        self.map_shader_model(|mut model| {
+            model.set_texture(texture_handle);
+            model
+        })
+        .map_ty_with_context(|ty, ctxt| ty.points_textured(ctxt.mesh, points))
     }
 
     /// Describe the mesh with a sequence of triangles.
@@ -418,7 +395,11 @@ where
         P: Into<Vec3>,
         T: Into<Vec2>,
     {
-        self.map_ty_with_context(|ty, ctxt| ty.tris_textured(ctxt.mesh, texture_handle, tris))
+        self.map_shader_model(|mut model| {
+            model.set_texture(texture_handle);
+            model
+        })
+        .map_ty_with_context(|ty, ctxt| ty.tris_textured(ctxt.mesh, tris))
     }
 
     /// Describe the mesh with the given indexed points.
@@ -472,9 +453,11 @@ where
         P: Into<Vec3>,
         T: Into<Vec2>,
     {
-        self.map_ty_with_context(|ty, ctxt| {
-            ty.indexed_textured(ctxt.mesh, texture_handle, points, indices)
+        self.map_shader_model(|mut model| {
+            model.set_texture(texture_handle);
+            model
         })
+        .map_ty_with_context(|ty, ctxt| ty.indexed_textured(ctxt.mesh, points, indices))
     }
 }
 

@@ -9,8 +9,9 @@ use bevy::{
         Render, RenderSystems,
         extract_component::ExtractComponentPlugin,
         render_resource::{
-            BindGroupLayoutDescriptor, CachedComputePipelineId, ComputePipelineDescriptor,
-            PipelineCache, SpecializedComputePipeline, SpecializedComputePipelines,
+            AsBindGroupError, BindGroupLayoutDescriptor, CachedComputePipelineId,
+            ComputePipelineDescriptor, PipelineCache, SpecializedComputePipeline,
+            SpecializedComputePipelines,
         },
         renderer::{RenderContext, RenderDevice, ViewQuery},
     },
@@ -148,15 +149,22 @@ fn prepare_bind_group<CM>(
     CM: Compute,
 {
     for (view, compute_model) in views_q.iter() {
-        let bind_group = compute_model
-            .0
-            .as_bind_group(
-                &pipeline.layout_descriptor,
-                &render_device,
-                &pipeline_cache,
-                &mut bind_group_param,
-            )
-            .expect("Failed to create bind group");
+        let bind_group = match compute_model.0.as_bind_group(
+            &pipeline.layout_descriptor,
+            &render_device,
+            &pipeline_cache,
+            &mut bind_group_param,
+        ) {
+            Ok(bind_group) => bind_group,
+            // Assets referenced by the bind group (e.g. `ShaderBuffer`s created this
+            // frame) may not have been prepared yet. Drop any stale bind group so
+            // nothing is dispatched for this view, and retry next frame.
+            Err(AsBindGroupError::RetryNextUpdate) => {
+                commands.entity(view).remove::<ComputeBindGroup>();
+                continue;
+            }
+            Err(e) => panic!("Failed to create compute bind group: {e:?}"),
+        };
         commands
             .entity(view)
             .insert(ComputeBindGroup(bind_group.bind_group));

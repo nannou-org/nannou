@@ -383,6 +383,7 @@ where
         let user_functions = WindowUserFunctions(user_functions);
         // Remember the window so it can be read back before the deferred spawn is applied.
         let window_for_cache = window.clone();
+        let half_z_range = default_camera_half_z_range(&window_for_cache);
 
         // On wasm we reuse the existing primary window (created up-front so the renderer has a
         // canvas) rather than spawning a new one.
@@ -427,9 +428,14 @@ where
                         },
                         RenderTarget::Window(WindowRef::Entity(window_entity)),
                         Transform::from_xyz(0.0, 0.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
-                        Projection::Orthographic(OrthographicProjection::default_3d()),
+                        Projection::Orthographic(OrthographicProjection {
+                            near: -half_z_range,
+                            far: half_z_range,
+                            ..OrthographicProjection::default_3d()
+                        }),
                         layer.clone(),
                         NannouCamera,
+                        WindowDefaultCamera,
                     ));
                     if hdr {
                         camera.insert(Hdr);
@@ -609,5 +615,51 @@ impl<M> fmt::Debug for View<M> {
         };
 
         write!(f, "View::{}", variant)
+    }
+}
+
+/// Marks the default camera spawned for a window when none was provided via the window
+/// builder. Nannou manages this camera's orthographic projection to match its window.
+#[derive(Component)]
+pub(crate) struct WindowDefaultCamera;
+
+// The half-extent of the z range visible to a window's default camera, matching the
+// pre-bevy renderer: content within +-max(width, height) of the xy plane is visible.
+fn default_camera_half_z_range(window: &bevy::window::Window) -> f32 {
+    window.width().max(window.height())
+}
+
+/// Keep each default window camera's orthographic z range sized to its window, so that
+/// 3D draw content up to the size of the window renders without near/far clipping while
+/// depth precision stays proportionate to the scene.
+pub(crate) fn update_default_camera_z_range(
+    mut cameras: Query<(&mut Projection, &RenderTarget), With<WindowDefaultCamera>>,
+    windows: Query<&bevy::window::Window>,
+    primary_window: Query<Entity, With<PrimaryWindow>>,
+) {
+    for (mut projection, target) in cameras.iter_mut() {
+        let window = match target {
+            RenderTarget::Window(WindowRef::Entity(entity)) => *entity,
+            RenderTarget::Window(WindowRef::Primary) => match primary_window.single() {
+                Ok(entity) => entity,
+                Err(_) => continue,
+            },
+            _ => continue,
+        };
+        let Ok(window) = windows.get(window) else {
+            continue;
+        };
+        let half_z_range = default_camera_half_z_range(window);
+        let Projection::Orthographic(ortho) = projection.as_ref() else {
+            continue;
+        };
+        // Only write through the `Mut` when the range actually changes, to avoid
+        // triggering change detection every frame.
+        if ortho.near != -half_z_range || ortho.far != half_z_range {
+            if let Projection::Orthographic(ortho) = &mut *projection {
+                ortho.near = -half_z_range;
+                ortho.far = half_z_range;
+            }
+        }
     }
 }

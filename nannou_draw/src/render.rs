@@ -79,6 +79,13 @@ pub trait ShaderModel:
         ShaderRef::Default
     }
 
+    /// Set the model's primary texture, e.g. as provided via draw API methods like
+    /// `draw.mesh().points_textured(..)`.
+    ///
+    /// The default implementation ignores the texture; models with a texture slot (like
+    /// [`NannouShaderModel`]) bind it for sampling in their fragment shader.
+    fn set_texture(&mut self, _texture: Handle<Image>) {}
+
     /// Specializes the render pipeline descriptor for this shader model.
     fn specialize(
         _pipeline: &ShaderModelPipeline<Self>,
@@ -536,6 +543,11 @@ where
     ) -> Result<RenderPipelineDescriptor, SpecializedMeshPipelineError> {
         let mut descriptor = self.mesh_pipeline.specialize(key.mesh_key, layout)?;
 
+        // The draw API makes no winding-order guarantees - e.g. 2D primitives may wind
+        // either way depending on their orientation - so, like the pre-bevy nannou
+        // renderer, cull nothing. Models may override this in their `specialize`.
+        descriptor.primitive.cull_mode = None;
+
         if let Some(vertex_shader) = &self.vertex_shader {
             descriptor.vertex.shader = vertex_shader.clone();
             descriptor.vertex.shader_defs.push(ShaderDefVal::UInt(
@@ -571,6 +583,10 @@ where
 }
 
 impl ShaderModel for NannouShaderModel {
+    fn set_texture(&mut self, texture: Handle<Image>) {
+        self.texture = Some(texture);
+    }
+
     fn specialize(
         _pipeline: &ShaderModelPipeline<Self>,
         descriptor: &mut RenderPipelineDescriptor,
