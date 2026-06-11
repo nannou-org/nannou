@@ -62,18 +62,24 @@ nokhwa = { version = "0.10", features = ["input-native", "camera-sync-impl"] }
 noise = "0.7"
 notosans = "0.1"
 num-traits = {version = "0.2", default-features = false }
-parley = { version = "0.7.0", default-features = false, features = ["std", "system"] }
+# Kept in lockstep with the `parley` version used by `bevy_text` so that the
+# font database can be shared. System font discovery is feature-gated via
+# `nannou_draw/system_font_discovery`.
+parley = { version = "0.9.0", default-features = false, features = ["std"] }
 pennereq = "0.3"
 quote = "1"
 rand = {version = "0.9.0", default-features = false }
 rayon = "1.10"
 ringbuf = "0.4"
 rosc = "0.11"
-skrifa = "0.37.0"
+skrifa = "0.42"
 semver = "1"
 serde = "1"
 serde_json = "1"
 serde_yaml = "0.9"
+# Must semver-unify with `bevy_text`'s `swash` dependency: glyph rasterisation
+# goes through bevy's `ScaleCx` resource, whose types must match.
+swash = { version = "0.2.6", default-features = false, features = ["std", "scale"] }
 syn = "1"
 thiserror = "2"
 tempfile = "3"

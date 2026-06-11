@@ -29,6 +29,7 @@ use bevy::{
     prelude::{TypePath, *},
     render::{
         RenderApp, RenderStartup, RenderSystems,
+        batching::NoAutomaticBatching,
         extract_component::{ExtractComponent, ExtractComponentPlugin},
         extract_instances::{ExtractInstance, ExtractInstancesPlugin, ExtractedInstances},
         mesh::RenderMesh,
@@ -125,14 +126,18 @@ impl Plugin for NannouRenderPlugin {
             ExtractComponentPlugin::<ShaderBufferHandle>::default(),
             NannouShaderModelPlugin::<DefaultNannouShaderModel>::default(),
         ))
+        .init_resource::<TextModelKeepalive>()
         .add_systems(First, clear_previous_frame)
         // `update_draw_mesh` (re)spawns the draw meshes each frame, so it must run
         // before Bevy computes visibility - otherwise the freshly spawned meshes
         // have `ViewVisibility == false` when the render-world extraction runs and
-        // get skipped (no draw output).
+        // get skipped (no draw output). It must also run after bevy has registered
+        // newly loaded font assets so that text laid out this frame can use them.
         .add_systems(
             PostUpdate,
-            update_draw_mesh.before(VisibilitySystems::VisibilityPropagate),
+            update_draw_mesh
+                .before(VisibilitySystems::VisibilityPropagate)
+                .after(bevy::text::load_font_assets_into_font_collection),
         );
     }
 }
@@ -616,6 +621,7 @@ fn update_shader_model<SM>(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn update_draw_mesh(
     mut commands: Commands,
     draw_q: Query<&Draw>,
@@ -623,6 +629,11 @@ fn update_draw_mesh(
     windows: Query<(&Window, Has<PrimaryWindow>)>,
     mut meshes: ResMut<Assets<Mesh>>,
     text_cx: Res<crate::text::font::SharedTextCx>,
+    mut font_atlas_set: ResMut<bevy::text::FontAtlasSet>,
+    mut images: ResMut<Assets<Image>>,
+    mut scale_cx: ResMut<bevy::text::ScaleCx>,
+    mut text_models: ResMut<Assets<DefaultNannouShaderModel>>,
+    mut text_model_keepalive: ResMut<TextModelKeepalive>,
 ) {
     for draw in draw_q.iter() {
         let Some((mut window_camera, _, window_layers)) =
@@ -666,6 +677,62 @@ fn update_draw_mesh(
 
         for (idx, cmd) in draw_cmds.enumerate() {
             match cmd {
+                // Text renders as glyph-atlas-textured quads, so it cannot join the
+                // current batch: each run of glyphs gets its own mesh entity bound to
+                // the atlas texture it samples.
+                DrawCommand::Primitive(crate::draw::primitive::Primitive::Text(prim)) => {
+                    // End the current batch so that primitives drawn after this text
+                    // get a fresh mesh entity with a higher `DrawIndex`.
+                    current_mesh.take();
+
+                    let batches = prim.render_atlas_quads(
+                        &intermediary_state.text_buffer,
+                        &draw_state.theme,
+                        &curr_ctx.transform,
+                        Vec2::new(window.width(), window.height()),
+                        window.scale_factor(),
+                        &text_cx,
+                        &mut font_atlas_set,
+                        &mut images,
+                        &mut scale_cx,
+                    );
+
+                    // Base the text material on the active shader model when it is the
+                    // default nannou model, preserving e.g. the current blend mode.
+                    // Text drawn with a custom shader model type falls back to the
+                    // default model.
+                    let base = last_shader_model
+                        .as_ref()
+                        .and_then(|id| draw_state.shader_models.get(id))
+                        .and_then(|model| model.downcast_ref::<DefaultNannouShaderModel>())
+                        .cloned()
+                        .unwrap_or_default();
+
+                    for crate::draw::primitive::text::TextQuadBatch { texture, mesh } in batches {
+                        let mut model = base.clone();
+                        // Glyph colour is carried per-vertex; the model tints white so
+                        // it passes through.
+                        model.color = Color::WHITE;
+                        model.texture = Some(texture);
+                        let handle = text_models.add(model);
+                        commands.spawn((
+                            UntypedShaderModelId(handle.id().untyped()),
+                            Mesh3d(meshes.add(mesh)),
+                            Transform::default(),
+                            GlobalTransform::default(),
+                            Visibility::default(),
+                            InheritedVisibility::default(),
+                            ViewVisibility::default(),
+                            ShaderModelMesh,
+                            NannouTransient,
+                            NoFrustumCulling,
+                            NoAutomaticBatching,
+                            DrawIndex(idx),
+                            window_layers.clone(),
+                        ));
+                        text_model_keepalive.0.push(handle);
+                    }
+                }
                 DrawCommand::Primitive(prim) => {
                     // Info required during rendering.
                     let ctxt = RenderContext {
@@ -679,7 +746,6 @@ fn update_draw_mesh(
                         stroke_tessellator: &mut stroke_tessellator,
                         output_attachment_size: Vec2::new(window.width(), window.height()),
                         output_attachment_scale_factor: window.scale_factor(),
-                        text_cx: &text_cx,
                     };
 
                     // If no mesh is currently set, initialise a new one.
@@ -698,6 +764,7 @@ fn update_draw_mesh(
                             ShaderModelMesh,
                             NannouTransient,
                             NoFrustumCulling,
+                            NoAutomaticBatching,
                             DrawIndex(idx),
                             window_layers.clone(),
                         ));
@@ -720,7 +787,6 @@ fn update_draw_mesh(
                         stroke_tessellator: &mut stroke_tessellator,
                         output_attachment_size: Vec2::new(window.width(), window.height()),
                         output_attachment_scale_factor: window.scale_factor(),
-                        text_cx: &text_cx,
                     };
 
                     // Render the primitive.
@@ -741,6 +807,7 @@ fn update_draw_mesh(
                         ViewVisibility::default(),
                         NannouTransient,
                         NoFrustumCulling,
+                        NoAutomaticBatching,
                         DrawIndex(idx),
                         window_layers.clone(),
                     ));
@@ -758,7 +825,6 @@ fn update_draw_mesh(
                         stroke_tessellator: &mut stroke_tessellator,
                         output_attachment_size: Vec2::new(window.width(), window.height()),
                         output_attachment_scale_factor: window.scale_factor(),
-                        text_cx: &text_cx,
                     };
 
                     // Render the primitive.
@@ -779,6 +845,7 @@ fn update_draw_mesh(
                         ViewVisibility::default(),
                         NannouTransient,
                         NoFrustumCulling,
+                        NoAutomaticBatching,
                         DrawIndex(idx),
                         window_layers.clone(),
                     ));
@@ -806,11 +873,18 @@ pub struct DrawIndex(pub usize);
 #[derive(Component, ExtractComponent, Clone)]
 pub struct NannouTransient;
 
+/// Keeps the shader models created for text quad batches alive for the frame they
+/// are drawn in; dropping the handles the following frame lets the assets clean up.
+#[derive(Resource, Default)]
+pub struct TextModelKeepalive(Vec<Handle<DefaultNannouShaderModel>>);
+
 fn clear_previous_frame(
     mut commands: Commands,
     bg_color_q: Query<Entity, With<BackgroundColor>>,
     meshes_q: Query<Entity, With<NannouTransient>>,
+    mut text_model_keepalive: ResMut<TextModelKeepalive>,
 ) {
+    text_model_keepalive.0.clear();
     for entity in meshes_q.iter() {
         commands.entity(entity).despawn();
     }

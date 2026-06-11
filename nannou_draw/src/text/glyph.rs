@@ -86,65 +86,34 @@ impl OutlinePen for LyonOutlinePen {
 }
 
 /// Extract lyon path events for all glyphs in a parley layout.
-pub fn text_path_events(parley_layout: &parley::Layout<Color>, pos_offset: Vec2) -> Vec<PathEvent> {
-    let mut all_events = Vec::new();
-
-    for line in parley_layout.lines() {
-        let baseline = line.metrics().baseline;
-
-        for item in line.items() {
-            let parley::PositionedLayoutItem::GlyphRun(glyph_run) = item else {
-                continue;
-            };
-
-            let run = glyph_run.run();
-            let font_data = run.font();
-            let font_size = run.font_size();
-
-            let font_blob = &font_data.data;
-            let font_index = font_data.index;
-            let Ok(font_ref) = FontRef::from_index(font_blob.as_ref(), font_index) else {
-                continue;
-            };
-
-            let outlines = font_ref.outline_glyphs();
-            let upem = font_ref
-                .head()
-                .map(|h| h.units_per_em() as f32)
-                .unwrap_or(1000.0);
-            let scale = font_size / upem;
-
-            for glyph in glyph_run.positioned_glyphs() {
-                let glyph_id = GlyphId::new(glyph.id as u32);
-                let Some(outline_glyph) = outlines.get(glyph_id) else {
-                    continue;
-                };
-
-                let gx = pos_offset.x + glyph.x;
-                let gy = pos_offset.y - baseline;
-                let origin = lyon::math::point(gx, gy);
-                let mut pen = LyonOutlinePen::new(origin, scale, false);
-                let settings = DrawSettings::unhinted(Size::unscaled(), LocationRef::default());
-                let _ = outline_glyph.draw(settings, &mut pen);
-
-                all_events.extend(pen.events);
-            }
-        }
-    }
-
-    all_events
+///
+/// `layout_scale` is the factor by which the parley layout is scaled relative to the
+/// returned (logical point) coordinates - see `text::Text`.
+pub fn text_path_events(
+    parley_layout: &parley::Layout<Color>,
+    pos_offset: Vec2,
+    layout_scale: f32,
+) -> Vec<PathEvent> {
+    per_glyph_path_events(parley_layout, pos_offset, layout_scale)
+        .into_iter()
+        .flatten()
+        .collect()
 }
 
 /// Extract lyon path events for each glyph separately, enabling per-glyph coloring.
+///
+/// Glyphs without an outline yield an empty `Vec`, preserving glyph indexing.
+///
+/// `layout_scale` is the factor by which the parley layout is scaled relative to the
+/// returned (logical point) coordinates - see `text::Text`.
 pub fn per_glyph_path_events(
     parley_layout: &parley::Layout<Color>,
     pos_offset: Vec2,
+    layout_scale: f32,
 ) -> Vec<Vec<PathEvent>> {
     let mut per_glyph = Vec::new();
 
     for line in parley_layout.lines() {
-        let baseline = line.metrics().baseline;
-
         for item in line.items() {
             let parley::PositionedLayoutItem::GlyphRun(glyph_run) = item else {
                 continue;
@@ -165,7 +134,7 @@ pub fn per_glyph_path_events(
                 .head()
                 .map(|h| h.units_per_em() as f32)
                 .unwrap_or(1000.0);
-            let scale = font_size / upem;
+            let scale = font_size / upem / layout_scale;
 
             for glyph in glyph_run.positioned_glyphs() {
                 let glyph_id = GlyphId::new(glyph.id as u32);
@@ -174,8 +143,9 @@ pub fn per_glyph_path_events(
                     continue;
                 };
 
-                let gx = pos_offset.x + glyph.x;
-                let gy = pos_offset.y - baseline;
+                // `glyph.{x,y}` already include the line offset and baseline.
+                let gx = pos_offset.x + glyph.x / layout_scale;
+                let gy = pos_offset.y - glyph.y / layout_scale;
                 let origin = lyon::math::point(gx, gy);
 
                 let mut pen = LyonOutlinePen::new(origin, scale, false);

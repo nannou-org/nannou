@@ -24,6 +24,7 @@ nannou_core = { path = "../nannou_core" }
 notosans = { workspace = true, optional = true }
 parley.workspace = true
 skrifa.workspace = true
+swash.workspace = true
 rayon.workspace = true
 uuid.workspace = true
 bitflags.workspace = true
@@ -31,3 +32,6 @@ bitflags.workspace = true
 [features]
 nightly = []
 notosans = ["dep:notosans"]
+# Discover fonts installed on the system (e.g. via fontconfig on Linux),
+# making them available to `draw.text().font(..)` by family name.
+system_font_discovery = ["bevy/system_font_discovery", "parley/system"]

@@ -5,7 +5,7 @@ use std::borrow::Cow;
 use bevy::prelude::*;
 use nannou_core::geom;
 use parley::Alignment;
-use parley::style::{FontStack, StyleProperty};
+use parley::style::{FontFamily, FontFamilyName, StyleProperty, WordBreak};
 
 pub use self::layout::Layout;
 
@@ -63,6 +63,10 @@ pub struct Text {
     parley_layout: parley::Layout<Color>,
     layout: Layout,
     rect: geom::Rect,
+    // The factor by which the parley layout is scaled relative to `rect`, e.g. the window
+    // scale factor when rasterising glyphs at physical pixel resolution. All public
+    // measurements are divided by this so that the API always works in logical points.
+    scale: f32,
 }
 
 impl<'a> Builder<'a> {
@@ -168,7 +172,7 @@ impl<'a> Builder<'a> {
     pub fn build(self, rect: geom::Rect) -> Text {
         let layout = self.layout_builder.build();
         let mut inner = self.text_cx.0.lock().unwrap();
-        Text::layout_with_inner(&mut inner, &self.text, &layout, rect)
+        Text::layout_with_inner(&mut inner, &self.text, &layout, rect, 1.0)
     }
 }
 
@@ -179,9 +183,9 @@ impl Text {
         text: &str,
         layout: &Layout,
         rect: geom::Rect,
+        scale: f32,
     ) -> Self {
         let font_size = layout.font_size as f32;
-        let scale = 1.0;
 
         let mut builder = inner
             .layout
@@ -190,9 +194,10 @@ impl Text {
         builder.push_default(StyleProperty::FontSize(font_size));
 
         if let Some(ref family) = layout.font_family {
-            builder.push_default(StyleProperty::FontStack(FontStack::Single(
-                parley::style::FontFamily::Named(family.into()),
-            )));
+            // `parse` resolves generic names like "monospace"; fall back to treating
+            // the whole string as a family name.
+            let name = FontFamilyName::parse(family).unwrap_or(FontFamilyName::named(family));
+            builder.push_default(StyleProperty::FontFamily(FontFamily::Single(name)));
         }
 
         if let Some(spacing) = (layout.line_spacing != 0.0).then_some(layout.line_spacing) {
@@ -201,13 +206,16 @@ impl Text {
             ));
         }
 
+        if let Some(Wrap::Character) = layout.line_wrap {
+            builder.push_default(StyleProperty::WordBreak(WordBreak::BreakAll));
+        }
+
         let mut parley_layout = builder.build(text);
 
-        let max_width = rect.w();
         match layout.line_wrap {
             None => parley_layout.break_all_lines(None),
             Some(Wrap::Whitespace) | Some(Wrap::Character) => {
-                parley_layout.break_all_lines(Some(max_width));
+                parley_layout.break_all_lines(Some(rect.w() * scale));
             }
         }
         let alignment = match layout.justify {
@@ -215,17 +223,14 @@ impl Text {
             Justify::Center => Alignment::Center,
             Justify::Right => Alignment::End,
         };
-        parley_layout.align(
-            Some(max_width),
-            alignment,
-            parley::AlignmentOptions::default(),
-        );
+        parley_layout.align(alignment, parley::AlignmentOptions::default());
 
         Text {
             string: text.to_string(),
             parley_layout,
             layout: layout.clone(),
             rect,
+            scale,
         }
     }
 
@@ -241,12 +246,12 @@ impl Text {
 
     /// The width of the laid-out text.
     pub fn width(&self) -> Scalar {
-        self.parley_layout.width()
+        self.parley_layout.width() / self.scale
     }
 
     /// The height of the laid-out text.
     pub fn height(&self) -> Scalar {
-        self.parley_layout.height()
+        self.parley_layout.height() / self.scale
     }
 
     /// The number of lines in the text.
@@ -271,14 +276,15 @@ impl Text {
     /// Per-line bounding rects in nannou coordinate space.
     pub fn line_rects(&self) -> Vec<geom::Rect> {
         let offset = self.position_offset();
+        let scale = self.scale;
         self.parley_layout
             .lines()
             .map(|line| {
                 let metrics = line.metrics();
-                let top = offset.y - metrics.baseline + metrics.ascent;
-                let bottom = offset.y - metrics.baseline - metrics.descent;
-                let line_x = offset.x + metrics.offset;
-                let line_w = metrics.advance - metrics.trailing_whitespace;
+                let top = offset.y + (metrics.ascent - metrics.baseline) / scale;
+                let bottom = offset.y - (metrics.baseline + metrics.descent) / scale;
+                let line_x = offset.x + metrics.offset / scale;
+                let line_w = (metrics.advance - metrics.trailing_whitespace) / scale;
                 let x = geom::Range::new(line_x, line_x + line_w);
                 let y = geom::Range::new(bottom, top);
                 geom::Rect { x, y }
@@ -300,19 +306,22 @@ impl Text {
     /// Per-glyph bounding rects (one per glyph cluster).
     pub fn glyphs(&self) -> Vec<geom::Rect> {
         let offset = self.position_offset();
+        let scale = self.scale;
         let mut rects = Vec::new();
         for line in self.parley_layout.lines() {
-            let baseline = line.metrics().baseline;
             for item in line.items() {
                 let parley::PositionedLayoutItem::GlyphRun(glyph_run) = item else {
                     continue;
                 };
                 let run_metrics = glyph_run.run().metrics();
                 for glyph in glyph_run.positioned_glyphs() {
-                    let gx = offset.x + glyph.x;
-                    let gy = offset.y - baseline;
-                    let x = geom::Range::new(gx, gx + glyph.advance);
-                    let y = geom::Range::new(gy - run_metrics.descent, gy + run_metrics.ascent);
+                    let gx = offset.x + glyph.x / scale;
+                    let gy = offset.y - glyph.y / scale;
+                    let x = geom::Range::new(gx, gx + glyph.advance / scale);
+                    let y = geom::Range::new(
+                        gy - run_metrics.descent / scale,
+                        gy + run_metrics.ascent / scale,
+                    );
                     rects.push(geom::Rect { x, y });
                 }
             }
@@ -322,7 +331,7 @@ impl Text {
 
     /// Path events for every glyph, relative to the center of the layout rect.
     pub fn path_events(&self) -> Vec<lyon::path::PathEvent> {
-        glyph::text_path_events(&self.parley_layout, self.position_offset())
+        glyph::text_path_events(&self.parley_layout, self.position_offset(), self.scale)
     }
 
     pub(crate) fn parley_layout(&self) -> &parley::Layout<Color> {
@@ -344,7 +353,21 @@ impl Text {
             Align::Middle => text_h / 2.0,
             Align::Start => -rect_h / 2.0 + text_h,
         };
-        let x_offset = -rect_w / 2.0;
+        // When line breaking is unbounded, parley aligns lines within the widest line
+        // rather than the layout rect, so shift the whole block to restore
+        // rect-relative justification.
+        let x_offset = match self.layout.line_wrap {
+            Some(_) => -rect_w / 2.0,
+            None => {
+                let align_w = rect_w - self.width();
+                let factor = match self.layout.justify {
+                    Justify::Left => 0.0,
+                    Justify::Center => 0.5,
+                    Justify::Right => 1.0,
+                };
+                -rect_w / 2.0 + align_w * factor
+            }
+        };
         Vec2::new(x_offset, y_offset)
     }
 }

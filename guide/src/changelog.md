@@ -56,6 +56,18 @@ ECS, renderer, asset system and plugins) is now available to nannou apps.
 - `nannou_isf` (Interactive Shader Format) rendering ported to Bevy.
 - Colour types and constants are now aligned with Bevy's `bevy_color` (e.g. the
   CSS palette colour constants such as `PLUM` and `STEEL_BLUE`).
+- `draw.text()` now renders glyphs as textured quads sampling `bevy_text`'s
+  cached glyph atlases (rasterised via `swash`) instead of tessellating glyph
+  outlines every frame: dense or small text is far cheaper and pixel-crisp, and
+  colour fonts (e.g. emoji) are supported. Note that glyphs are rasterised at
+  their font size, so text under large `draw.scale(..)` factors will blur;
+  resolution-independent vector text remains available via
+  `draw.text_layout(..).build(rect)` and `draw.path().events(..)`.
+- Text layout shares `bevy_text`'s `parley` font database: fonts loaded as Bevy
+  `Font` assets can be selected with `draw.text(..).font(<family name>)`,
+  system-installed fonts are discovered automatically (`system_font_discovery`
+  feature, enabled by default) and the bundled Noto Sans (`notosans` feature,
+  enabled by default) is the default face.
 - The `view` function no longer receives or returns a `Frame`; it is simply
   called each time a window needs to be redrawn.
 
