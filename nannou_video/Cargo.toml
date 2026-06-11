@@ -9,7 +9,6 @@ license.workspace = true
 [dependencies]
 bevy = { workspace = true, default-features = false, features = [
     "bevy_asset",
-    "bevy_log",
     "bevy_render",
 ]}
 thiserror.workspace = true

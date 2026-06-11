@@ -11,11 +11,12 @@ bevy = { workspace = true, default-features = false, features = [
     "bevy_asset",
     "bevy_color",
     "bevy_core_pipeline",
+    "bevy_log",
     "bevy_pbr",
     "bevy_render",
     "bevy_text",
-    "bevy_ui", # needed for `BackgroundColor`
-    "bevy_log",
+    # The default `Tonemapping` (TonyMcMapface) samples a LUT; the LUTs are
+    # zstd-compressed ktx2, hence `zstd_rust` (`tonemapping_luts` implies `ktx2`).
     "tonemapping_luts",
     "zstd_rust",
 ]}

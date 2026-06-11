@@ -83,6 +83,10 @@ struct Model {
 
 Next, we'll need to load an image to initialize the struct with. We can accomplish this by asking Bevy's asset server to load an image file after we create the window in our `model` function, via the app's [`asset_server()`](https://docs.rs/nannou/latest/nannou/app/struct.App.html#method.asset_server) method. The asset server looks for files within the project's `assets` directory, so we only need to spell out the image path from the root of that directory. Loading happens in the background, and the returned `Handle` can be drawn as soon as the asset is ready.
 
+PNG and JPEG images are supported by default; further formats (e.g. `hdr`,
+`exr`, `gif`, `webp`, `tiff`) can be enabled via the cargo feature of the same
+name on the `nannou` crate.
+
 ```rust,no_run
 # #![allow(unreachable_code, unused_variables, dead_code)]
 # use nannou::prelude::*;

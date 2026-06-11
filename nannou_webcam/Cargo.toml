@@ -13,8 +13,6 @@ default = []
 flume = { workspace = true }
 bevy = { workspace = true, features = [
   "bevy_asset",
-  "bevy_camera",
-  "bevy_core_pipeline",
   "bevy_image",
   "bevy_log",
   "bevy_render",
