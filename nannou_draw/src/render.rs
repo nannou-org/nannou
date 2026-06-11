@@ -918,15 +918,11 @@ pub struct TextModelKeepalive(Vec<Handle<DefaultNannouShaderModel>>);
 
 fn clear_previous_frame(
     mut commands: Commands,
-    bg_color_q: Query<Entity, With<BackgroundColor>>,
     meshes_q: Query<Entity, With<NannouTransient>>,
     mut text_model_keepalive: ResMut<TextModelKeepalive>,
 ) {
     text_model_keepalive.0.clear();
     for entity in meshes_q.iter() {
-        commands.entity(entity).despawn();
-    }
-    for entity in bg_color_q.iter() {
         commands.entity(entity).despawn();
     }
 }

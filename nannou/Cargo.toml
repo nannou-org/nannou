@@ -12,11 +12,10 @@ edition.workspace = true
 
 [dependencies]
 bevy = { workspace = true, default-features = false, features = [
+    "bevy_log",
     "bevy_post_process",
     "bevy_window",
     "bevy_winit",
-    "jpeg",
-    "zstd_rust",
 ]}
 # `bevy-inspector-egui` has no Bevy 0.19 release yet - kept disabled (see the
 # `inspector` feature below and the RC -> stable tracking issue).
@@ -49,12 +48,16 @@ image = { workspace = true, features = [] }
 
 [features]
 default = [
-    # FIXME: bevy defaults to x11 so we do.. but that seems oldschool?
-    # We should use wayland instead no?
+    "jpeg",
+    "multi_threaded",
+    "notosans",
+    "png",
+    "system_font_discovery",
+    # Both Linux window backends, matching bevy's defaults - the appropriate
+    # one is selected at runtime.
+    "wayland",
     "x11",
     "webgl2",
-    "notosans",
-    "system_font_discovery",
 ]
 config_json = ["bevy_common_assets/json"]
 config_toml = ["bevy_common_assets/toml"]
@@ -74,6 +77,42 @@ notosans = ["nannou_draw/notosans"]
 system_font_discovery = ["nannou_draw/system_font_discovery"]
 serde = ["dep:serde", "toml", "serde_json", "nannou_core/serde"]
 video = ["nannou_video"]
+
+# The features below re-expose bevy features so that they can be controlled
+# from a `nannou` dependency alone. Any other bevy feature can be enabled by
+# depending on `bevy` directly - cargo features are additive across the graph.
+
+# Run bevy's task pools across multiple threads. Native only - wasm builds
+# are always single-threaded.
+multi_threaded = ["bevy/multi_threaded"]
+
+# Tracing spans for profiling, e.g. `trace_tracy` for the Tracy profiler.
+trace = ["bevy/trace"]
+trace_chrome = ["bevy/trace_chrome"]
+trace_tracy = ["bevy/trace_tracy"]
+
+# Linux window backends.
 wayland = ["bevy/wayland"]
-webgl2 = ["bevy/webgl2"]
 x11 = ["bevy/x11"]
+
+# Fall back to WebGL2 on wasm when WebGPU is unavailable.
+webgl2 = ["bevy/webgl2"]
+
+# Image formats supported when loading textures via the asset server,
+# e.g. `app.asset_server().load("texture.png")`.
+basis-universal = ["bevy/basis-universal"]
+bmp = ["bevy/bmp"]
+dds = ["bevy/dds"]
+exr = ["bevy/exr"]
+ff = ["bevy/ff"]
+gif = ["bevy/gif"]
+hdr = ["bevy/hdr"]
+ico = ["bevy/ico"]
+jpeg = ["bevy/jpeg"]
+ktx2 = ["bevy/ktx2"]
+png = ["bevy/png"]
+pnm = ["bevy/pnm"]
+qoi = ["bevy/qoi"]
+tga = ["bevy/tga"]
+tiff = ["bevy/tiff"]
+webp = ["bevy/webp"]

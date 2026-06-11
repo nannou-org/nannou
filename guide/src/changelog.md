@@ -95,6 +95,24 @@ ECS, renderer, asset system and plugins) is now available to nannou apps.
   `wgpu` `29`.
 - Crates now use the Rust 2024 edition and require a recent stable toolchain.
 
+### Cargo features
+
+Each nannou crate now enables only the bevy features it needs, and `nannou`
+re-exposes the commonly useful ones so they can be controlled from a `nannou`
+dependency alone ([#997](https://github.com/nannou-org/nannou/issues/997)):
+
+- Image formats for asset loading are now cargo features (`png`, `jpeg`, `hdr`,
+  `exr`, `gif`, `webp`, `tiff` and friends), with `png` and `jpeg` enabled by
+  default. Previously only JPEG textures could be loaded.
+- `multi_threaded` (enabled by default) runs bevy's task pools across multiple
+  threads; previously nannou apps ran single-threaded unless `hot_reload` was
+  enabled. Disable default features to opt out.
+- Both Linux window backends (`x11` and `wayland`) are now enabled by default,
+  matching bevy - the appropriate one is selected at runtime.
+- `trace`, `trace_chrome` and `trace_tracy` are re-exposed for profiling.
+- Any other bevy feature can still be enabled by adding a direct `bevy`
+  dependency, as cargo features are additive across the dependency graph.
+
 ### Migration notes
 
 For existing nannou `0.19` projects, the most common changes are:

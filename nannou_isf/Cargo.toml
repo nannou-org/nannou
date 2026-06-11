@@ -7,7 +7,14 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
-bevy = { workspace = true, features = ["shader_format_glsl"] }
+bevy = { workspace = true, features = [
+    "bevy_asset",
+    "bevy_core_pipeline",
+    "bevy_log",
+    "bevy_render",
+    "bevy_window",
+    "shader_format_glsl",
+] }
 # TODO: waiting on bevy 0.19 support
 #bevy-inspector-egui = { workspace = true }
 isf.workspace = true
