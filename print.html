@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-744b2a6b.js";
+            window.path_to_searchindex_js = "searchindex-acf3af26.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-ff7df133.js"></script>
@@ -2066,6 +2066,9 @@ fn view(_app: &amp;App, _model: &amp;Model) {
 </span><span class="boring">fn view(_app: &amp;App, _model: &amp;Model) {
 </span><span class="boring">}</span></code></pre>
 <p>Next, we’ll need to load an image to initialize the struct with. We can accomplish this by asking Bevy’s asset server to load an image file after we create the window in our <code>model</code> function, via the app’s <a href="https://docs.rs/nannou/latest/nannou/app/struct.App.html#method.asset_server"><code>asset_server()</code></a> method. The asset server looks for files within the project’s <code>assets</code> directory, so we only need to spell out the image path from the root of that directory. Loading happens in the background, and the returned <code>Handle</code> can be drawn as soon as the asset is ready.</p>
+<p>PNG and JPEG images are supported by default; further formats (e.g. <code>hdr</code>,
+<code>exr</code>, <code>gif</code>, <code>webp</code>, <code>tiff</code>) can be enabled via the cargo feature of the same
+name on the <code>nannou</code> crate.</p>
 <pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables, dead_code)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">struct Model {
@@ -2779,6 +2782,23 @@ are removed; builder methods now mutate the stored primitive in place.</li>
 <li>Built on Bevy <code>0.19</code> (currently tracking the <code>0.19</code> release candidates) and
 <code>wgpu</code> <code>29</code>.</li>
 <li>Crates now use the Rust 2024 edition and require a recent stable toolchain.</li>
+</ul>
+<h3 id="cargo-features"><a class="header" href="#cargo-features">Cargo features</a></h3>
+<p>Each nannou crate now enables only the bevy features it needs, and <code>nannou</code>
+re-exposes the commonly useful ones so they can be controlled from a <code>nannou</code>
+dependency alone (<a href="https://github.com/nannou-org/nannou/issues/997">#997</a>):</p>
+<ul>
+<li>Image formats for asset loading are now cargo features (<code>png</code>, <code>jpeg</code>, <code>hdr</code>,
+<code>exr</code>, <code>gif</code>, <code>webp</code>, <code>tiff</code> and friends), with <code>png</code> and <code>jpeg</code> enabled by
+default. Previously only JPEG textures could be loaded.</li>
+<li><code>multi_threaded</code> (enabled by default) runs bevy’s task pools across multiple
+threads; previously nannou apps ran single-threaded unless <code>hot_reload</code> was
+enabled. Disable default features to opt out.</li>
+<li>Both Linux window backends (<code>x11</code> and <code>wayland</code>) are now enabled by default,
+matching bevy - the appropriate one is selected at runtime.</li>
+<li><code>trace</code>, <code>trace_chrome</code> and <code>trace_tracy</code> are re-exposed for profiling.</li>
+<li>Any other bevy feature can still be enabled by adding a direct <code>bevy</code>
+dependency, as cargo features are additive across the dependency graph.</li>
 </ul>
 <h3 id="migration-notes"><a class="header" href="#migration-notes">Migration notes</a></h3>
 <p>For existing nannou <code>0.19</code> projects, the most common changes are:</p>

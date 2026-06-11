@@ -35,7 +35,7 @@
             const path_to_root = "../../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../../searchindex-744b2a6b.js";
+            window.path_to_searchindex_js = "../../searchindex-acf3af26.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../../toc-ff7df133.js"></script>
@@ -240,6 +240,9 @@ fn view(_app: &amp;App, _model: &amp;Model) {
 </span><span class="boring">fn view(_app: &amp;App, _model: &amp;Model) {
 </span><span class="boring">}</span></code></pre>
 <p>Next, we’ll need to load an image to initialize the struct with. We can accomplish this by asking Bevy’s asset server to load an image file after we create the window in our <code>model</code> function, via the app’s <a href="https://docs.rs/nannou/latest/nannou/app/struct.App.html#method.asset_server"><code>asset_server()</code></a> method. The asset server looks for files within the project’s <code>assets</code> directory, so we only need to spell out the image path from the root of that directory. Loading happens in the background, and the returned <code>Handle</code> can be drawn as soon as the asset is ready.</p>
+<p>PNG and JPEG images are supported by default; further formats (e.g. <code>hdr</code>,
+<code>exr</code>, <code>gif</code>, <code>webp</code>, <code>tiff</code>) can be enabled via the cargo feature of the same
+name on the <code>nannou</code> crate.</p>
 <pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unreachable_code, unused_variables, dead_code)]
 </span><span class="boring">use nannou::prelude::*;
 </span><span class="boring">struct Model {
