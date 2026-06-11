@@ -79,6 +79,13 @@ pub trait ShaderModel:
         ShaderRef::Default
     }
 
+    /// Set the model's primary texture, e.g. as provided via draw API methods like
+    /// `draw.mesh().points_textured(..)`.
+    ///
+    /// The default implementation ignores the texture; models with a texture slot (like
+    /// [`NannouShaderModel`]) bind it for sampling in their fragment shader.
+    fn set_texture(&mut self, _texture: Handle<Image>) {}
+
     /// Specializes the render pipeline descriptor for this shader model.
     fn specialize(
         _pipeline: &ShaderModelPipeline<Self>,
@@ -576,6 +583,10 @@ where
 }
 
 impl ShaderModel for NannouShaderModel {
+    fn set_texture(&mut self, texture: Handle<Image>) {
+        self.texture = Some(texture);
+    }
+
     fn specialize(
         _pipeline: &ShaderModelPipeline<Self>,
         descriptor: &mut RenderPipelineDescriptor,
