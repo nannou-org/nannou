@@ -1,3 +1,5 @@
+use core::hash::BuildHasher;
+
 use crate::draw::drawing::DrawingContext;
 use crate::draw::mesh::MeshExt;
 use crate::draw::primitive::Primitive;
@@ -6,8 +8,13 @@ use crate::draw::properties::{SetColor, SetDimensions, SetOrientation, SetPositi
 use crate::draw::{self, Drawing};
 use crate::render::ShaderModel;
 use crate::text::{self, Align, FontSize, Justify, Layout, Scalar, Wrap};
+use bevy::platform::hash::FixedHasher;
 use bevy::prelude::*;
-use lyon::tessellation::{BuffersBuilder, FillOptions, VertexBuffers};
+use bevy::text::{
+    FontAtlasKey, FontAtlasSet, FontHinting, FontSmoothing, GlyphCacheKey, ScaleCx,
+    add_glyph_to_atlas, get_glyph_atlas_info,
+};
+use swash::FontRef;
 
 /// Properties related to drawing the **Text** primitive.
 #[derive(Clone, Debug)]
@@ -242,21 +249,35 @@ where
     }
 }
 
-impl draw::render::RenderPrimitive for Text {
-    fn render_primitive(self, ctxt: draw::render::RenderContext, mesh: &mut Mesh) {
-        let draw::render::RenderContext {
-            text_buffer,
-            theme,
-            transform,
-            fill_tessellator,
-            output_attachment_size,
-            text_cx,
-            ..
-        } = ctxt;
+/// A run of glyph quads sampling a single font atlas texture.
+pub(crate) struct TextQuadBatch {
+    pub texture: Handle<Image>,
+    pub mesh: Mesh,
+}
 
+impl Text {
+    /// Lay out the text and emit one textured quad per glyph, rasterising glyphs into
+    /// `bevy_text`'s cached font atlases as required.
+    ///
+    /// Glyph positions are computed at physical-pixel resolution (`scale_factor`) so that
+    /// rasterised glyphs map 1:1 to screen pixels, then converted back to logical points.
+    /// A new batch is started whenever consecutive glyphs sample different atlas textures.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn render_atlas_quads(
+        self,
+        text_buffer: &str,
+        theme: &draw::Theme,
+        transform: &Mat4,
+        output_attachment_size: Vec2,
+        scale_factor: f32,
+        text_cx: &crate::text::font::SharedTextCx,
+        font_atlas_set: &mut FontAtlasSet,
+        images: &mut Assets<Image>,
+        scale_cx: &mut ScaleCx,
+    ) -> Vec<TextQuadBatch> {
         let s = &text_buffer[self.text.clone()];
         if s.is_empty() {
-            return;
+            return Vec::new();
         }
 
         let layout_params = self.style.layout.build();
@@ -275,60 +296,163 @@ impl draw::render::RenderPrimitive for Text {
         let rect = nannou_core::geom::Rect::from_x_y_w_h(x, y, w, h);
 
         let mut inner = text_cx.0.lock().unwrap();
-        let text_obj = text::Text::layout_with_inner(&mut inner, s, &layout_params, rect);
+        let text_obj =
+            text::Text::layout_with_inner(&mut inner, s, &layout_params, rect, scale_factor);
         drop(inner);
 
         let default_color = self
             .style
             .color
             .unwrap_or_else(|| theme.fill(&draw::theme::Primitive::Text));
+        let glyph_colors = &self.style.glyph_colors;
 
         let rect_center = Vec2::new(x, y);
         let pos_offset = text_obj.position_offset_value() + rect_center;
 
-        let glyph_colors = &self.style.glyph_colors;
-        let per_glyph = text::glyph::per_glyph_path_events(text_obj.parley_layout(), pos_offset);
+        // Rasterise with bevy's defaults so atlas entries are shared with bevy UI text.
+        let font_smoothing = FontSmoothing::AntiAliased;
+        let hinting = FontHinting::default();
 
-        for (i, glyph_events) in per_glyph.iter().enumerate() {
-            if glyph_events.is_empty() {
-                continue;
-            }
+        let mut batches: Vec<TextQuadBatch> = Vec::new();
+        // Counts every positioned glyph (rendered or not) so `glyph_colors` indices
+        // are stable regardless of which glyphs make it into an atlas.
+        let mut glyph_index = 0;
 
-            let color = glyph_colors.get(i).copied().unwrap_or(default_color);
-            let color_arr: [f32; 4] = LinearRgba::from(color).to_f32_array();
+        for line in text_obj.parley_layout().lines() {
+            for item in line.items() {
+                let parley::PositionedLayoutItem::GlyphRun(glyph_run) = item else {
+                    continue;
+                };
 
-            let mut buffers: VertexBuffers<[f32; 3], u32> = VertexBuffers::new();
-            {
-                let mut builder =
-                    BuffersBuilder::new(&mut buffers, |vertex: lyon::tessellation::FillVertex| {
-                        let p = vertex.position();
-                        let transformed = *transform * Vec4::new(p.x, p.y, 0.0, 1.0);
-                        [transformed.x, transformed.y, transformed.z]
-                    });
+                let run = glyph_run.run();
+                let font = run.font();
+                let font_size = run.font_size();
+                let coords = run.normalized_coords();
+                let font_atlas_key = FontAtlasKey {
+                    id: font.data.id() as u32,
+                    index: font.index,
+                    font_size_bits: font_size.to_bits(),
+                    variations_hash: FixedHasher.hash_one(coords),
+                    hinting,
+                    font_smoothing,
+                };
 
-                let _ = fill_tessellator.tessellate(
-                    glyph_events.iter().copied(),
-                    &FillOptions::default(),
-                    &mut builder,
-                );
-            }
+                let Some(font_ref) = FontRef::from_index(font.data.as_ref(), font.index as usize)
+                else {
+                    glyph_index += glyph_run.positioned_glyphs().count();
+                    continue;
+                };
 
-            if buffers.vertices.is_empty() {
-                continue;
-            }
+                let hint = hinting.is_enabled() && font_smoothing == FontSmoothing::AntiAliased;
+                let mut scaler = scale_cx
+                    .0
+                    .builder(font_ref)
+                    .size(font_size)
+                    .hint(hint)
+                    .normalized_coords(coords)
+                    .build();
 
-            let base_idx = mesh.points().len() as u32;
-            mesh.points_mut().extend(buffers.vertices.iter());
-            mesh.normals_mut()
-                .extend(std::iter::repeat_n([0.0, 0.0, 1.0], buffers.vertices.len()));
-            mesh.colors_mut()
-                .extend(std::iter::repeat_n(color_arr, buffers.vertices.len()));
-            mesh.tex_coords_mut()
-                .extend(std::iter::repeat_n([0.0, 0.0], buffers.vertices.len()));
-            for idx in &buffers.indices {
-                mesh.push_index(idx + base_idx);
+                for glyph in glyph_run.positioned_glyphs() {
+                    let i = glyph_index;
+                    glyph_index += 1;
+
+                    let Ok(glyph_id) = u16::try_from(glyph.id) else {
+                        continue;
+                    };
+
+                    let font_atlases = font_atlas_set.entry(font_atlas_key).or_default();
+                    let atlas_info = get_glyph_atlas_info(font_atlases, GlyphCacheKey { glyph_id })
+                        .map(Ok)
+                        .unwrap_or_else(|| {
+                            add_glyph_to_atlas(
+                                font_atlases,
+                                images,
+                                &mut scaler,
+                                font_smoothing,
+                                glyph_id,
+                            )
+                        });
+                    let Ok(atlas_info) = atlas_info else {
+                        continue;
+                    };
+
+                    let size = atlas_info.rect.size();
+                    if size.x <= 0.0 || size.y <= 0.0 {
+                        continue;
+                    }
+
+                    let Some(atlas) = font_atlases
+                        .iter()
+                        .find(|atlas| atlas.texture.id() == atlas_info.texture)
+                    else {
+                        continue;
+                    };
+
+                    // Glyph centre in parley's y-down physical-pixel layout space,
+                    // converted to nannou's y-up logical points.
+                    let centre = size / 2.0 + Vec2::new(glyph.x, glyph.y) + atlas_info.offset;
+                    let cx = pos_offset.x + centre.x / scale_factor;
+                    let cy = pos_offset.y - centre.y / scale_factor;
+                    let hw = size.x / (2.0 * scale_factor);
+                    let hh = size.y / (2.0 * scale_factor);
+
+                    // Monochrome glyphs are white-on-alpha in the atlas and tinted by
+                    // vertex colour; colour glyphs (e.g. emoji) are sampled as-is.
+                    let color = if atlas_info.is_alpha_mask {
+                        glyph_colors.get(i).copied().unwrap_or(default_color)
+                    } else {
+                        Color::WHITE
+                    };
+                    let color_arr: [f32; 4] = LinearRgba::from(color).to_f32_array();
+
+                    // UVs over the atlas; the image's y-down texel space performs the
+                    // vertical flip relative to the y-up quad corners.
+                    let atlas_size = atlas.texture_atlas.size.as_vec2();
+                    let (uv_l, uv_r) = (
+                        atlas_info.rect.min.x / atlas_size.x,
+                        atlas_info.rect.max.x / atlas_size.x,
+                    );
+                    let (uv_t, uv_b) = (
+                        atlas_info.rect.min.y / atlas_size.y,
+                        atlas_info.rect.max.y / atlas_size.y,
+                    );
+
+                    let batch = match batches.last_mut() {
+                        Some(batch) if batch.texture.id() == atlas_info.texture => batch,
+                        _ => {
+                            batches.push(TextQuadBatch {
+                                texture: atlas.texture.clone(),
+                                mesh: Mesh::init(),
+                            });
+                            batches.last_mut().unwrap()
+                        }
+                    };
+
+                    let mesh = &mut batch.mesh;
+                    let base = mesh.points().len() as u32;
+                    // Corners ordered top-left, top-right, bottom-right, bottom-left.
+                    let corners = [
+                        (cx - hw, cy + hh, uv_l, uv_t),
+                        (cx + hw, cy + hh, uv_r, uv_t),
+                        (cx + hw, cy - hh, uv_r, uv_b),
+                        (cx - hw, cy - hh, uv_l, uv_b),
+                    ];
+                    for (px, py, u, v) in corners {
+                        let p = *transform * Vec4::new(px, py, 0.0, 1.0);
+                        mesh.points_mut().push([p.x, p.y, p.z]);
+                        mesh.colors_mut().push(color_arr);
+                        mesh.tex_coords_mut().push([u, v]);
+                        mesh.normals_mut().push([0.0, 0.0, 1.0]);
+                    }
+                    // Two triangles wound counter-clockwise in y-up space.
+                    for idx in [0, 3, 2, 0, 2, 1] {
+                        mesh.push_index(base + idx);
+                    }
+                }
             }
         }
+
+        batches
     }
 }
 

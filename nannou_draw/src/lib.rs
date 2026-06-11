@@ -26,10 +26,13 @@ pub struct NannouDrawPlugin;
 
 impl Plugin for NannouDrawPlugin {
     fn build(&self, app: &mut App) {
+        // Text rendering rasterises glyphs via `bevy_text`'s atlas machinery.
+        if !app.is_plugin_added::<bevy::text::TextPlugin>() {
+            app.add_plugins(bevy::text::TextPlugin);
+        }
+        text::font::init_shared_text_cx(app);
         app.add_plugins(NannouRenderPlugin)
-            .init_resource::<SharedTextCx>()
-            .add_systems(First, (spawn_draw, reset_draw).chain())
-            .add_systems(PostUpdate, text::font::sync_bevy_fonts_to_nannou);
+            .add_systems(First, (spawn_draw, reset_draw).chain());
     }
 }
 

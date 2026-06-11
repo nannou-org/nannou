@@ -53,6 +53,8 @@ default = [
     # We should use wayland instead no?
     "x11",
     "webgl2",
+    "notosans",
+    "system_font_discovery",
 ]
 config_json = ["bevy_common_assets/json"]
 config_toml = ["bevy_common_assets/toml"]
@@ -64,6 +66,12 @@ egui = ["dep:bevy_egui", "bevy_egui/immutable_ctx"]
 hot_reload = ["bevy/file_watcher", "bevy/multi_threaded"]
 isf = ["nannou_isf"]
 nightly = ["nannou_draw/nightly"]
+# Bundle Noto Sans as the default font, for deterministic rendering across
+# machines regardless of installed system fonts.
+notosans = ["nannou_draw/notosans"]
+# Discover fonts installed on the system, making them available to
+# `draw.text().font(..)` by family name.
+system_font_discovery = ["nannou_draw/system_font_discovery"]
 serde = ["dep:serde", "toml", "serde_json", "nannou_core/serde"]
 video = ["nannou_video"]
 wayland = ["bevy/wayland"]

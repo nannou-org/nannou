@@ -3,7 +3,6 @@ use lyon::path::PathEvent;
 use lyon::tessellation::{FillTessellator, StrokeTessellator};
 
 use crate::draw;
-use crate::text::font::SharedTextCx;
 
 /// Draw API primitives that may be rendered via the **Renderer** type.
 pub trait RenderPrimitive {
@@ -23,7 +22,6 @@ pub struct RenderContext<'a> {
     pub stroke_tessellator: &'a mut StrokeTessellator,
     pub output_attachment_size: Vec2, // logical coords
     pub output_attachment_scale_factor: f32,
-    pub text_cx: &'a SharedTextCx,
 }
 
 /// The position and dimensions of the scissor.
@@ -48,7 +46,10 @@ impl RenderPrimitive for draw::Primitive {
             draw::Primitive::Quad(prim) => prim.render_primitive(ctxt, mesh),
             draw::Primitive::Rect(prim) => prim.render_primitive(ctxt, mesh),
             draw::Primitive::Line(prim) => prim.render_primitive(ctxt, mesh),
-            draw::Primitive::Text(prim) => prim.render_primitive(ctxt, mesh),
+            // `Text` is handled by the renderer directly (it renders as quads
+            // textured by the glyph atlas rather than into the shared mesh), so it
+            // falls through to the catch-all here, e.g. for instanced/indirect
+            // commands where atlas-textured text is not supported.
             _ => {}
         }
     }

@@ -2,11 +2,8 @@
 
 use std::sync::{Arc, Mutex};
 
-use bevy::asset::{AssetEvent, Assets};
-use bevy::ecs::message::MessageReader;
 use bevy::prelude::*;
-use parley::FontContext;
-use parley::LayoutContext;
+use parley::{FontContext, LayoutContext};
 
 /// Font database and layout scratch space.
 pub struct NannouTextCxInner {
@@ -18,41 +15,35 @@ pub struct NannouTextCxInner {
 #[derive(Resource, Clone)]
 pub struct SharedTextCx(pub Arc<Mutex<NannouTextCxInner>>);
 
-impl Default for SharedTextCx {
-    fn default() -> Self {
-        let font = FontContext::new();
-        let inner = NannouTextCxInner {
-            font,
-            layout: LayoutContext::new(),
-        };
-        let cx = SharedTextCx(Arc::new(Mutex::new(inner)));
-        #[cfg(feature = "notosans")]
-        {
-            cx.0.lock()
-                .unwrap()
-                .font
-                .collection
-                .register_fonts(notosans::REGULAR_TTF.to_vec().into(), None);
-        }
-        cx
-    }
-}
+/// Initialise the font database shared between the bevy and nannou text contexts.
+///
+/// The same fontique collection backs both bevy's [`bevy::text::FontCx`] (kept in sync with
+/// `Assets<Font>` by bevy's `load_font_assets_into_font_collection` system) and nannou's
+/// [`SharedTextCx`] (used by the `Draw` and `App` text APIs): the collection is made shared
+/// before cloning so that fonts registered through either context are visible to both.
+pub(crate) fn init_shared_text_cx(app: &mut App) {
+    let mut font = FontContext::default();
+    font.collection.make_shared();
 
-/// Sync bevy font assets into our font collection.
-pub fn sync_bevy_fonts_to_nannou(
-    text_cx: Res<SharedTextCx>,
-    mut events: MessageReader<AssetEvent<bevy::text::Font>>,
-    fonts: Res<Assets<bevy::text::Font>>,
-) {
-    for event in events.read() {
-        if let AssetEvent::Added { id } | AssetEvent::Modified { id } = event {
-            if let Some(font) = fonts.get(*id) {
-                let mut inner = text_cx.0.lock().unwrap();
-                inner
-                    .font
-                    .collection
-                    .register_fonts(font.data.clone(), None);
-            }
+    #[cfg(feature = "notosans")]
+    {
+        let registered = font
+            .collection
+            .register_fonts(notosans::REGULAR_TTF.to_vec().into(), None);
+        // Map the generic sans-serif family (parley's default) to the bundled Noto
+        // Sans so that default text renders identically regardless of system fonts.
+        if let Some((family_id, _)) = registered.first() {
+            font.collection.set_generic_families(
+                parley::GenericFamily::SansSerif,
+                std::iter::once(*family_id),
+            );
         }
     }
+
+    app.insert_resource(bevy::text::FontCx(font.clone()));
+    let inner = NannouTextCxInner {
+        font,
+        layout: LayoutContext::new(),
+    };
+    app.insert_resource(SharedTextCx(Arc::new(Mutex::new(inner))));
 }
