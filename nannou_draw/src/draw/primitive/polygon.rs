@@ -2,13 +2,12 @@ use bevy::prelude::*;
 use lyon::path::PathEvent;
 use lyon::tessellation::StrokeOptions;
 
-use crate::draw::drawing::DrawingContext;
+use crate::draw::drawing::{self, DrawingContext};
 use crate::draw::primitive::Primitive;
 use crate::draw::primitive::path::{self, PathEventSource};
 use crate::draw::properties::spatial::{orientation, position};
 use crate::draw::properties::{SetColor, SetOrientation, SetPosition, SetStroke};
 use crate::draw::{self, Drawing};
-use crate::render::ShaderModel;
 
 /// A trait implemented for all polygon draw primitives.
 pub trait SetPolygon: Sized {
@@ -65,10 +64,10 @@ pub struct Polygon {
 }
 
 /// Initialised drawing state for a polygon.
-pub type DrawingPolygonInit<'a, SM> = Drawing<'a, PolygonInit, SM>;
+pub type DrawingPolygonInit<'a> = Drawing<'a, PolygonInit>;
 
 /// Initialised drawing state for a polygon.
-pub type DrawingPolygon<'a, SM> = Drawing<'a, Polygon, SM>;
+pub type DrawingPolygon<'a> = Drawing<'a, Polygon>;
 
 impl PolygonInit {
     /// Stroke the outline with the given color.
@@ -417,15 +416,14 @@ impl draw::render::RenderPrimitive for Polygon {
     }
 }
 
-impl<'a, T, SM> Drawing<'a, T, SM>
+impl<'a, T> Drawing<'a, T>
 where
-    T: SetPolygon + Into<Primitive> + Clone,
-    SM: ShaderModel + Default,
-    Primitive: Into<Option<T>>,
+    T: SetPolygon,
 {
     /// Specify no fill color and in turn no fill tessellation for the polygon.
     pub fn no_fill(self) -> Self {
-        self.map_ty(|ty| ty.no_fill())
+        set_polygon(&self.draw, self.index, Update::NoFill);
+        self
     }
 
     /// Specify a color to use for stroke tessellation.
@@ -436,64 +434,73 @@ where
     where
         C: Into<Color>,
     {
-        self.map_ty(|ty| ty.stroke_color(color))
+        set_polygon(&self.draw, self.index, Update::StrokeColor(color.into()));
+        self
     }
 
     /// Specify the whole set of polygon options.
     pub fn polygon_options(self, opts: PolygonOptions) -> Self {
-        self.map_ty(|ty| ty.polygon_options(opts))
+        set_polygon(&self.draw, self.index, Update::Opts(opts));
+        self
     }
 }
 
-impl<'a, SM> DrawingPolygonInit<'a, SM>
-where
-    SM: ShaderModel + Default,
-{
+impl<'a> DrawingPolygonInit<'a> {
     /// Stroke the outline with the given color.
     pub fn stroke<C>(self, color: C) -> Self
     where
         C: Into<Color>,
     {
-        self.map_ty(|ty| ty.stroke(color))
+        self.stroke_color(color)
     }
 
     /// Describe the polygon with a sequence of path events.
-    pub fn events<I>(self, events: I) -> DrawingPolygon<'a, SM>
+    pub fn events<I>(self, events: I) -> DrawingPolygon<'a>
     where
         I: IntoIterator<Item = PathEvent>,
     {
-        self.map_ty_with_context(|ty, ctxt| ty.events(ctxt, events))
+        let mut events = events.into_iter();
+        polygon_events(&self.draw, self.index, &mut events);
+        self.transition()
     }
 
     /// Describe the polygon with a sequence of points.
-    pub fn points<I>(self, points: I) -> DrawingPolygon<'a, SM>
+    pub fn points<I>(self, points: I) -> DrawingPolygon<'a>
     where
         I: IntoIterator,
         I::Item: Into<Vec2>,
     {
-        self.map_ty_with_context(|ty, ctxt| ty.points(ctxt, points))
+        let mut points = points.into_iter().map(Into::into);
+        polygon_points(&self.draw, self.index, &mut points);
+        self.transition()
     }
 
-    pub fn points_colored<I, P, C>(self, points: I) -> DrawingPolygon<'a, SM>
+    pub fn points_colored<I, P, C>(self, points: I) -> DrawingPolygon<'a>
     where
         I: IntoIterator<Item = (P, C)>,
         P: Into<Vec2>,
         C: Into<Color>,
     {
-        self.map_ty_with_context(|ty, ctxt| {
-            ty.points_vertex(ctxt, points.into_iter().map(|(p, c)| (p, c, Vec2::ZERO)))
-        })
+        let mut points = points
+            .into_iter()
+            .map(|(p, c)| (p.into(), c.into(), Vec2::ZERO));
+        polygon_points_vertex(&self.draw, self.index, &mut points);
+        self.transition()
     }
 
     /// Consumes an iterator of points and converts them to an iterator yielding path events.
-    pub fn points_vertex<I, P, C, U>(self, points: I) -> DrawingPolygon<'a, SM>
+    pub fn points_vertex<I, P, C, U>(self, points: I) -> DrawingPolygon<'a>
     where
         I: IntoIterator<Item = (P, C, U)>,
         P: Into<Vec2>,
         C: Into<Color>,
         U: Into<Vec2>,
     {
-        self.map_ty_with_context(|ty, ctxt| ty.points_vertex(ctxt, points))
+        let mut points = points
+            .into_iter()
+            .map(|(p, c, u)| (p.into(), c.into(), u.into()));
+        polygon_points_vertex(&self.draw, self.index, &mut points);
+        self.transition()
     }
 }
 
@@ -563,20 +570,59 @@ impl From<Polygon> for Primitive {
     }
 }
 
-impl Into<Option<PolygonInit>> for Primitive {
-    fn into(self) -> Option<PolygonInit> {
-        match self {
-            Primitive::PolygonInit(prim) => Some(prim),
-            _ => None,
-        }
-    }
+// An update to a primitive's polygon options.
+pub(crate) enum Update {
+    NoFill,
+    StrokeColor(Color),
+    Opts(PolygonOptions),
 }
 
-impl Into<Option<Polygon>> for Primitive {
-    fn into(self) -> Option<Polygon> {
-        match self {
-            Primitive::Polygon(prim) => Some(prim),
-            _ => None,
+// Update the polygon options of the primitive being drawn at `index`.
+pub(crate) fn set_polygon(draw: &draw::Draw, index: usize, update: Update) {
+    drawing::with_primitive(draw, index, |prim| match prim.polygon_options_mut() {
+        Some(opts) => match update {
+            Update::NoFill => opts.no_fill = true,
+            Update::StrokeColor(color) => opts.stroke_color = Some(color),
+            Update::Opts(new) => *opts = new,
+        },
+        None => bevy::log::warn_once!("drawing primitive does not support `polygon` options"),
+    })
+}
+
+// Submit the polygon's path events, transitioning the primitive from `PolygonInit` to `Polygon`.
+fn polygon_events(draw: &draw::Draw, index: usize, events: &mut dyn Iterator<Item = PathEvent>) {
+    drawing::with_primitive_ctxt(draw, index, |prim, ctxt| match prim {
+        Primitive::PolygonInit(p) => Primitive::Polygon(p.events(ctxt, events)),
+        other => {
+            bevy::log::warn_once!("expected a `PolygonInit` primitive");
+            other
         }
-    }
+    })
+}
+
+// Submit the polygon's points, transitioning the primitive from `PolygonInit` to `Polygon`.
+fn polygon_points(draw: &draw::Draw, index: usize, points: &mut dyn Iterator<Item = Vec2>) {
+    drawing::with_primitive_ctxt(draw, index, |prim, ctxt| match prim {
+        Primitive::PolygonInit(p) => Primitive::Polygon(p.points(ctxt, points)),
+        other => {
+            bevy::log::warn_once!("expected a `PolygonInit` primitive");
+            other
+        }
+    })
+}
+
+// Submit the polygon's vertex points, transitioning the primitive from `PolygonInit` to
+// `Polygon`.
+fn polygon_points_vertex(
+    draw: &draw::Draw,
+    index: usize,
+    points: &mut dyn Iterator<Item = (Vec2, Color, Vec2)>,
+) {
+    drawing::with_primitive_ctxt(draw, index, |prim, ctxt| match prim {
+        Primitive::PolygonInit(p) => Primitive::Polygon(p.points_vertex(ctxt, points)),
+        other => {
+            bevy::log::warn_once!("expected a `PolygonInit` primitive");
+            other
+        }
+    })
 }

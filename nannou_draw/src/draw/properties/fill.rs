@@ -1,5 +1,7 @@
 use lyon::tessellation::FillOptions;
 
+use crate::draw::{Draw, drawing};
+
 /// Nodes that support fill tessellation.
 ///
 /// This trait allows the `Drawing` context to automatically provide an implementation of the
@@ -52,5 +54,32 @@ pub trait SetFill: Sized {
 impl SetFill for Option<FillOptions> {
     fn fill_options_mut(&mut self) -> &mut FillOptions {
         self.get_or_insert_with(Default::default)
+    }
+}
+
+// An update to a primitive's fill tessellation options.
+pub(crate) enum Update {
+    Opts(FillOptions),
+    Tolerance(f32),
+    Rule(lyon::tessellation::FillRule),
+    SweepOrientation(lyon::tessellation::Orientation),
+    HandleIntersections(bool),
+}
+
+// Update the fill options of the primitive being drawn at `index`.
+pub(crate) fn set_fill(draw: &Draw, index: usize, update: Update) {
+    drawing::with_primitive(draw, index, |prim| match prim.fill_options_mut() {
+        Some(opts) => apply_update(opts, update),
+        None => bevy::log::warn_once!("drawing primitive does not support `fill` options"),
+    })
+}
+
+fn apply_update(opts: &mut FillOptions, update: Update) {
+    match update {
+        Update::Opts(new) => *opts = new,
+        Update::Tolerance(tolerance) => opts.tolerance = tolerance,
+        Update::Rule(rule) => opts.fill_rule = rule,
+        Update::SweepOrientation(orientation) => opts.sweep_orientation = orientation,
+        Update::HandleIntersections(handle) => opts.handle_intersections = handle,
     }
 }

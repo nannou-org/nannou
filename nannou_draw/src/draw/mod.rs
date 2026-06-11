@@ -3,8 +3,7 @@
 //! See the [Draw] for more details.
 
 use std::{
-    any::{Any, TypeId},
-    marker::PhantomData,
+    any::TypeId,
     ops::{Deref, Range},
     sync::{Arc, RwLock},
 };
@@ -17,7 +16,7 @@ pub use self::{
 };
 use crate::{
     draw::{indirect::Indirect, instanced::Instanced, mesh::MeshExt},
-    render::{DefaultNannouShaderModel, ShaderModel},
+    render::{DefaultNannouShaderModel, ErasedShaderModel, ShaderModel},
     text::font::SharedTextCx,
 };
 use bevy::{
@@ -58,10 +57,7 @@ pub mod theme;
 /// See the [draw](https://github.com/nannou-org/nannou/blob/master/examples) examples for a
 /// variety of demonstrations of how the [Draw] type can be used!
 #[derive(Component, Clone)]
-pub struct Draw<SM = DefaultNannouShaderModel>
-where
-    SM: ShaderModel + Default,
-{
+pub struct Draw {
     /// The state of the [Draw].
     ///
     /// State is shared between this [Draw] instance and all other [Draw] instances that were
@@ -75,30 +71,22 @@ where
     /// The current context of this [Draw] instance.
     context: DrawContext,
     /// The current type erased shader model of this [Draw] instance.
-    shader_model: UntypedAssetId,
+    pub(crate) shader_model: UntypedAssetId,
     /// The window to which this [Draw] instance is associated.
     pub(crate) window: Entity,
     /// Shared text context.
     pub(crate) text_cx: SharedTextCx,
-    /// The type of shader model used by this [Draw] instance.
-    _shader_model: PhantomData<SM>,
 }
 
 /// A reference to a [Draw] instance that is either borrowed or owned.
 #[derive(Clone)]
-pub enum DrawRef<'a, SM>
-where
-    SM: ShaderModel + Default,
-{
-    Borrowed(&'a Draw<SM>),
-    Owned(Draw<SM>),
+pub enum DrawRef<'a> {
+    Borrowed(&'a Draw),
+    Owned(Draw),
 }
 
-impl<'a, SM> Deref for DrawRef<'a, SM>
-where
-    SM: ShaderModel + Default,
-{
-    type Target = Draw<SM>;
+impl<'a> Deref for DrawRef<'a> {
+    type Target = Draw;
 
     fn deref(&self) -> &Self::Target {
         match self {
@@ -160,7 +148,7 @@ pub struct State {
     /// Keys are indices into the `draw_commands` Vec.
     drawing: HashMap<usize, Primitive>,
     /// A map of all type erased shader models used by the draw.
-    pub(crate) shader_models: HashMap<UntypedAssetId, Box<dyn Any + Send + Sync>>,
+    pub(crate) shader_models: HashMap<UntypedAssetId, Box<dyn ErasedShaderModel>>,
     /// A list of indices of primitives that are being drawn via an alternate method and
     /// should not be drawn
     ignored_drawings: HashSet<usize>,
@@ -237,16 +225,13 @@ impl State {
     }
 }
 
-impl<SM> Draw<SM>
-where
-    SM: ShaderModel + Default,
-{
+impl Draw {
     pub fn new(window: Entity, text_cx: SharedTextCx) -> Self {
         let mut state = State::default();
         let context = DrawContext::default();
-        let model = SM::default();
+        let model = DefaultNannouShaderModel::default();
         let model_id = UntypedAssetId::Uuid {
-            type_id: TypeId::of::<SM>(),
+            type_id: TypeId::of::<DefaultNannouShaderModel>(),
             uuid: Uuid::new_v4(),
         };
         state.shader_models.insert(model_id, Box::new(model));
@@ -257,7 +242,6 @@ where
             shader_model: model_id,
             window,
             text_cx,
-            _shader_model: PhantomData,
         }
     }
 
@@ -269,9 +253,9 @@ where
 
     fn insert_default_shader_model(&mut self) {
         let mut state = self.state.write().unwrap();
-        let model = SM::default();
+        let model = DefaultNannouShaderModel::default();
         let model_id = UntypedAssetId::Uuid {
-            type_id: TypeId::of::<SM>(),
+            type_id: TypeId::of::<DefaultNannouShaderModel>(),
             uuid: Uuid::new_v4(),
         };
         state.shader_models.insert(model_id, Box::new(model));
@@ -468,7 +452,7 @@ where
     }
 
     /// Produce a new [Draw] instance with the given context.
-    fn context(&self, context: DrawContext) -> Draw<SM> {
+    fn context(&self, context: DrawContext) -> Draw {
         let state = self.state.clone();
         let shader_model = self.shader_model.clone();
         let window = self.window;
@@ -479,21 +463,23 @@ where
             shader_model,
             window,
             text_cx,
-            _shader_model: PhantomData,
         }
     }
 
-    fn clone_shader_model(&self) -> SM {
-        let mut state = self.state.write().unwrap();
-        let shader_model = state.shader_models.get_mut(&self.shader_model).unwrap();
+    /// Clone the active shader model if it is the default nannou shader model.
+    ///
+    /// Returns `None` if a custom shader model type is active.
+    fn clone_default_shader_model(&self) -> Option<DefaultNannouShaderModel> {
+        let state = self.state.read().unwrap();
+        let shader_model = state.shader_models.get(&self.shader_model)?;
         shader_model
-            .downcast_ref::<SM>()
-            .expect("Expected shader model to be of the correct type")
-            .clone()
+            .as_any()
+            .downcast_ref::<DefaultNannouShaderModel>()
+            .cloned()
     }
 
-    /// Produce a new [Draw] instance with a new shader model type.
-    pub fn shader_model<SM2: ShaderModel + Default>(&self, model: SM2) -> Draw<SM2> {
+    /// Produce a new [Draw] instance that will draw with the given shader model.
+    pub fn shader_model<SM: ShaderModel>(&self, model: SM) -> Draw {
         let context = self.context.clone();
         let DrawContext { transform, .. } = context;
         let context = DrawContext { transform };
@@ -501,7 +487,7 @@ where
         let window = self.window;
         let text_cx = self.text_cx.clone();
         let model_id = UntypedAssetId::Uuid {
-            type_id: TypeId::of::<SM2>(),
+            type_id: TypeId::of::<SM>(),
             uuid: Uuid::new_v4(),
         };
 
@@ -517,118 +503,119 @@ where
             shader_model: model_id,
             window,
             text_cx,
-            _shader_model: PhantomData,
         }
     }
 
     // Primitives.
 
     /// Specify a color with which the background should be cleared.
-    pub fn background<'a>(&'a self) -> Background<'a, SM> {
+    pub fn background<'a>(&'a self) -> Background<'a> {
         background::new(self)
     }
 
     /// Draw an instanced drawing
-    pub fn instanced<'a>(&'a self) -> Instanced<'a, SM> {
+    pub fn instanced<'a>(&'a self) -> Instanced<'a> {
         instanced::new(self)
     }
 
-    pub fn indirect<'a>(&'a self) -> Indirect<'a, SM> {
+    pub fn indirect<'a>(&'a self) -> Indirect<'a> {
         indirect::new(self)
     }
 
     /// Add the given type to be drawn.
-    pub fn a<T>(&self, primitive: T) -> Drawing<'_, T, SM>
+    pub fn a<T>(&self, primitive: T) -> Drawing<'_, T>
     where
         T: Into<Primitive>,
-        Primitive: Into<Option<T>>,
     {
-        let (index, model_index) = {
-            let mut state = self.state.write().unwrap();
-            // If drawing with a different context, insert the necessary command to update it.
-            if state.last_draw_context.as_ref() != Some(&self.context) {
-                state
-                    .draw_commands
-                    .push(Some(DrawCommand::Context(self.context.clone())));
-                state.last_draw_context = Some(self.context.clone());
-            }
-
-            let id = &self.shader_model;
-            if state.last_shader_model.as_ref() != Some(id) {
-                state
-                    .draw_commands
-                    .push(Some(DrawCommand::ShaderModel(id.clone())));
-                state.last_shader_model = Some(id.clone());
-            }
-
-            // Insert a model slot to be used if the drawing switches models.
-            let shader_model_index = state.draw_commands.len();
-            state.draw_commands.push(None);
-
-            // The primitive will be inserted in the next element.
-            let index = state.draw_commands.len();
-            let primitive: Primitive = primitive.into();
-            state.draw_commands.push(None);
-            state.drawing.insert(index, primitive);
-            (index, shader_model_index)
-        };
+        let (index, model_index) = self.insert_primitive(primitive.into());
         drawing::new(self, index, model_index)
     }
 
+    // Record the primitive in the draw state, returning the indices of the draw command slots
+    // reserved for the primitive and for a potential shader model change.
+    fn insert_primitive(&self, primitive: Primitive) -> (usize, usize) {
+        let mut state = self.state.write().unwrap();
+        // If drawing with a different context, insert the necessary command to update it.
+        if state.last_draw_context.as_ref() != Some(&self.context) {
+            state
+                .draw_commands
+                .push(Some(DrawCommand::Context(self.context.clone())));
+            state.last_draw_context = Some(self.context.clone());
+        }
+
+        let id = &self.shader_model;
+        if state.last_shader_model.as_ref() != Some(id) {
+            state
+                .draw_commands
+                .push(Some(DrawCommand::ShaderModel(id.clone())));
+            state.last_shader_model = Some(id.clone());
+        }
+
+        // Insert a model slot to be used if the drawing switches models.
+        let shader_model_index = state.draw_commands.len();
+        state.draw_commands.push(None);
+
+        // The primitive will be inserted in the next element.
+        let index = state.draw_commands.len();
+        state.draw_commands.push(None);
+        state.drawing.insert(index, primitive);
+        (index, shader_model_index)
+    }
+
     /// Begin drawing a **Path**.
-    pub fn path(&self) -> Drawing<'_, primitive::PathInit, SM> {
+    pub fn path(&self) -> Drawing<'_, primitive::PathInit> {
         self.a(Default::default())
     }
 
     /// Begin drawing an **Ellipse**.
-    pub fn ellipse(&self) -> Drawing<'_, primitive::Ellipse, SM> {
+    pub fn ellipse(&self) -> Drawing<'_, primitive::Ellipse> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Line**.
-    pub fn line(&self) -> Drawing<'_, primitive::Line, SM> {
+    pub fn line(&self) -> Drawing<'_, primitive::Line> {
         self.a(Default::default())
     }
 
     /// Begin drawing an **Arrow**.
-    pub fn arrow(&self) -> Drawing<'_, primitive::Arrow, SM> {
+    pub fn arrow(&self) -> Drawing<'_, primitive::Arrow> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Quad**.
-    pub fn quad(&self) -> Drawing<'_, primitive::Quad, SM> {
+    pub fn quad(&self) -> Drawing<'_, primitive::Quad> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Rect**.
-    pub fn rect(&self) -> Drawing<'_, primitive::Rect, SM> {
+    pub fn rect(&self) -> Drawing<'_, primitive::Rect> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Triangle**.
-    pub fn tri(&self) -> Drawing<'_, primitive::Tri, SM> {
+    pub fn tri(&self) -> Drawing<'_, primitive::Tri> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Polygon**.
-    pub fn polygon(&self) -> Drawing<'_, primitive::PolygonInit, SM> {
+    pub fn polygon(&self) -> Drawing<'_, primitive::PolygonInit> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Mesh**.
-    pub fn mesh(&self) -> Drawing<'_, primitive::mesh::Vertexless, SM> {
+    pub fn mesh(&self) -> Drawing<'_, primitive::mesh::Vertexless> {
         self.a(Default::default())
     }
 
     /// Begin drawing a **Polyline**.
     ///
     /// Note that this is simply short-hand for `draw.path().stroke()`
-    pub fn polyline(&self) -> Drawing<'_, primitive::PathStroke, SM> {
+    pub fn polyline(&self) -> Drawing<'_, primitive::PathStroke> {
         self.path().stroke()
     }
 
     /// Begin drawing a **Text**.
-    pub fn text(&self, s: &str) -> Drawing<'_, primitive::Text, SM> {
+    pub fn text(&self, s: &str) -> Drawing<'_, primitive::Text> {
         let text = {
             let state = self.state.read().expect("lock poisoned");
             let mut intermediary_state = state.intermediary_state.write().expect("lock poisoned");
@@ -663,29 +650,50 @@ where
         let mut state = self.state.write().unwrap();
         state.finish_remaining_drawings()
     }
-}
 
-impl Draw<DefaultNannouShaderModel> {
+    // Map the default nannou shader model to a new instance, drawing with the result.
+    //
+    // These methods only apply to the default nannou shader model; if a custom shader model is
+    // active, a warning is emitted and the operation is skipped.
+    fn map_default_shader_model<F>(&self, map: F) -> Self
+    where
+        F: FnOnce(&mut DefaultNannouShaderModel),
+    {
+        match self.clone_default_shader_model() {
+            Some(mut model) => {
+                map(&mut model);
+                self.shader_model(model)
+            }
+            None => {
+                bevy::log::warn_once!(
+                    "this operation only applies to the default nannou shader model; \
+                     a custom shader model is active, so it has been skipped"
+                );
+                self.clone()
+            }
+        }
+    }
+
     /// Produce a new [Draw] instance that will draw with the given alpha blend descriptor.
     pub fn alpha_blend(&self, blend_descriptor: wgpu::BlendComponent) -> Self {
         // TODO: check if blend is already set and only update if necessary
-        let mut model = self.clone_shader_model().clone();
-        model.blend = Some(BlendState {
-            color: BlendComponent::REPLACE,
-            alpha: blend_descriptor,
-        });
-        self.shader_model(model)
+        self.map_default_shader_model(|model| {
+            model.blend = Some(BlendState {
+                color: BlendComponent::REPLACE,
+                alpha: blend_descriptor,
+            });
+        })
     }
 
     /// Produce a new [Draw] instance that will draw with the given color blend descriptor.
     pub fn color_blend(&self, blend_descriptor: wgpu::BlendComponent) -> Self {
         // TODO: check if blend is already set and only update if necessary
-        let mut model = self.clone_shader_model().clone();
-        model.blend = Some(BlendState {
-            color: blend_descriptor,
-            alpha: BlendComponent::REPLACE,
-        });
-        self.shader_model(model)
+        self.map_default_shader_model(|model| {
+            model.blend = Some(BlendState {
+                color: blend_descriptor,
+                alpha: BlendComponent::REPLACE,
+            });
+        })
     }
 
     /// Short-hand for `color_blend`, the common use-case.
@@ -695,9 +703,7 @@ impl Draw<DefaultNannouShaderModel> {
 
     /// Produce a new [Draw] instance that will use the given polygon mode.
     pub fn polygon_mode(&self, polygon_mode: wgpu::PolygonMode) -> Self {
-        let mut model = self.clone_shader_model().clone();
-        model.polygon_mode = polygon_mode;
-        self.shader_model(model)
+        self.map_default_shader_model(|model| model.polygon_mode = polygon_mode)
     }
 }
 

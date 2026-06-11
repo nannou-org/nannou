@@ -1,5 +1,7 @@
 use lyon::tessellation::{LineCap, LineJoin, StrokeOptions};
 
+use crate::draw::{Draw, drawing};
+
 /// Nodes that support stroke tessellation.
 ///
 /// This trait allows the `Drawing` context to automatically provide an implementation of the
@@ -154,5 +156,41 @@ pub trait SetStroke: Sized {
 impl SetStroke for Option<StrokeOptions> {
     fn stroke_options_mut(&mut self) -> &mut StrokeOptions {
         self.get_or_insert_with(Default::default)
+    }
+}
+
+// An update to a primitive's stroke tessellation options.
+pub(crate) enum Update {
+    Opts(StrokeOptions),
+    StartCap(LineCap),
+    EndCap(LineCap),
+    Caps(LineCap),
+    Join(LineJoin),
+    Weight(f32),
+    MiterLimit(f32),
+    Tolerance(f32),
+}
+
+// Update the stroke options of the primitive being drawn at `index`.
+pub(crate) fn set_stroke(draw: &Draw, index: usize, update: Update) {
+    drawing::with_primitive(draw, index, |prim| match prim.stroke_options_mut() {
+        Some(opts) => apply_update(opts, update),
+        None => bevy::log::warn_once!("drawing primitive does not support `stroke` options"),
+    })
+}
+
+fn apply_update(opts: &mut StrokeOptions, update: Update) {
+    match update {
+        Update::Opts(new) => *opts = new,
+        Update::StartCap(cap) => opts.start_cap = cap,
+        Update::EndCap(cap) => opts.end_cap = cap,
+        Update::Caps(cap) => {
+            opts.start_cap = cap;
+            opts.end_cap = cap;
+        }
+        Update::Join(join) => opts.line_join = join,
+        Update::Weight(weight) => opts.line_width = weight,
+        Update::MiterLimit(limit) => opts.miter_limit = limit,
+        Update::Tolerance(tolerance) => opts.tolerance = tolerance,
     }
 }

@@ -26,19 +26,13 @@ use bevy::{
 };
 use std::{hash::Hash, marker::PhantomData};
 
-pub struct Indirect<'a, SM>
-where
-    SM: ShaderModel + Default,
-{
-    draw: &'a Draw<SM>,
+pub struct Indirect<'a> {
+    draw: &'a Draw,
     primitive_index: Option<usize>,
     indirect_buffer: Option<Handle<ShaderBuffer>>,
 }
 
-impl<'a, SM> Drop for Indirect<'a, SM>
-where
-    SM: ShaderModel + Default,
-{
+impl<'a> Drop for Indirect<'a> {
     fn drop(&mut self) {
         if let Some((index, ssbo)) = self.primitive_index.take().zip(self.indirect_buffer.take()) {
             self.insert_indirect_draw_command(index, ssbo);
@@ -46,10 +40,7 @@ where
     }
 }
 
-pub fn new<SM>(draw: &Draw<SM>) -> Indirect<'_, SM>
-where
-    SM: ShaderModel + Default,
-{
+pub fn new(draw: &Draw) -> Indirect<'_> {
     Indirect {
         draw,
         primitive_index: None,
@@ -57,11 +48,8 @@ where
     }
 }
 
-impl<'a, SM> Indirect<'a, SM>
-where
-    SM: ShaderModel + Default,
-{
-    pub fn primitive<T>(mut self, drawing: Drawing<T, SM>) -> Indirect<'a, SM>
+impl<'a> Indirect<'a> {
+    pub fn primitive<T>(mut self, drawing: Drawing<T>) -> Indirect<'a>
     where
         T: Into<Primitive>,
     {
@@ -75,7 +63,7 @@ where
         self
     }
 
-    pub fn buffer(mut self, ssbo: Handle<ShaderBuffer>) -> Indirect<'a, SM> {
+    pub fn buffer(mut self, ssbo: Handle<ShaderBuffer>) -> Indirect<'a> {
         self.indirect_buffer = Some(ssbo);
         self
     }

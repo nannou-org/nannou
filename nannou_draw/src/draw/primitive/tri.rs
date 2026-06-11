@@ -8,7 +8,6 @@ use crate::draw::primitive::polygon::{self, PolygonInit, PolygonOptions, SetPoly
 use crate::draw::properties::spatial::{dimension, orientation, position};
 use crate::draw::properties::{SetColor, SetDimensions, SetOrientation, SetPosition, SetStroke};
 use crate::draw::{self, Drawing};
-use crate::render::ShaderModel;
 
 /// Properties related to drawing a **Tri**.
 #[derive(Clone, Debug)]
@@ -19,7 +18,7 @@ pub struct Tri {
 }
 
 /// The drawing context for a `Tri`.
-pub type DrawingTri<'a, SM> = Drawing<'a, Tri, SM>;
+pub type DrawingTri<'a> = Drawing<'a, Tri>;
 
 // Tri-specific methods.
 
@@ -47,16 +46,13 @@ impl Tri {
 
 // Drawing methods.
 
-impl<'a, SM> DrawingTri<'a, SM>
-where
-    SM: ShaderModel + Default,
-{
+impl<'a> DrawingTri<'a> {
     /// Stroke the outline with the given color.
     pub fn stroke<C>(self, color: C) -> Self
     where
         C: Into<Color>,
     {
-        self.map_ty(|ty| ty.stroke(color))
+        self.stroke_color(color)
     }
 
     /// Use the given points as the vertices (corners) of the triangle.
@@ -64,8 +60,23 @@ where
     where
         P: Into<Vec2>,
     {
-        self.map_ty(|ty| ty.points(a, b, c))
+        set_points(
+            &self.draw,
+            self.index,
+            geom::Tri([a.into(), b.into(), c.into()]),
+        );
+        self
     }
+}
+
+// Set the corner points of the `Tri` primitive being drawn at `index`.
+//
+// Non-generic so that the body compiles here rather than in the caller's crate.
+fn set_points(draw: &crate::draw::Draw, index: usize, points: geom::Tri<Vec2>) {
+    crate::draw::drawing::with_primitive(draw, index, |prim| match prim {
+        Primitive::Tri(tri) => tri.tri = points,
+        _ => bevy::log::warn_once!("expected a `Tri` primitive"),
+    })
 }
 
 // Trait implementations.
@@ -177,14 +188,5 @@ impl SetPolygon for Tri {
 impl From<Tri> for Primitive {
     fn from(prim: Tri) -> Self {
         Primitive::Tri(prim)
-    }
-}
-
-impl Into<Option<Tri>> for Primitive {
-    fn into(self) -> Option<Tri> {
-        match self {
-            Primitive::Tri(prim) => Some(prim),
-            _ => None,
-        }
     }
 }

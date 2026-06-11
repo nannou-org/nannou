@@ -1,6 +1,8 @@
 //! Items related to describing positioning along each axis as
 use bevy::prelude::*;
 
+use crate::draw::{Draw, drawing};
+
 /// Position properties for **Drawing** a **Primitive**.
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Properties {
@@ -68,4 +70,30 @@ impl Default for Properties {
         let point = Vec3::ZERO;
         Self { point }
     }
+}
+
+// Set the position of the primitive being drawn at `index`.
+//
+// `None` leaves the corresponding axis unchanged.
+pub(crate) fn set_position(
+    draw: &Draw,
+    index: usize,
+    x: Option<f32>,
+    y: Option<f32>,
+    z: Option<f32>,
+) {
+    drawing::with_primitive(draw, index, |prim| match prim.position_mut() {
+        Some(props) => {
+            if let Some(x) = x {
+                props.point.x = x;
+            }
+            if let Some(y) = y {
+                props.point.y = y;
+            }
+            if let Some(z) = z {
+                props.point.z = z;
+            }
+        }
+        None => bevy::log::warn_once!("drawing primitive does not support `position`"),
+    })
 }

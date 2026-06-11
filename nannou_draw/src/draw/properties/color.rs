@@ -1,5 +1,7 @@
 use bevy::prelude::Color;
 
+use crate::draw::{Draw, drawing};
+
 /// Nodes that support setting colors.
 pub trait SetColor: Sized {
     /// Provide a mutable reference to the RGBA field which can be used for setting colors.
@@ -164,4 +166,12 @@ impl SetColor for Option<Color> {
     fn color_mut(&mut self) -> &mut Option<Color> {
         self
     }
+}
+
+// Set the color of the primitive being drawn at `index`.
+pub(crate) fn set_color(draw: &Draw, index: usize, color: Color) {
+    drawing::with_primitive(draw, index, |prim| match prim.color_mut() {
+        Some(c) => *c = Some(color),
+        None => bevy::log::warn_once!("drawing primitive does not support `color`"),
+    })
 }

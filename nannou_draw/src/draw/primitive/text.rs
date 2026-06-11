@@ -6,7 +6,6 @@ use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{self, dimension, orientation, position};
 use crate::draw::properties::{SetColor, SetDimensions, SetOrientation, SetPosition};
 use crate::draw::{self, Drawing};
-use crate::render::ShaderModel;
 use crate::text::{self, Align, FontSize, Justify, Layout, Scalar, Wrap};
 use bevy::platform::hash::FixedHasher;
 use bevy::prelude::*;
@@ -34,7 +33,7 @@ pub struct Style {
 }
 
 /// The drawing context for the **Text** primitive.
-pub type DrawingText<'a, SM> = Drawing<'a, Text, SM>;
+pub type DrawingText<'a> = Drawing<'a, Text>;
 
 impl Text {
     /// Begin drawing some text.
@@ -154,88 +153,101 @@ impl Text {
     }
 }
 
-impl<'a, SM> DrawingText<'a, SM>
-where
-    SM: ShaderModel + Default,
-{
+impl<'a> DrawingText<'a> {
     /// The font size to use for the text.
     pub fn font_size(self, size: text::FontSize) -> Self {
-        self.map_ty(|ty| ty.font_size(size))
+        update_text_layout(&self.draw, self.index, |l| l.font_size(size));
+        self
     }
 
     /// Specify that the **Text** should not wrap lines around the width.
     pub fn no_line_wrap(self) -> Self {
-        self.map_ty(|ty| ty.no_line_wrap())
+        update_text_layout(&self.draw, self.index, |l| l.no_line_wrap());
+        self
     }
 
     /// Line wrap the **Text** at the beginning of the first word that exceeds the width.
     pub fn wrap_by_word(self) -> Self {
-        self.map_ty(|ty| ty.wrap_by_word())
+        update_text_layout(&self.draw, self.index, |l| l.wrap_by_word());
+        self
     }
 
     /// Line wrap the **Text** at the beginning of the first character that exceeds the width.
     pub fn wrap_by_character(self) -> Self {
-        self.map_ty(|ty| ty.wrap_by_character())
+        update_text_layout(&self.draw, self.index, |l| l.wrap_by_character());
+        self
     }
 
     /// A method for specifying the font family used for displaying the `Text`.
     pub fn font(self, family: impl Into<String>) -> Self {
-        self.map_ty(|ty| ty.font(family))
+        set_font(&self.draw, self.index, family.into());
+        self
     }
 
     /// Build the **Text** with the given **Style**.
     pub fn with_style(self, style: Style) -> Self {
-        self.map_ty(|ty| ty.with_style(style))
+        update_text(&self.draw, self.index, |text| text.style = style);
+        self
     }
 
     /// Describe the end along the *x* axis to which the text should be aligned.
     pub fn justify(self, justify: text::Justify) -> Self {
-        self.map_ty(|ty| ty.justify(justify))
+        update_text_layout(&self.draw, self.index, |l| l.justify(justify));
+        self
     }
 
     /// Align the text to the left of its bounding **Rect**'s *x* axis range.
     pub fn left_justify(self) -> Self {
-        self.map_ty(|ty| ty.left_justify())
+        update_text_layout(&self.draw, self.index, |l| l.left_justify());
+        self
     }
 
     /// Align the text to the middle of its bounding **Rect**'s *x* axis range.
     pub fn center_justify(self) -> Self {
-        self.map_ty(|ty| ty.center_justify())
+        update_text_layout(&self.draw, self.index, |l| l.center_justify());
+        self
     }
 
     /// Align the text to the right of its bounding **Rect**'s *x* axis range.
     pub fn right_justify(self) -> Self {
-        self.map_ty(|ty| ty.right_justify())
+        update_text_layout(&self.draw, self.index, |l| l.right_justify());
+        self
     }
 
     /// Specify how much vertical space should separate each line of text.
     pub fn line_spacing(self, spacing: text::Scalar) -> Self {
-        self.map_ty(|ty| ty.line_spacing(spacing))
+        update_text_layout(&self.draw, self.index, |l| l.line_spacing(spacing));
+        self
     }
 
     /// Specify how the whole text should be aligned along the y axis of its bounding rectangle
     pub fn y_align_text(self, align: Align) -> Self {
-        self.map_ty(|ty| ty.y_align(align))
+        update_text_layout(&self.draw, self.index, |l| l.y_align(align));
+        self
     }
 
     /// Align the top edge of the text with the top edge of its bounding rectangle.
     pub fn align_text_top(self) -> Self {
-        self.map_ty(|ty| ty.align_top())
+        update_text_layout(&self.draw, self.index, |l| l.align_top());
+        self
     }
 
     /// Align the middle of the text with the middle of the bounding rect along the y axis.
     pub fn align_text_middle_y(self) -> Self {
-        self.map_ty(|ty| ty.align_middle_y())
+        update_text_layout(&self.draw, self.index, |l| l.align_middle_y());
+        self
     }
 
     /// Align the bottom edge of the text with the bottom edge of its bounding rectangle.
     pub fn align_text_bottom(self) -> Self {
-        self.map_ty(|ty| ty.align_bottom())
+        update_text_layout(&self.draw, self.index, |l| l.align_bottom());
+        self
     }
 
     /// Set all the parameters via an existing `Layout`
     pub fn layout(self, layout: &Layout) -> Self {
-        self.map_ty(|ty| ty.layout(layout))
+        update_text_layout(&self.draw, self.index, |l| l.layout(layout));
+        self
     }
 
     /// Set a color for each glyph.
@@ -244,9 +256,44 @@ where
         I: IntoIterator<Item = C>,
         C: Into<Color>,
     {
-        let glyph_colors = glyph_colors.into_iter().map(|c| c.into()).collect();
-        self.map_ty(|ty| ty.glyph_colors(glyph_colors))
+        let glyph_colors: Vec<Color> = glyph_colors.into_iter().map(|c| c.into()).collect();
+        set_glyph_colors(&self.draw, self.index, glyph_colors);
+        self
     }
+}
+
+// Update the inner `Text` of the primitive being drawn at `index`.
+fn update_text(draw: &crate::draw::Draw, index: usize, f: impl FnOnce(&mut Text)) {
+    crate::draw::drawing::with_primitive(draw, index, |prim| match prim {
+        Primitive::Text(text) => f(text),
+        _ => bevy::log::warn_once!("expected a `Text` primitive"),
+    })
+}
+
+// Update the layout builder of the `Text` primitive being drawn at `index`.
+fn update_text_layout(
+    draw: &crate::draw::Draw,
+    index: usize,
+    f: impl FnOnce(text::layout::Builder) -> text::layout::Builder,
+) {
+    update_text(draw, index, |text| {
+        let layout = std::mem::take(&mut text.style.layout);
+        text.style.layout = f(layout);
+    })
+}
+
+// Set the font family of the `Text` primitive being drawn at `index`.
+//
+// Non-generic so that the body compiles here rather than in the caller's crate.
+fn set_font(draw: &crate::draw::Draw, index: usize, family: String) {
+    update_text_layout(draw, index, |l| l.font_family(family))
+}
+
+// Set the per-glyph colors of the `Text` primitive being drawn at `index`.
+//
+// Non-generic so that the body compiles here rather than in the caller's crate.
+fn set_glyph_colors(draw: &crate::draw::Draw, index: usize, colors: Vec<Color>) {
+    update_text(draw, index, |text| text.style.glyph_colors = colors)
 }
 
 /// A run of glyph quads sampling a single font atlas texture.
@@ -485,14 +532,5 @@ impl SetColor for Text {
 impl From<Text> for Primitive {
     fn from(prim: Text) -> Self {
         Primitive::Text(prim)
-    }
-}
-
-impl Into<Option<Text>> for Primitive {
-    fn into(self) -> Option<Text> {
-        match self {
-            Primitive::Text(prim) => Some(prim),
-            _ => None,
-        }
     }
 }

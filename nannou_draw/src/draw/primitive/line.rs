@@ -6,7 +6,6 @@ use crate::draw::primitive::{PathStroke, Primitive};
 use crate::draw::properties::spatial::{orientation, position};
 use crate::draw::properties::{SetColor, SetOrientation, SetPosition, SetStroke};
 use crate::draw::{self, Drawing};
-use crate::render::ShaderModel;
 
 /// A path containing only two points - a start and end.
 ///
@@ -20,7 +19,7 @@ pub struct Line {
 }
 
 /// The drawing context for a line.
-pub type DrawingLine<'a, SM> = Drawing<'a, Line, SM>;
+pub type DrawingLine<'a> = Drawing<'a, Line>;
 
 impl Line {
     /// Short-hand for the `stroke_weight` method.
@@ -61,34 +60,41 @@ impl Line {
     }
 }
 
-impl<'a, SM> DrawingLine<'a, SM>
-where
-    SM: ShaderModel + Default,
-{
+impl<'a> DrawingLine<'a> {
     /// Short-hand for the `stroke_weight` method.
     pub fn weight(self, weight: f32) -> Self {
-        self.map_ty(|ty| ty.weight(weight))
+        self.stroke_weight(weight)
     }
 
     /// Short-hand for the `stroke_tolerance` method.
     pub fn tolerance(self, tolerance: f32) -> Self {
-        self.map_ty(|ty| ty.tolerance(tolerance))
+        self.stroke_tolerance(tolerance)
     }
 
     /// Specify the start point of the line.
     pub fn start(self, start: Vec2) -> Self {
-        self.map_ty(|ty| ty.start(start))
+        update_line(&self.draw, self.index, |line| line.start = Some(start));
+        self
     }
 
     /// Specify the end point of the line.
     pub fn end(self, end: Vec2) -> Self {
-        self.map_ty(|ty| ty.end(end))
+        update_line(&self.draw, self.index, |line| line.end = Some(end));
+        self
     }
 
     /// Specify the start and end points of the line.
     pub fn points(self, start: Vec2, end: Vec2) -> Self {
-        self.map_ty(|ty| ty.points(start, end))
+        self.start(start).end(end)
     }
+}
+
+// Update the inner `Line` of the primitive being drawn at `index`.
+fn update_line(draw: &crate::draw::Draw, index: usize, f: impl FnOnce(&mut Line)) {
+    crate::draw::drawing::with_primitive(draw, index, |prim| match prim {
+        Primitive::Line(line) => f(line),
+        _ => bevy::log::warn_once!("expected a `Line` primitive"),
+    })
 }
 
 impl SetStroke for Line {
@@ -118,15 +124,6 @@ impl SetColor for Line {
 impl From<Line> for Primitive {
     fn from(prim: Line) -> Self {
         Primitive::Line(prim)
-    }
-}
-
-impl Into<Option<Line>> for Primitive {
-    fn into(self) -> Option<Line> {
-        match self {
-            Primitive::Line(prim) => Some(prim),
-            _ => None,
-        }
     }
 }
 

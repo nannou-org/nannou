@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 
+use crate::draw::{Draw, drawing};
+
 /// Dimension properties for **Drawing** a **Primitive**.
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
 pub struct Properties {
@@ -71,4 +73,30 @@ impl SetDimensions for Properties {
     fn properties(&mut self) -> &mut Properties {
         self
     }
+}
+
+// Set the dimensions of the primitive being drawn at `index`.
+//
+// `None` leaves the corresponding dimension unchanged.
+pub(crate) fn set_dimensions(
+    draw: &Draw,
+    index: usize,
+    x: Option<f32>,
+    y: Option<f32>,
+    z: Option<f32>,
+) {
+    drawing::with_primitive(draw, index, |prim| match prim.dimensions_mut() {
+        Some(props) => {
+            if x.is_some() {
+                props.x = x;
+            }
+            if y.is_some() {
+                props.y = y;
+            }
+            if z.is_some() {
+                props.z = z;
+            }
+        }
+        None => bevy::log::warn_once!("drawing primitive does not support `dimensions`"),
+    })
 }

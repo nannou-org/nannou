@@ -10,7 +10,6 @@ use crate::draw::properties::{
     SetColor, SetDimensions, SetOrientation, SetPosition, SetStroke, spatial,
 };
 use crate::draw::{self, Drawing};
-use crate::render::ShaderModel;
 
 /// Properties related to drawing a **Quad**.
 #[derive(Clone, Debug)]
@@ -21,7 +20,7 @@ pub struct Quad {
 }
 
 /// The drawing context for a `Quad`.
-pub type DrawingQuad<'a, SM> = Drawing<'a, Quad, SM>;
+pub type DrawingQuad<'a> = Drawing<'a, Quad>;
 
 // Quad-specific methods.
 
@@ -165,26 +164,29 @@ impl From<Quad> for Primitive {
     }
 }
 
-impl Into<Option<Quad>> for Primitive {
-    fn into(self) -> Option<Quad> {
-        match self {
-            Primitive::Quad(prim) => Some(prim),
-            _ => None,
-        }
-    }
-}
-
 // Drawing methods.
 
-impl<'a, SM> DrawingQuad<'a, SM>
-where
-    SM: ShaderModel + Default,
-{
+impl<'a> DrawingQuad<'a> {
     /// Use the given points as the vertices (corners) of the quad.
     pub fn points<P>(self, a: P, b: P, c: P, d: P) -> Self
     where
         P: Into<Vec2>,
     {
-        self.map_ty(|ty| ty.points(a, b, c, d))
+        set_points(
+            &self.draw,
+            self.index,
+            geom::Quad([a.into(), b.into(), c.into(), d.into()]),
+        );
+        self
     }
+}
+
+// Set the corner points of the `Quad` primitive being drawn at `index`.
+//
+// Non-generic so that the body compiles here rather than in the caller's crate.
+fn set_points(draw: &crate::draw::Draw, index: usize, points: geom::Quad<Vec2>) {
+    crate::draw::drawing::with_primitive(draw, index, |prim| match prim {
+        Primitive::Quad(quad) => quad.quad = points,
+        _ => bevy::log::warn_once!("expected a `Quad` primitive"),
+    })
 }
