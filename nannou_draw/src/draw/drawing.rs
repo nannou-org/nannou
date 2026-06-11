@@ -8,7 +8,9 @@ use uuid::Uuid;
 
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::{
-    SetColor, SetDimensions, SetFill, SetOrientation, SetPosition, SetStroke,
+    SetColor, SetDimensions, SetFill, SetOrientation, SetPosition, SetStroke, color, fill,
+    spatial::{dimension, orientation, position},
+    stroke,
 };
 use crate::draw::{Draw, DrawCommand, DrawRef};
 use crate::render::{DefaultNannouShaderModel, ErasedShaderModel, ShaderModel};
@@ -25,7 +27,7 @@ use crate::render::{DefaultNannouShaderModel, ErasedShaderModel, ShaderModel};
 /// **Drawing** can be thought of as a way of specifying properties for a node.
 pub struct Drawing<'a, T> {
     // The `Draw` instance used to create this drawing.
-    draw: DrawRef<'a>,
+    pub(crate) draw: DrawRef<'a>,
     // The draw command index of the primitive being drawn.
     pub(crate) index: usize,
     // The draw command index of the shader model being used.
@@ -69,7 +71,7 @@ where
 impl<'a, T> Drop for Drawing<'a, T> {
     fn drop(&mut self) {
         if self.finish_on_drop {
-            self.finish_inner()
+            finish_drawing(&self.draw, self.index, self.shader_model_index)
         }
     }
 }
@@ -93,39 +95,33 @@ impl<'a> DrawingContext<'a> {
 }
 
 impl<'a, T> Drawing<'a, T> {
-    // Shared between the **finish** method and the **Drawing**'s **Drop** implementation.
-    //
-    // 1. Create vertices based on node-specific position, points, etc.
-    // 2. Insert edges into geom graph based on
-    fn finish_inner(&mut self) {
-        match (*self.draw).state.try_write() {
-            Err(err) => eprintln!("drawing failed to borrow state and finish: {}", err),
-            Ok(mut state) => {
-                match &self.draw {
-                    // If we are "Owned", that means we mutated our shader model and so need to
-                    // spawn a new entity just for this primitive.
-                    DrawRef::Owned(draw) => {
-                        let id = draw.shader_model.clone();
-                        let shader_model_cmd = state
-                            .draw_commands
-                            .get_mut(self.shader_model_index)
-                            .expect("Expected a valid shdaer model index");
-                        if let None = shader_model_cmd {
-                            *shader_model_cmd = Some(DrawCommand::ShaderModel(id));
-                        }
-                    }
-                    DrawRef::Borrowed(_) => (),
-                }
-                state.finish_drawing(self.index);
-            }
-        }
-    }
-
     /// Complete the drawing and insert it into the parent **Draw** instance.
     ///
     /// This will be called when the **Drawing** is **Drop**ped if it has not yet been called.
     pub fn finish(mut self) {
-        self.finish_inner()
+        self.finish_on_drop = false;
+        finish_drawing(&self.draw, self.index, self.shader_model_index)
+    }
+
+    // Consume the drawing, producing an equivalent drawing for the next type-state `U`.
+    //
+    // The conversion of the stored primitive itself is expected to have already been performed
+    // (e.g. via `with_primitive`).
+    pub(crate) fn transition<U>(mut self) -> Drawing<'a, U> {
+        self.finish_on_drop = false;
+        let Drawing {
+            ref draw,
+            index,
+            shader_model_index,
+            ..
+        } = self;
+        Drawing {
+            draw: draw.clone(),
+            index,
+            shader_model_index,
+            finish_on_drop: true,
+            _ty: PhantomData,
+        }
     }
 
     /// Map the parent's shader model to a new instance, drawing this primitive and any
@@ -200,116 +196,13 @@ impl<'a, T> Drawing<'a, T> {
             _ty: PhantomData,
         }
     }
-
-    // Map the given function onto the primitive stored within **Draw** at `index`.
-    //
-    // The functionn is only applied if the node has not yet been **Drawn**.
-    fn map_primitive<F, T2>(mut self, map: F) -> Drawing<'a, T2>
-    where
-        F: FnOnce(Primitive) -> Primitive,
-        T2: Into<Primitive> + Clone,
-    {
-        if let Ok(mut state) = self.draw.state.try_write() {
-            if let Some(mut primitive) = state.drawing.remove(&self.index) {
-                primitive = map(primitive);
-                state.drawing.insert(self.index, primitive);
-            }
-        }
-        self.finish_on_drop = false;
-        let Drawing {
-            ref draw,
-            index,
-            shader_model_index,
-            ..
-        } = self;
-        Drawing {
-            draw: draw.clone(),
-            index,
-            shader_model_index,
-            finish_on_drop: true,
-            _ty: PhantomData,
-        }
-    }
-
-    // The same as `map_primitive` but also passes a mutable reference to the vertex data to the
-    // map function. This is useful for types that may have an unknown number of arbitrary
-    // vertices.
-    fn map_primitive_with_context<F, T2>(mut self, map: F) -> Drawing<'a, T2>
-    where
-        F: FnOnce(Primitive, DrawingContext) -> Primitive,
-        T2: Into<Primitive> + Clone,
-    {
-        if let Ok(mut state) = self.draw.state.try_write() {
-            if let Some(mut primitive) = state.drawing.remove(&self.index) {
-                {
-                    let mut intermediary_state = state.intermediary_state.write().unwrap();
-                    let ctxt = DrawingContext::from_intermediary_state(&mut *intermediary_state);
-                    primitive = map(primitive, ctxt);
-                }
-                state.drawing.insert(self.index, primitive);
-            }
-        }
-        self.finish_on_drop = false;
-        let Drawing {
-            ref draw,
-            index,
-            shader_model_index,
-            ..
-        } = self;
-        Drawing {
-            draw: draw.clone(),
-            index,
-            shader_model_index,
-            finish_on_drop: true,
-            _ty: PhantomData,
-        }
-    }
-
-    /// Apply the given function to the type stored within **Draw**.
-    ///
-    /// The function is only applied if the node has not yet been **Drawn**.
-    ///
-    /// **Panics** if the primitive does not contain type **T**.
-    pub fn map_ty<F, T2>(self, map: F) -> Drawing<'a, T2>
-    where
-        F: FnOnce(T) -> T2,
-        T2: Into<Primitive> + Clone,
-        Primitive: Into<Option<T>>,
-    {
-        self.map_primitive(|prim| {
-            let maybe_ty: Option<T> = prim.into();
-            let ty = maybe_ty.expect("expected `T` but primitive contained different type");
-            let ty2 = map(ty);
-            ty2.into()
-        })
-    }
-
-    /// Apply the given function to the type stored within **Draw**.
-    ///
-    /// The function is only applied if the node has not yet been **Drawn**.
-    ///
-    /// **Panics** if the primitive does not contain type **T**.
-    pub(crate) fn map_ty_with_context<F, T2>(self, map: F) -> Drawing<'a, T2>
-    where
-        F: FnOnce(T, DrawingContext) -> T2,
-        T2: Into<Primitive> + Clone,
-        Primitive: Into<Option<T>>,
-    {
-        self.map_primitive_with_context(|prim, ctxt| {
-            let maybe_ty: Option<T> = prim.into();
-            let ty = maybe_ty.expect("expected `T` but primitive contained different type");
-            let ty2 = map(ty, ctxt);
-            ty2.into()
-        })
-    }
 }
 
 // SetColor implementations.
 
 impl<'a, T> Drawing<'a, T>
 where
-    T: SetColor + Into<Primitive> + Clone,
-    Primitive: Into<Option<T>>,
+    T: SetColor,
 {
     /// Specify a color.
     ///
@@ -320,35 +213,36 @@ where
     where
         C: Into<Color>,
     {
-        self.map_ty(|ty| SetColor::color(ty, color))
+        color::set_color(&self.draw, self.index, color.into());
+        self
     }
 
     /// Specify the color via red, green and blue channels.
     pub fn srgb(self, r: f32, g: f32, b: f32) -> Self {
-        self.map_ty(|ty| SetColor::srgb(ty, r, g, b))
+        self.color(Color::srgb(r, g, b))
     }
 
     /// Specify the color via red, green and blue channels as bytes
     pub fn srgb_u8(self, r: u8, g: u8, b: u8) -> Self {
-        self.map_ty(|ty| SetColor::srgb_u8(ty, r, g, b))
+        self.color(Color::srgb_u8(r, g, b))
     }
 
     /// Specify the color via red, green, blue and alpha channels.
     pub fn srgba(self, r: f32, g: f32, b: f32, a: f32) -> Self {
-        self.map_ty(|ty| SetColor::srgba(ty, r, g, b, a))
+        self.color(Color::srgba(r, g, b, a))
     }
 
     /// Specify the color via red, green, blue and alpha channels as bytes.
     pub fn srgba_u8(self, r: u8, g: u8, b: u8, a: u8) -> Self {
-        self.map_ty(|ty| SetColor::srgba_u8(ty, r, g, b, a))
+        self.color(Color::srgba_u8(r, g, b, a))
     }
 
     pub fn linear_rgb(self, r: f32, g: f32, b: f32) -> Self {
-        self.map_ty(|ty| SetColor::linear_rgb(ty, r, g, b))
+        self.color(Color::linear_rgb(r, g, b))
     }
 
     pub fn linear_rgba(self, r: f32, g: f32, b: f32, a: f32) -> Self {
-        self.map_ty(|ty| SetColor::linear_rgba(ty, r, g, b, a))
+        self.color(Color::linear_rgba(r, g, b, a))
     }
 
     /// Specify the color via hue, saturation and luminance.
@@ -361,7 +255,7 @@ where
     /// See the [wikipedia entry](https://en.wikipedia.org/wiki/HSL_and_HSV) for more details on
     /// this color space.
     pub fn hsl(self, h: f32, s: f32, l: f32) -> Self {
-        self.map_ty(|ty| SetColor::hsl(ty, h, s, l))
+        self.color(Color::hsl(h * 360.0, s, l))
     }
 
     /// Specify the color via hue, saturation, luminance and an alpha channel.
@@ -374,7 +268,7 @@ where
     /// See the [wikipedia entry](https://en.wikipedia.org/wiki/HSL_and_HSV) for more details on
     /// this color space.
     pub fn hsla(self, h: f32, s: f32, l: f32, a: f32) -> Self {
-        self.map_ty(|ty| SetColor::hsla(ty, h, s, l, a))
+        self.color(Color::hsla(h * 360.0, s, l, a))
     }
 
     /// Specify the color via hue, saturation and *value* (brightness).
@@ -387,7 +281,7 @@ where
     /// See the [wikipedia entry](https://en.wikipedia.org/wiki/HSL_and_HSV) for more details on
     /// this color space.
     pub fn hsv(self, h: f32, s: f32, v: f32) -> Self {
-        self.map_ty(|ty| SetColor::hsv(ty, h, s, v))
+        self.color(Color::hsv(h * 360.0, s, v))
     }
 
     /// Specify the color via hue, saturation, *value* (brightness) and an alpha channel.
@@ -400,62 +294,62 @@ where
     /// See the [wikipedia entry](https://en.wikipedia.org/wiki/HSL_and_HSV) for more details on
     /// this color space.
     pub fn hsva(self, h: f32, s: f32, v: f32, a: f32) -> Self {
-        self.map_ty(|ty| SetColor::hsva(ty, h, s, v, a))
+        self.color(Color::hsva(h * 360.0, s, v, a))
     }
 
     pub fn hwb(self, h: f32, w: f32, b: f32) -> Self {
-        self.map_ty(|ty| SetColor::hwb(ty, h, w, b))
+        self.color(Color::hwb(h * 360.0, w, b))
     }
 
     pub fn hwba(self, h: f32, w: f32, b: f32, a: f32) -> Self {
-        self.map_ty(|ty| SetColor::hwba(ty, h, w, b, a))
+        self.color(Color::hwba(h * 360.0, w, b, a))
     }
 
     pub fn lab(self, l: f32, a: f32, b: f32) -> Self {
-        self.map_ty(|ty| SetColor::lab(ty, l, a, b))
+        self.color(Color::lab(l, a, b))
     }
 
     pub fn laba(self, l: f32, a: f32, b: f32, alpha: f32) -> Self {
-        self.map_ty(|ty| SetColor::laba(ty, l, a, b, alpha))
+        self.color(Color::laba(l, a, b, alpha))
     }
 
     pub fn lch(self, l: f32, c: f32, h: f32) -> Self {
-        self.map_ty(|ty| SetColor::lch(ty, l, c, h))
+        self.color(Color::lch(l, c, h))
     }
 
     pub fn lcha(self, l: f32, c: f32, h: f32, alpha: f32) -> Self {
-        self.map_ty(|ty| SetColor::lcha(ty, l, c, h, alpha))
+        self.color(Color::lcha(l, c, h, alpha))
     }
 
     pub fn oklab(self, l: f32, a: f32, b: f32) -> Self {
-        self.map_ty(|ty| SetColor::oklab(ty, l, a, b))
+        self.color(Color::oklab(l, a, b))
     }
 
     pub fn oklaba(self, l: f32, a: f32, b: f32, alpha: f32) -> Self {
-        self.map_ty(|ty| SetColor::oklaba(ty, l, a, b, alpha))
+        self.color(Color::oklaba(l, a, b, alpha))
     }
 
     pub fn oklch(self, l: f32, c: f32, h: f32) -> Self {
-        self.map_ty(|ty| SetColor::oklch(ty, l, c, h))
+        self.color(Color::oklch(l, c, h))
     }
 
     pub fn oklcha(self, l: f32, c: f32, h: f32, alpha: f32) -> Self {
-        self.map_ty(|ty| SetColor::oklcha(ty, l, c, h, alpha))
+        self.color(Color::oklcha(l, c, h, alpha))
     }
 
     pub fn cie_xyz(self, x: f32, y: f32, z: f32) -> Self {
-        self.map_ty(|ty| SetColor::cie_xyz(ty, x, y, z))
+        self.color(Color::xyz(x, y, z))
     }
 
     pub fn cie_xyza(self, x: f32, y: f32, z: f32, alpha: f32) -> Self {
-        self.map_ty(|ty| SetColor::cie_xyza(ty, x, y, z, alpha))
+        self.color(Color::xyza(x, y, z, alpha))
     }
 
     /// Specify the color as gray scale
     ///
     /// The given g expects a value between `0.0` and `1.0` where `0.0` is black and `1.0` is white
     pub fn gray(self, g: f32) -> Self {
-        self.map_ty(|ty| SetColor::gray(ty, g))
+        self.color(Color::srgb(g, g, g))
     }
 }
 
@@ -463,57 +357,63 @@ where
 
 impl<'a, T> Drawing<'a, T>
 where
-    T: SetDimensions + Into<Primitive> + Clone,
-    Primitive: Into<Option<T>>,
+    T: SetDimensions,
 {
     /// Set the absolute width for the node.
     pub fn width(self, w: f32) -> Self {
-        self.map_ty(|ty| SetDimensions::width(ty, w))
+        dimension::set_dimensions(&self.draw, self.index, Some(w), None, None);
+        self
     }
 
     /// Set the absolute height for the node.
     pub fn height(self, h: f32) -> Self {
-        self.map_ty(|ty| SetDimensions::height(ty, h))
+        dimension::set_dimensions(&self.draw, self.index, None, Some(h), None);
+        self
     }
 
     /// Set the absolute depth for the node.
     pub fn depth(self, d: f32) -> Self {
-        self.map_ty(|ty| SetDimensions::depth(ty, d))
+        dimension::set_dimensions(&self.draw, self.index, None, None, Some(d));
+        self
     }
 
     /// Short-hand for the **width** method.
     pub fn w(self, w: f32) -> Self {
-        self.map_ty(|ty| SetDimensions::w(ty, w))
+        self.width(w)
     }
 
     /// Short-hand for the **height** method.
     pub fn h(self, h: f32) -> Self {
-        self.map_ty(|ty| SetDimensions::h(ty, h))
+        self.height(h)
     }
 
     /// Short-hand for the **depth** method.
     pub fn d(self, d: f32) -> Self {
-        self.map_ty(|ty| SetDimensions::d(ty, d))
+        self.depth(d)
     }
 
     /// Set the **x** and **y** dimensions for the node.
     pub fn wh(self, v: Vec2) -> Self {
-        self.map_ty(|ty| SetDimensions::wh(ty, v))
+        dimension::set_dimensions(&self.draw, self.index, Some(v.x), Some(v.y), None);
+        self
     }
 
     /// Set the **x**, **y** and **z** dimensions for the node.
     pub fn whd(self, v: Vec3) -> Self {
-        self.map_ty(|ty| SetDimensions::whd(ty, v))
+        dimension::set_dimensions(&self.draw, self.index, Some(v.x), Some(v.y), Some(v.z));
+        self
     }
 
     /// Set the width and height for the node.
     pub fn w_h(self, x: f32, y: f32) -> Self {
-        self.map_ty(|ty| SetDimensions::w_h(ty, x, y))
+        dimension::set_dimensions(&self.draw, self.index, Some(x), Some(y), None);
+        self
     }
 
     /// Set the width and height for the node.
     pub fn w_h_d(self, x: f32, y: f32, z: f32) -> Self {
-        self.map_ty(|ty| SetDimensions::w_h_d(ty, x, y, z))
+        dimension::set_dimensions(&self.draw, self.index, Some(x), Some(y), Some(z));
+        self
     }
 }
 
@@ -521,42 +421,48 @@ where
 
 impl<'a, T> Drawing<'a, T>
 where
-    T: SetPosition + Into<Primitive> + Clone,
-    Primitive: Into<Option<T>>,
+    T: SetPosition,
 {
     /// Build with the given **Absolute** **Position** along the *x* axis.
     pub fn x(self, x: f32) -> Self {
-        self.map_ty(|ty| SetPosition::x(ty, x))
+        position::set_position(&self.draw, self.index, Some(x), None, None);
+        self
     }
 
     /// Build with the given **Absolute** **Position** along the *y* axis.
     pub fn y(self, y: f32) -> Self {
-        self.map_ty(|ty| SetPosition::y(ty, y))
+        position::set_position(&self.draw, self.index, None, Some(y), None);
+        self
     }
 
     /// Build with the given **Absolute** **Position** along the *z* axis.
     pub fn z(self, z: f32) -> Self {
-        self.map_ty(|ty| SetPosition::z(ty, z))
+        position::set_position(&self.draw, self.index, None, None, Some(z));
+        self
     }
 
     /// Set the **Position** with some two-dimensional point.
     pub fn xy(self, p: Vec2) -> Self {
-        self.map_ty(|ty| SetPosition::xy(ty, p))
+        position::set_position(&self.draw, self.index, Some(p.x), Some(p.y), None);
+        self
     }
 
     /// Set the **Position** with some three-dimensional point.
     pub fn xyz(self, p: Vec3) -> Self {
-        self.map_ty(|ty| SetPosition::xyz(ty, p))
+        position::set_position(&self.draw, self.index, Some(p.x), Some(p.y), Some(p.z));
+        self
     }
 
     /// Set the **Position** with *x* *y* coordinates.
     pub fn x_y(self, x: f32, y: f32) -> Self {
-        self.map_ty(|ty| SetPosition::x_y(ty, x, y))
+        position::set_position(&self.draw, self.index, Some(x), Some(y), None);
+        self
     }
 
     /// Set the **Position** with *x* *y* *z* coordinates.
     pub fn x_y_z(self, x: f32, y: f32, z: f32) -> Self {
-        self.map_ty(|ty| SetPosition::x_y_z(ty, x, y, z))
+        position::set_position(&self.draw, self.index, Some(x), Some(y), Some(z));
+        self
     }
 }
 
@@ -564,90 +470,99 @@ where
 
 impl<'a, T> Drawing<'a, T>
 where
-    T: SetOrientation + Into<Primitive> + Clone,
-    Primitive: Into<Option<T>>,
+    T: SetOrientation,
 {
     /// Describe orientation via the vector that points to the given target.
     pub fn look_at(self, target: Vec3) -> Self {
-        self.map_ty(|ty| SetOrientation::look_at(ty, target))
+        orientation::set_orientation(&self.draw, self.index, orientation::Update::LookAt(target));
+        self
     }
 
     /// Specify the orientation around the *x* axis as an absolute value in radians.
     pub fn x_radians(self, x: f32) -> Self {
-        self.map_ty(|ty| SetOrientation::x_radians(ty, x))
+        orientation::set_orientation(&self.draw, self.index, orientation::Update::XRadians(x));
+        self
     }
 
     /// Specify the orientation around the *y* axis as an absolute value in radians.
     pub fn y_radians(self, y: f32) -> Self {
-        self.map_ty(|ty| SetOrientation::y_radians(ty, y))
+        orientation::set_orientation(&self.draw, self.index, orientation::Update::YRadians(y));
+        self
     }
 
     /// Specify the orientation around the *z* axis as an absolute value in radians.
     pub fn z_radians(self, z: f32) -> Self {
-        self.map_ty(|ty| SetOrientation::z_radians(ty, z))
+        orientation::set_orientation(&self.draw, self.index, orientation::Update::ZRadians(z));
+        self
     }
 
     /// Specify the orientation around the *x* axis as an absolute value in degrees.
     pub fn x_degrees(self, x: f32) -> Self {
-        self.map_ty(|ty| SetOrientation::x_degrees(ty, x))
+        self.x_radians(x.to_radians())
     }
 
     /// Specify the orientation around the *y* axis as an absolute value in degrees.
     pub fn y_degrees(self, y: f32) -> Self {
-        self.map_ty(|ty| SetOrientation::y_degrees(ty, y))
+        self.y_radians(y.to_radians())
     }
 
     /// Specify the orientation around the *z* axis as an absolute value in degrees.
     pub fn z_degrees(self, z: f32) -> Self {
-        self.map_ty(|ty| SetOrientation::z_degrees(ty, z))
+        self.z_radians(z.to_radians())
     }
 
     /// Specify the orientation around the *x* axis as a number of turns around the axis.
     pub fn x_turns(self, x: f32) -> Self {
-        self.map_ty(|ty| SetOrientation::x_turns(ty, x))
+        self.x_radians(x * std::f32::consts::TAU)
     }
 
     /// Specify the orientation around the *y* axis as a number of turns around the axis.
     pub fn y_turns(self, y: f32) -> Self {
-        self.map_ty(|ty| SetOrientation::y_turns(ty, y))
+        self.y_radians(y * std::f32::consts::TAU)
     }
 
     /// Specify the orientation around the *z* axis as a number of turns around the axis.
     pub fn z_turns(self, z: f32) -> Self {
-        self.map_ty(|ty| SetOrientation::z_turns(ty, z))
+        self.z_radians(z * std::f32::consts::TAU)
     }
 
     /// Specify the orientation along each axis with the given **Vector** of radians.
     ///
     /// This has the same affect as calling `self.x_radians(v.x).y_radians(v.y).z_radians(v.z)`.
     pub fn radians(self, v: Vec3) -> Self {
-        self.map_ty(|ty| SetOrientation::radians(ty, v))
+        orientation::set_orientation(&self.draw, self.index, orientation::Update::Radians(v));
+        self
     }
 
     /// Specify the orientation along each axis with the given **Vector** of degrees.
     ///
     /// This has the same affect as calling `self.x_degrees(v.x).y_degrees(v.y).z_degrees(v.z)`.
     pub fn degrees(self, v: Vec3) -> Self {
-        self.map_ty(|ty| SetOrientation::degrees(ty, v))
+        self.radians(Vec3::new(
+            v.x.to_radians(),
+            v.y.to_radians(),
+            v.z.to_radians(),
+        ))
     }
 
     /// Specify the orientation along each axis with the given **Vector** of "turns".
     ///
     /// This has the same affect as calling `self.x_turns(v.x).y_turns(v.y).z_turns(v.z)`.
     pub fn turns(self, v: Vec3) -> Self {
-        self.map_ty(|ty| SetOrientation::turns(ty, v))
+        self.radians(v * std::f32::consts::TAU)
     }
 
     /// Specify the orientation with the given **Euler**.
     ///
     /// The euler must be specified in radians.
     pub fn euler(self, e: Vec3) -> Self {
-        self.map_ty(|ty| SetOrientation::euler(ty, e))
+        self.radians(e)
     }
 
     /// Specify the orientation with the given **Quaternion**.
     pub fn quaternion(self, q: Quat) -> Self {
-        self.map_ty(|ty| SetOrientation::quaternion(ty, q))
+        orientation::set_orientation(&self.draw, self.index, orientation::Update::Quat(q));
+        self
     }
 
     // Higher level methods.
@@ -656,21 +571,21 @@ where
     ///
     /// This has the same effect as calling `x_radians`.
     pub fn pitch(self, pitch: f32) -> Self {
-        self.map_ty(|ty| SetOrientation::pitch(ty, pitch))
+        self.x_radians(pitch)
     }
 
     /// Specify the "yaw" of the orientation in radians.
     ///
     /// This has the same effect as calling `y_radians`.
     pub fn yaw(self, yaw: f32) -> Self {
-        self.map_ty(|ty| SetOrientation::yaw(ty, yaw))
+        self.y_radians(yaw)
     }
 
     /// Specify the "roll" of the orientation in radians.
     ///
     /// This has the same effect as calling `z_radians`.
     pub fn roll(self, roll: f32) -> Self {
-        self.map_ty(|ty| SetOrientation::roll(ty, roll))
+        self.z_radians(roll)
     }
 
     /// Assuming we're looking at a 2D plane, positive values cause a clockwise rotation where the
@@ -678,7 +593,7 @@ where
     ///
     /// This is equivalent to calling the `z_radians` or `roll` methods.
     pub fn rotate(self, radians: f32) -> Self {
-        self.map_ty(|ty| SetOrientation::rotate(ty, radians))
+        self.z_radians(radians)
     }
 }
 
@@ -686,31 +601,38 @@ where
 
 impl<'a, T> Drawing<'a, T>
 where
-    T: SetFill + Into<Primitive> + Clone,
-    Primitive: Into<Option<T>>,
+    T: SetFill,
 {
     /// Specify the whole set of fill tessellation options.
     pub fn fill_opts(self, opts: FillOptions) -> Self {
-        self.map_ty(|ty| ty.fill_opts(opts))
+        fill::set_fill(&self.draw, self.index, fill::Update::Opts(opts));
+        self
     }
 
     /// Maximum allowed distance to the path when building an approximation.
     pub fn fill_tolerance(self, tolerance: f32) -> Self {
-        self.map_ty(|ty| ty.fill_tolerance(tolerance))
+        fill::set_fill(&self.draw, self.index, fill::Update::Tolerance(tolerance));
+        self
     }
 
     /// Specify the rule used to determine what is inside and what is outside of the shape.
     ///
     /// Currently, only the `EvenOdd` rule is implemented.
     pub fn fill_rule(self, rule: lyon::tessellation::FillRule) -> Self {
-        self.map_ty(|ty| ty.fill_rule(rule))
+        fill::set_fill(&self.draw, self.index, fill::Update::Rule(rule));
+        self
     }
 
     /// Whether to perform a vertical or horizontal traversal of the geometry.
     ///
     /// Default value: `Vertical`.
     pub fn fill_sweep_orientation(self, orientation: lyon::tessellation::Orientation) -> Self {
-        self.map_ty(|ty| ty.fill_sweep_orientation(orientation))
+        fill::set_fill(
+            &self.draw,
+            self.index,
+            fill::Update::SweepOrientation(orientation),
+        );
+        self
     }
 
     /// A fast path to avoid some expensive operations if the path is known to not have any
@@ -721,7 +643,8 @@ where
     ///
     /// Default value: `true`.
     pub fn handle_intersections(self, b: bool) -> Self {
-        self.map_ty(|ty| ty.handle_intersections(b))
+        fill::set_fill(&self.draw, self.index, fill::Update::HandleIntersections(b));
+        self
     }
 }
 
@@ -729,28 +652,30 @@ where
 
 impl<'a, T> Drawing<'a, T>
 where
-    T: SetStroke + Into<Primitive> + Clone,
-    Primitive: Into<Option<T>>,
+    T: SetStroke,
 {
     /// The start line cap as specified by the SVG spec.
     pub fn start_cap(self, cap: LineCap) -> Self {
-        self.map_ty(|ty| ty.start_cap(cap))
+        stroke::set_stroke(&self.draw, self.index, stroke::Update::StartCap(cap));
+        self
     }
 
     /// The end line cap as specified by the SVG spec.
     pub fn end_cap(self, cap: LineCap) -> Self {
-        self.map_ty(|ty| ty.end_cap(cap))
+        stroke::set_stroke(&self.draw, self.index, stroke::Update::EndCap(cap));
+        self
     }
 
     /// The start and end line cap as specified by the SVG spec.
     pub fn caps(self, cap: LineCap) -> Self {
-        self.map_ty(|ty| ty.caps(cap))
+        stroke::set_stroke(&self.draw, self.index, stroke::Update::Caps(cap));
+        self
     }
 
     /// The stroke for each sub-path does not extend beyond its two endpoints. A zero length
     /// sub-path will therefore not have any stroke.
     pub fn start_cap_butt(self) -> Self {
-        self.map_ty(|ty| ty.start_cap_butt())
+        self.start_cap(LineCap::Butt)
     }
 
     /// At the end of each sub-path, the shape representing the stroke will be extended by a
@@ -759,7 +684,7 @@ where
     /// sub-path consists solely of a square with side length equal to the stroke width, centered
     /// at the sub-path's point.
     pub fn start_cap_square(self) -> Self {
-        self.map_ty(|ty| ty.start_cap_square())
+        self.start_cap(LineCap::Square)
     }
 
     /// At each end of each sub-path, the shape representing the stroke will be extended by a half
@@ -767,13 +692,13 @@ where
     /// resulting effect is that the stroke for that sub-path consists solely of a full circle
     /// centered at the sub-path's point.
     pub fn start_cap_round(self) -> Self {
-        self.map_ty(|ty| ty.start_cap_round())
+        self.start_cap(LineCap::Round)
     }
 
     /// The stroke for each sub-path does not extend beyond its two endpoints. A zero length
     /// sub-path will therefore not have any stroke.
     pub fn end_cap_butt(self) -> Self {
-        self.map_ty(|ty| ty.end_cap_butt())
+        self.end_cap(LineCap::Butt)
     }
 
     /// At the end of each sub-path, the shape representing the stroke will be extended by a
@@ -782,7 +707,7 @@ where
     /// sub-path consists solely of a square with side length equal to the stroke width, centered
     /// at the sub-path's point.
     pub fn end_cap_square(self) -> Self {
-        self.map_ty(|ty| ty.end_cap_square())
+        self.end_cap(LineCap::Square)
     }
 
     /// At each end of each sub-path, the shape representing the stroke will be extended by a half
@@ -790,13 +715,13 @@ where
     /// resulting effect is that the stroke for that sub-path consists solely of a full circle
     /// centered at the sub-path's point.
     pub fn end_cap_round(self) -> Self {
-        self.map_ty(|ty| ty.end_cap_round())
+        self.end_cap(LineCap::Round)
     }
 
     /// The stroke for each sub-path does not extend beyond its two endpoints. A zero length
     /// sub-path will therefore not have any stroke.
     pub fn caps_butt(self) -> Self {
-        self.map_ty(|ty| ty.caps_butt())
+        self.caps(LineCap::Butt)
     }
 
     /// At the end of each sub-path, the shape representing the stroke will be extended by a
@@ -805,7 +730,7 @@ where
     /// sub-path consists solely of a square with side length equal to the stroke width, centered
     /// at the sub-path's point.
     pub fn caps_square(self) -> Self {
-        self.map_ty(|ty| ty.caps_square())
+        self.caps(LineCap::Square)
     }
 
     /// At each end of each sub-path, the shape representing the stroke will be extended by a half
@@ -813,58 +738,67 @@ where
     /// resulting effect is that the stroke for that sub-path consists solely of a full circle
     /// centered at the sub-path's point.
     pub fn caps_round(self) -> Self {
-        self.map_ty(|ty| ty.caps_round())
+        self.caps(LineCap::Round)
     }
 
     /// The way in which lines are joined at the vertices, matching the SVG spec.
     ///
     /// Default value is `MiterClip`.
     pub fn join(self, join: LineJoin) -> Self {
-        self.map_ty(|ty| ty.join(join))
+        stroke::set_stroke(&self.draw, self.index, stroke::Update::Join(join));
+        self
     }
 
     /// A sharp corner is to be used to join path segments.
     pub fn join_miter(self) -> Self {
-        self.map_ty(|ty| ty.join_miter())
+        self.join(LineJoin::Miter)
     }
 
     /// Same as a `join_miter`, but if the miter limit is exceeded, the miter is clipped at a miter
     /// length equal to the miter limit value multiplied by the stroke width.
     pub fn join_miter_clip(self) -> Self {
-        self.map_ty(|ty| ty.join_miter_clip())
+        self.join(LineJoin::MiterClip)
     }
 
     /// A round corner is to be used to join path segments.
     pub fn join_round(self) -> Self {
-        self.map_ty(|ty| ty.join_round())
+        self.join(LineJoin::Round)
     }
 
     /// A bevelled corner is to be used to join path segments. The bevel shape is a triangle that
     /// fills the area between the two stroked segments.
     pub fn join_bevel(self) -> Self {
-        self.map_ty(|ty| ty.join_bevel())
+        self.join(LineJoin::Bevel)
     }
 
     /// The total stroke_weight (aka width) of the line.
     pub fn stroke_weight(self, stroke_weight: f32) -> Self {
-        self.map_ty(|ty| ty.stroke_weight(stroke_weight))
+        stroke::set_stroke(
+            &self.draw,
+            self.index,
+            stroke::Update::Weight(stroke_weight),
+        );
+        self
     }
 
     /// Describes the limit before miter lines will clip, as described in the SVG spec.
     ///
     /// Must be greater than or equal to `1.0`.
     pub fn miter_limit(self, limit: f32) -> Self {
-        self.map_ty(|ty| ty.miter_limit(limit))
+        stroke::set_stroke(&self.draw, self.index, stroke::Update::MiterLimit(limit));
+        self
     }
 
     /// Maximum allowed distance to the path when building an approximation.
     pub fn stroke_tolerance(self, tolerance: f32) -> Self {
-        self.map_ty(|ty| ty.stroke_tolerance(tolerance))
+        stroke::set_stroke(&self.draw, self.index, stroke::Update::Tolerance(tolerance));
+        self
     }
 
     /// Specify the full set of stroke options for the path tessellation.
     pub fn stroke_opts(self, opts: StrokeOptions) -> Self {
-        self.map_ty(|ty| ty.stroke_opts(opts))
+        stroke::set_stroke(&self.draw, self.index, stroke::Update::Opts(opts));
+        self
     }
 }
 
@@ -894,3 +828,61 @@ impl<'a, T> Drawing<'a, T> {
         self.with_new_shader_model(model)
     }
 }
+// Finish the drawing at the given index.
+//
+// Shared between the **finish** method and the **Drawing**'s **Drop** implementation.
+fn finish_drawing(draw: &DrawRef, index: usize, shader_model_index: usize) {
+    match draw.state.try_write() {
+        Err(err) => eprintln!("drawing failed to borrow state and finish: {}", err),
+        Ok(mut state) => {
+            // If we are "Owned", that means we mutated our shader model and so need to
+            // spawn a new entity just for this primitive.
+            if let DrawRef::Owned(draw) = draw {
+                let id = draw.shader_model.clone();
+                let shader_model_cmd = state
+                    .draw_commands
+                    .get_mut(shader_model_index)
+                    .expect("expected a valid shader model index");
+                if shader_model_cmd.is_none() {
+                    *shader_model_cmd = Some(DrawCommand::ShaderModel(id));
+                }
+            }
+            state.finish_drawing(index);
+        }
+    }
+}
+
+// Mutate the primitive stored within **Draw** at `index` in place.
+//
+// The function is only applied if the node has not yet been **Drawn** and the draw state is not
+// locked elsewhere.
+pub(crate) fn with_primitive(draw: &Draw, index: usize, f: impl FnOnce(&mut Primitive)) {
+    if let Ok(mut state) = draw.state.try_write() {
+        if let Some(primitive) = state.drawing.get_mut(&index) {
+            f(primitive);
+        }
+    }
+}
+
+// The same as `with_primitive`, but passes ownership of the primitive to the given function
+// along with mutable access to the intermediary vertex buffers. This is useful for type-state
+// transitions and for primitives with an arbitrary number of vertices.
+pub(crate) fn with_primitive_ctxt(
+    draw: &Draw,
+    index: usize,
+    f: impl FnOnce(Primitive, DrawingContext) -> Primitive,
+) {
+    if let Ok(mut state) = draw.state.try_write() {
+        let state = &mut *state;
+        if let Some(primitive) = state.drawing.get_mut(&index) {
+            let prim = std::mem::take(primitive);
+            let new = {
+                let mut intermediary_state = state.intermediary_state.write().unwrap();
+                let ctxt = DrawingContext::from_intermediary_state(&mut intermediary_state);
+                f(prim, ctxt)
+            };
+            *primitive = new;
+        }
+    }
+}
+

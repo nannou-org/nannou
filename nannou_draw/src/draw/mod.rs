@@ -526,38 +526,40 @@ impl Draw {
     pub fn a<T>(&self, primitive: T) -> Drawing<'_, T>
     where
         T: Into<Primitive>,
-        Primitive: Into<Option<T>>,
     {
-        let (index, model_index) = {
-            let mut state = self.state.write().unwrap();
-            // If drawing with a different context, insert the necessary command to update it.
-            if state.last_draw_context.as_ref() != Some(&self.context) {
-                state
-                    .draw_commands
-                    .push(Some(DrawCommand::Context(self.context.clone())));
-                state.last_draw_context = Some(self.context.clone());
-            }
-
-            let id = &self.shader_model;
-            if state.last_shader_model.as_ref() != Some(id) {
-                state
-                    .draw_commands
-                    .push(Some(DrawCommand::ShaderModel(id.clone())));
-                state.last_shader_model = Some(id.clone());
-            }
-
-            // Insert a model slot to be used if the drawing switches models.
-            let shader_model_index = state.draw_commands.len();
-            state.draw_commands.push(None);
-
-            // The primitive will be inserted in the next element.
-            let index = state.draw_commands.len();
-            let primitive: Primitive = primitive.into();
-            state.draw_commands.push(None);
-            state.drawing.insert(index, primitive);
-            (index, shader_model_index)
-        };
+        let (index, model_index) = self.insert_primitive(primitive.into());
         drawing::new(self, index, model_index)
+    }
+
+    // Record the primitive in the draw state, returning the indices of the draw command slots
+    // reserved for the primitive and for a potential shader model change.
+    fn insert_primitive(&self, primitive: Primitive) -> (usize, usize) {
+        let mut state = self.state.write().unwrap();
+        // If drawing with a different context, insert the necessary command to update it.
+        if state.last_draw_context.as_ref() != Some(&self.context) {
+            state
+                .draw_commands
+                .push(Some(DrawCommand::Context(self.context.clone())));
+            state.last_draw_context = Some(self.context.clone());
+        }
+
+        let id = &self.shader_model;
+        if state.last_shader_model.as_ref() != Some(id) {
+            state
+                .draw_commands
+                .push(Some(DrawCommand::ShaderModel(id.clone())));
+            state.last_shader_model = Some(id.clone());
+        }
+
+        // Insert a model slot to be used if the drawing switches models.
+        let shader_model_index = state.draw_commands.len();
+        state.draw_commands.push(None);
+
+        // The primitive will be inserted in the next element.
+        let index = state.draw_commands.len();
+        state.draw_commands.push(None);
+        state.drawing.insert(index, primitive);
+        (index, shader_model_index)
     }
 
     /// Begin drawing a **Path**.

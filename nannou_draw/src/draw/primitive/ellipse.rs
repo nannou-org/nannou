@@ -177,15 +177,6 @@ impl From<Ellipse> for Primitive {
     }
 }
 
-impl Into<Option<Ellipse>> for Primitive {
-    fn into(self) -> Option<Ellipse> {
-        match self {
-            Primitive::Ellipse(prim) => Some(prim),
-            _ => None,
-        }
-    }
-}
-
 // Drawing methods.
 
 impl<'a> DrawingEllipse<'a> {
@@ -194,16 +185,28 @@ impl<'a> DrawingEllipse<'a> {
     where
         C: Into<Color>,
     {
-        self.map_ty(|ty| ty.stroke(color))
+        self.stroke_color(color)
     }
 
     /// Specify the width and height of the **Ellipse** via a given **radius**.
     pub fn radius(self, radius: f32) -> Self {
-        self.map_ty(|ty| ty.radius(radius))
+        let side = radius * 2.0;
+        self.w_h(side, side)
     }
 
     /// The number of sides used to draw the ellipse.
     pub fn resolution(self, resolution: f32) -> Self {
-        self.map_ty(|ty| ty.resolution(resolution))
+        update_ellipse(&self.draw, self.index, |ellipse| {
+            ellipse.resolution = Some(resolution)
+        });
+        self
     }
+}
+
+// Update the inner `Ellipse` of the primitive being drawn at `index`.
+fn update_ellipse(draw: &crate::draw::Draw, index: usize, f: impl FnOnce(&mut Ellipse)) {
+    crate::draw::drawing::with_primitive(draw, index, |prim| match prim {
+        Primitive::Ellipse(ellipse) => f(ellipse),
+        _ => bevy::log::warn_once!("expected an `Ellipse` primitive"),
+    })
 }

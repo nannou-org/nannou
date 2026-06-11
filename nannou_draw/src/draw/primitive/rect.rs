@@ -6,7 +6,7 @@ use nannou_core::geom;
 use crate::draw::primitive::Primitive;
 use crate::draw::primitive::polygon::{self, PolygonInit, PolygonOptions, SetPolygon};
 use crate::draw::properties::spatial::{dimension, orientation, position};
-use crate::draw::properties::tex_coords::SetTexCoords;
+use crate::draw::properties::tex_coords::{self, SetTexCoords};
 use crate::draw::properties::{SetColor, SetDimensions, SetOrientation, SetPosition, SetStroke};
 use crate::draw::{self, Drawing};
 
@@ -39,11 +39,12 @@ impl<'a> DrawingRect<'a> {
     where
         C: Into<Color>,
     {
-        self.map_ty(|ty| ty.stroke(color))
+        self.stroke_color(color)
     }
 
     pub fn area(self, area: geom::Rect) -> Self {
-        self.map_ty(|ty| ty.area(area))
+        tex_coords::set_tex_coords_area(&self.draw, self.index, area);
+        self
     }
 }
 
@@ -164,14 +165,5 @@ impl SetTexCoords for Rect {
 impl From<Rect> for Primitive {
     fn from(prim: Rect) -> Self {
         Primitive::Rect(prim)
-    }
-}
-
-impl Into<Option<Rect>> for Primitive {
-    fn into(self) -> Option<Rect> {
-        match self {
-            Primitive::Rect(prim) => Some(prim),
-            _ => None,
-        }
     }
 }

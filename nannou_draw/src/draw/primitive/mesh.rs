@@ -305,7 +305,11 @@ impl<'a> Drawing<'a, Vertexless> {
         I: IntoIterator,
         I::Item: Into<Vec3>,
     {
-        self.map_ty_with_context(|ty, ctxt| ty.points(ctxt.mesh, points))
+        let mut vertices = points
+            .into_iter()
+            .map(|p| (p.into(), Color::default(), Vec2::ZERO));
+        mesh_points(&self.draw, self.index, true, &mut vertices);
+        self.transition()
     }
 
     /// Describe the mesh with a sequence of colored points.
@@ -319,7 +323,11 @@ impl<'a> Drawing<'a, Vertexless> {
         P: Into<Vec3>,
         C: Into<Color>,
     {
-        self.map_ty_with_context(|ty, ctxt| ty.points_colored(ctxt.mesh, points))
+        let mut vertices = points
+            .into_iter()
+            .map(|(p, c)| (p.into(), c.into(), Vec2::ZERO));
+        mesh_points(&self.draw, self.index, false, &mut vertices);
+        self.transition()
     }
 
     /// Describe the mesh with a sequence of textured points.
@@ -338,8 +346,12 @@ impl<'a> Drawing<'a, Vertexless> {
         P: Into<Vec3>,
         T: Into<Vec2>,
     {
-        self.texture(&texture_handle)
-            .map_ty_with_context(|ty, ctxt| ty.points_textured(ctxt.mesh, points))
+        let this = self.texture(&texture_handle);
+        let mut vertices = points
+            .into_iter()
+            .map(|(p, t)| (p.into(), Color::default(), t.into()));
+        mesh_points(&this.draw, this.index, false, &mut vertices);
+        this.transition()
     }
 
     /// Describe the mesh with a sequence of triangles.
@@ -355,7 +367,13 @@ impl<'a> Drawing<'a, Vertexless> {
         I: IntoIterator<Item = geom::Tri<V>>,
         V: Into<Vec3>,
     {
-        self.map_ty_with_context(|ty, ctxt| ty.tris(ctxt.mesh, tris))
+        let mut vertices = tris
+            .into_iter()
+            .map(|t| t.map_vertices(Into::into))
+            .flat_map(geom::Tri::vertices)
+            .map(|p| (p, Color::default(), Vec2::ZERO));
+        mesh_points(&self.draw, self.index, true, &mut vertices);
+        self.transition()
     }
 
     /// Describe the mesh with a sequence of colored triangles.
@@ -369,7 +387,13 @@ impl<'a> Drawing<'a, Vertexless> {
         P: Into<Vec3>,
         C: Into<Color>,
     {
-        self.map_ty_with_context(|ty, ctxt| ty.tris_colored(ctxt.mesh, tris))
+        let mut vertices = tris
+            .into_iter()
+            .map(|t| t.map_vertices(|(p, c)| (p.into(), c.into())))
+            .flat_map(geom::Tri::vertices)
+            .map(|(p, c)| (p, c, Vec2::ZERO));
+        mesh_points(&self.draw, self.index, false, &mut vertices);
+        self.transition()
     }
 
     /// Describe the mesh with a sequence of textured triangles.
@@ -378,18 +402,20 @@ impl<'a> Drawing<'a, Vertexless> {
     /// coordinates in that order, e.g. `(point, tex_coords)`. `point` may be of any type that
     /// implements `Into<Vec3>` and `tex_coords` may be of any type that implements
     /// `Into<Vec2>`.
-    pub fn tris_textured<I, P, T>(
-        self,
-        texture_handle: Handle<Image>,
-        tris: I,
-    ) -> DrawingMesh<'a>
+    pub fn tris_textured<I, P, T>(self, texture_handle: Handle<Image>, tris: I) -> DrawingMesh<'a>
     where
         I: IntoIterator<Item = geom::Tri<(P, T)>>,
         P: Into<Vec3>,
         T: Into<Vec2>,
     {
-        self.texture(&texture_handle)
-            .map_ty_with_context(|ty, ctxt| ty.tris_textured(ctxt.mesh, tris))
+        let this = self.texture(&texture_handle);
+        let mut vertices = tris
+            .into_iter()
+            .map(|t| t.map_vertices(|(p, t)| (p.into(), t.into())))
+            .flat_map(geom::Tri::vertices)
+            .map(|(p, t)| (p, Color::default(), t));
+        mesh_points(&this.draw, this.index, false, &mut vertices);
+        this.transition()
     }
 
     /// Describe the mesh with the given indexed points.
@@ -403,7 +429,12 @@ impl<'a> Drawing<'a, Vertexless> {
         V::Item: Into<Vec3>,
         I: IntoIterator<Item = usize>,
     {
-        self.map_ty_with_context(|ty, ctxt| ty.indexed(ctxt.mesh, points, indices))
+        let mut vertices = points
+            .into_iter()
+            .map(|p| (p.into(), Color::default(), Vec2::ZERO));
+        let mut indices = indices.into_iter();
+        mesh_indexed(&self.draw, self.index, true, &mut vertices, &mut indices);
+        self.transition()
     }
 
     /// Describe the mesh with the given indexed, colored points.
@@ -420,7 +451,12 @@ impl<'a> Drawing<'a, Vertexless> {
         P: Into<Vec3>,
         C: Into<Color>,
     {
-        self.map_ty_with_context(|ty, ctxt| ty.indexed_colored(ctxt.mesh, points, indices))
+        let mut vertices = points
+            .into_iter()
+            .map(|(p, c)| (p.into(), c.into(), Vec2::ZERO));
+        let mut indices = indices.into_iter();
+        mesh_indexed(&self.draw, self.index, false, &mut vertices, &mut indices);
+        self.transition()
     }
 
     /// Describe the mesh with the given indexed, textured points.
@@ -443,9 +479,62 @@ impl<'a> Drawing<'a, Vertexless> {
         P: Into<Vec3>,
         T: Into<Vec2>,
     {
-        self.texture(&texture_handle)
-            .map_ty_with_context(|ty, ctxt| ty.indexed_textured(ctxt.mesh, points, indices))
+        let this = self.texture(&texture_handle);
+        let mut vertices = points
+            .into_iter()
+            .map(|(p, t)| (p.into(), Color::default(), t.into()));
+        let mut indices = indices.into_iter();
+        mesh_indexed(&this.draw, this.index, false, &mut vertices, &mut indices);
+        this.transition()
     }
+}
+
+// Submit the mesh's vertices, transitioning the primitive from `Vertexless` to `Mesh`.
+//
+// `themed_fill` indicates that the vertices carry no colour of their own and the mesh should be
+// filled with a single colour (the one set via the builder methods, or the theme's default).
+fn mesh_points(
+    draw: &crate::draw::Draw,
+    index: usize,
+    themed_fill: bool,
+    vertices: &mut dyn Iterator<Item = Vertex>,
+) {
+    crate::draw::drawing::with_primitive_ctxt(draw, index, |prim, ctxt| match prim {
+        Primitive::MeshVertexless(v) => {
+            let mut mesh = v.points_inner(ctxt.mesh, vertices);
+            if themed_fill {
+                mesh.fill_color = Some(FillColor(None));
+            }
+            Primitive::Mesh(mesh)
+        }
+        other => {
+            bevy::log::warn_once!("expected a `Vertexless` mesh primitive");
+            other
+        }
+    })
+}
+
+// The same as `mesh_points`, but with explicit indices.
+fn mesh_indexed(
+    draw: &crate::draw::Draw,
+    index: usize,
+    themed_fill: bool,
+    vertices: &mut dyn Iterator<Item = Vertex>,
+    indices: &mut dyn Iterator<Item = usize>,
+) {
+    crate::draw::drawing::with_primitive_ctxt(draw, index, |prim, ctxt| match prim {
+        Primitive::MeshVertexless(v) => {
+            let mut mesh = v.indexed_inner(ctxt.mesh, vertices, indices);
+            if themed_fill {
+                mesh.fill_color = Some(FillColor(None));
+            }
+            Primitive::Mesh(mesh)
+        }
+        other => {
+            bevy::log::warn_once!("expected a `Vertexless` mesh primitive");
+            other
+        }
+    })
 }
 
 impl draw::render::RenderPrimitive for PrimitiveMesh {
@@ -544,23 +633,5 @@ impl From<Vertexless> for Primitive {
 impl From<PrimitiveMesh> for Primitive {
     fn from(prim: PrimitiveMesh) -> Self {
         Primitive::Mesh(prim)
-    }
-}
-
-impl Into<Option<Vertexless>> for Primitive {
-    fn into(self) -> Option<Vertexless> {
-        match self {
-            Primitive::MeshVertexless(prim) => Some(prim),
-            _ => None,
-        }
-    }
-}
-
-impl Into<Option<PrimitiveMesh>> for Primitive {
-    fn into(self) -> Option<PrimitiveMesh> {
-        match self {
-            Primitive::Mesh(prim) => Some(prim),
-            _ => None,
-        }
     }
 }

@@ -52,7 +52,7 @@ impl<'a> DrawingTri<'a> {
     where
         C: Into<Color>,
     {
-        self.map_ty(|ty| ty.stroke(color))
+        self.stroke_color(color)
     }
 
     /// Use the given points as the vertices (corners) of the triangle.
@@ -60,8 +60,18 @@ impl<'a> DrawingTri<'a> {
     where
         P: Into<Vec2>,
     {
-        self.map_ty(|ty| ty.points(a, b, c))
+        let tri = geom::Tri([a.into(), b.into(), c.into()]);
+        update_tri(&self.draw, self.index, |t| t.tri = tri);
+        self
     }
+}
+
+// Update the inner `Tri` of the primitive being drawn at `index`.
+fn update_tri(draw: &crate::draw::Draw, index: usize, f: impl FnOnce(&mut Tri)) {
+    crate::draw::drawing::with_primitive(draw, index, |prim| match prim {
+        Primitive::Tri(tri) => f(tri),
+        _ => bevy::log::warn_once!("expected a `Tri` primitive"),
+    })
 }
 
 // Trait implementations.
@@ -173,14 +183,5 @@ impl SetPolygon for Tri {
 impl From<Tri> for Primitive {
     fn from(prim: Tri) -> Self {
         Primitive::Tri(prim)
-    }
-}
-
-impl Into<Option<Tri>> for Primitive {
-    fn into(self) -> Option<Tri> {
-        match self {
-            Primitive::Tri(prim) => Some(prim),
-            _ => None,
-        }
     }
 }

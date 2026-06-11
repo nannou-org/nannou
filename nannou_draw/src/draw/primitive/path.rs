@@ -5,7 +5,7 @@ use lyon::tessellation::{FillOptions, FillTessellator, StrokeOptions, StrokeTess
 use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{orientation, position};
 use crate::draw::properties::{SetColor, SetFill, SetOrientation, SetPosition, SetStroke};
-use crate::draw::{self, Drawing, DrawingContext};
+use crate::draw::{self, Drawing, DrawingContext, drawing};
 
 /// A set of path tessellation options (FillOptions or StrokeOptions).
 pub trait TessellationOptions {
@@ -570,55 +570,57 @@ impl<'a> DrawingPathInit<'a> {
     ///
     /// The returned building context allows for specifying the fill tessellation options.
     pub fn fill(self) -> DrawingPathFill<'a> {
-        self.map_ty(|ty| ty.fill())
+        path_fill(&self.draw, self.index);
+        self.transition()
     }
 
     /// Specify that we want to use stroke tessellation for the path.
     ///
     /// The returned building context allows for specifying the stroke tessellation options.
     pub fn stroke(self) -> DrawingPathStroke<'a> {
-        self.map_ty(|ty| ty.stroke())
+        path_stroke(&self.draw, self.index);
+        self.transition()
     }
 }
 
 impl<'a> DrawingPathFill<'a> {
     /// Maximum allowed distance to the path when building an approximation.
     pub fn tolerance(self, tolerance: f32) -> Self {
-        self.map_ty(|ty| ty.tolerance(tolerance))
+        self.fill_tolerance(tolerance)
     }
 
     /// Specify the rule used to determine what is inside and what is outside of the shape.
     ///
     /// Currently, only the `EvenOdd` rule is implemented.
     pub fn rule(self, rule: lyon::tessellation::FillRule) -> Self {
-        self.map_ty(|ty| ty.rule(rule))
+        self.fill_rule(rule)
     }
 }
 
 impl<'a> DrawingPathStroke<'a> {
     /// Short-hand for the `stroke_weight` method.
     pub fn weight(self, weight: f32) -> Self {
-        self.map_ty(|ty| ty.stroke_weight(weight))
+        self.stroke_weight(weight)
     }
 
     /// Short-hand for the `stroke_tolerance` method.
     pub fn tolerance(self, tolerance: f32) -> Self {
-        self.map_ty(|ty| ty.stroke_tolerance(tolerance))
+        self.stroke_tolerance(tolerance)
     }
 }
 
 impl<'a, T> DrawingPathOptions<'a, T>
 where
     T: TessellationOptions,
-    PathOptions<T>: Into<Primitive> + Clone,
-    Primitive: Into<Option<PathOptions<T>>>,
 {
     /// Submit the path events to be tessellated.
     pub fn events<I>(self, events: I) -> DrawingPath<'a>
     where
         I: IntoIterator<Item = lyon::path::PathEvent>,
     {
-        self.map_ty_with_context(|ty, ctxt| ty.events(ctxt, events))
+        let mut events = events.into_iter();
+        path_events(&self.draw, self.index, &mut events);
+        self.transition()
     }
 
     /// Submit the path events as a polyline of points.
@@ -627,7 +629,9 @@ where
         I: IntoIterator,
         I::Item: Into<Vec2>,
     {
-        self.map_ty_with_context(|ty, ctxt| ty.points(ctxt, points))
+        let mut points = points.into_iter().map(Into::into);
+        path_points(&self.draw, self.index, false, &mut points);
+        self.transition()
     }
 
     /// Submit the path events as a polyline of points.
@@ -638,7 +642,9 @@ where
         I: IntoIterator,
         I::Item: Into<Vec2>,
     {
-        self.map_ty_with_context(|ty, ctxt| ty.points_closed(ctxt, points))
+        let mut points = points.into_iter().map(Into::into);
+        path_points(&self.draw, self.index, true, &mut points);
+        self.transition()
     }
 
     pub fn points_colored<I, P, C>(self, points: I) -> DrawingPath<'a>
@@ -647,9 +653,11 @@ where
         P: Into<Vec2>,
         C: Into<Color>,
     {
-        self.map_ty_with_context(|ty, ctxt| {
-            ty.vertices(ctxt, points.into_iter().map(|(p, c)| (p, c, Vec2::ZERO)))
-        })
+        let mut points = points
+            .into_iter()
+            .map(|(p, c)| (p.into(), c.into(), Vec2::ZERO));
+        path_points_vertex(&self.draw, self.index, false, &mut points);
+        self.transition()
     }
 
     pub fn points_colored_closed<I, P, C>(self, points: I) -> DrawingPath<'a>
@@ -658,9 +666,11 @@ where
         P: Into<Vec2>,
         C: Into<Color>,
     {
-        self.map_ty_with_context(|ty, ctxt| {
-            ty.vertices_closed(ctxt, points.into_iter().map(|(p, c)| (p, c, Vec2::ZERO)))
-        })
+        let mut points = points
+            .into_iter()
+            .map(|(p, c)| (p.into(), c.into(), Vec2::ZERO));
+        path_points_vertex(&self.draw, self.index, true, &mut points);
+        self.transition()
     }
 
     /// Submit path events as a polyline of vertex points.
@@ -671,7 +681,11 @@ where
         C: Into<Color>,
         U: Into<Vec2>,
     {
-        self.map_ty_with_context(|ty, ctxt| ty.vertices(ctxt, points))
+        let mut points = points
+            .into_iter()
+            .map(|(p, c, u)| (p.into(), c.into(), u.into()));
+        path_points_vertex(&self.draw, self.index, false, &mut points);
+        self.transition()
     }
 
     /// Submit path events as a polyline of vertex points.
@@ -684,8 +698,79 @@ where
         C: Into<Color>,
         U: Into<Vec2>,
     {
-        self.map_ty_with_context(|ty, ctxt| ty.vertices_closed(ctxt, points))
+        let mut points = points
+            .into_iter()
+            .map(|(p, c, u)| (p.into(), c.into(), u.into()));
+        path_points_vertex(&self.draw, self.index, true, &mut points);
+        self.transition()
     }
+}
+
+// Transition the primitive being drawn at `index` from `PathInit` to `PathFill`.
+fn path_fill(draw: &draw::Draw, index: usize) {
+    drawing::with_primitive(draw, index, |prim| match prim {
+        Primitive::PathInit(_) => *prim = Primitive::PathFill(PathInit.fill()),
+        _ => bevy::log::warn_once!("expected a `PathInit` primitive"),
+    })
+}
+
+// Transition the primitive being drawn at `index` from `PathInit` to `PathStroke`.
+fn path_stroke(draw: &draw::Draw, index: usize) {
+    drawing::with_primitive(draw, index, |prim| match prim {
+        Primitive::PathInit(_) => *prim = Primitive::PathStroke(PathInit.stroke()),
+        _ => bevy::log::warn_once!("expected a `PathInit` primitive"),
+    })
+}
+
+// Submit the path's events, transitioning the primitive from `PathFill` or `PathStroke` to
+// `Path`.
+fn path_events(draw: &draw::Draw, index: usize, events: &mut dyn Iterator<Item = PathEvent>) {
+    drawing::with_primitive_ctxt(draw, index, |prim, ctxt| match prim {
+        Primitive::PathFill(opts) => Primitive::Path(opts.events(ctxt, events)),
+        Primitive::PathStroke(opts) => Primitive::Path(opts.events(ctxt, events)),
+        other => {
+            bevy::log::warn_once!("expected a `PathFill` or `PathStroke` primitive");
+            other
+        }
+    })
+}
+
+// Submit the path's points, transitioning the primitive from `PathFill` or `PathStroke` to
+// `Path`.
+fn path_points(
+    draw: &draw::Draw,
+    index: usize,
+    close: bool,
+    points: &mut dyn Iterator<Item = Vec2>,
+) {
+    drawing::with_primitive_ctxt(draw, index, |prim, ctxt| match prim {
+        Primitive::PathFill(opts) => Primitive::Path(opts.points_inner(ctxt, close, points)),
+        Primitive::PathStroke(opts) => Primitive::Path(opts.points_inner(ctxt, close, points)),
+        other => {
+            bevy::log::warn_once!("expected a `PathFill` or `PathStroke` primitive");
+            other
+        }
+    })
+}
+
+// Submit the path's vertex points, transitioning the primitive from `PathFill` or `PathStroke`
+// to `Path`.
+fn path_points_vertex(
+    draw: &draw::Draw,
+    index: usize,
+    close: bool,
+    points: &mut dyn Iterator<Item = (Vec2, Color, Vec2)>,
+) {
+    drawing::with_primitive_ctxt(draw, index, |prim, ctxt| match prim {
+        Primitive::PathFill(opts) => Primitive::Path(opts.points_vertex_inner(ctxt, close, points)),
+        Primitive::PathStroke(opts) => {
+            Primitive::Path(opts.points_vertex_inner(ctxt, close, points))
+        }
+        other => {
+            bevy::log::warn_once!("expected a `PathFill` or `PathStroke` primitive");
+            other
+        }
+    })
 }
 
 impl SetFill for PathFill {
@@ -771,41 +856,5 @@ impl From<PathFill> for Primitive {
 impl From<Path> for Primitive {
     fn from(prim: Path) -> Self {
         Primitive::Path(prim)
-    }
-}
-
-impl Into<Option<PathInit>> for Primitive {
-    fn into(self) -> Option<PathInit> {
-        match self {
-            Primitive::PathInit(prim) => Some(prim),
-            _ => None,
-        }
-    }
-}
-
-impl Into<Option<PathFill>> for Primitive {
-    fn into(self) -> Option<PathFill> {
-        match self {
-            Primitive::PathFill(prim) => Some(prim),
-            _ => None,
-        }
-    }
-}
-
-impl Into<Option<PathStroke>> for Primitive {
-    fn into(self) -> Option<PathStroke> {
-        match self {
-            Primitive::PathStroke(prim) => Some(prim),
-            _ => None,
-        }
-    }
-}
-
-impl Into<Option<Path>> for Primitive {
-    fn into(self) -> Option<Path> {
-        match self {
-            Primitive::Path(prim) => Some(prim),
-            _ => None,
-        }
     }
 }

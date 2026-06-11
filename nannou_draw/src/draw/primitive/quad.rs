@@ -164,15 +164,6 @@ impl From<Quad> for Primitive {
     }
 }
 
-impl Into<Option<Quad>> for Primitive {
-    fn into(self) -> Option<Quad> {
-        match self {
-            Primitive::Quad(prim) => Some(prim),
-            _ => None,
-        }
-    }
-}
-
 // Drawing methods.
 
 impl<'a> DrawingQuad<'a> {
@@ -181,6 +172,16 @@ impl<'a> DrawingQuad<'a> {
     where
         P: Into<Vec2>,
     {
-        self.map_ty(|ty| ty.points(a, b, c, d))
+        let quad = geom::Quad([a.into(), b.into(), c.into(), d.into()]);
+        update_quad(&self.draw, self.index, |q| q.quad = quad);
+        self
     }
+}
+
+// Update the inner `Quad` of the primitive being drawn at `index`.
+fn update_quad(draw: &crate::draw::Draw, index: usize, f: impl FnOnce(&mut Quad)) {
+    crate::draw::drawing::with_primitive(draw, index, |prim| match prim {
+        Primitive::Quad(quad) => f(quad),
+        _ => bevy::log::warn_once!("expected a `Quad` primitive"),
+    })
 }

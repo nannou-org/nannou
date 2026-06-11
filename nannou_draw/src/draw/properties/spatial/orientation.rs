@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 
+use crate::draw::{Draw, drawing};
+
 /// Orientation properties for **Drawing** a **Primitive**.
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Properties {
@@ -183,5 +185,34 @@ fn expect_axes(p: &mut Properties) -> &mut Vec3 {
         Properties::Axes(ref mut axes) => axes,
         Properties::LookAt(_) => panic!("expected `Axes`, found `LookAt`"),
         Properties::Quat(_) => panic!("expected `Axes`, found `Quat`"),
+    }
+}
+
+// An update to a primitive's orientation properties.
+pub(crate) enum Update {
+    LookAt(Vec3),
+    XRadians(f32),
+    YRadians(f32),
+    ZRadians(f32),
+    Radians(Vec3),
+    Quat(Quat),
+}
+
+// Update the orientation of the primitive being drawn at `index`.
+pub(crate) fn set_orientation(draw: &Draw, index: usize, update: Update) {
+    drawing::with_primitive(draw, index, |prim| match prim.orientation_mut() {
+        Some(props) => apply_update(props, update),
+        None => bevy::log::warn_once!("drawing primitive does not support `orientation`"),
+    })
+}
+
+fn apply_update(props: &mut Properties, update: Update) {
+    match update {
+        Update::LookAt(target) => *props = Properties::LookAt(target),
+        Update::XRadians(x) => *props = SetOrientation::x_radians(*props, x),
+        Update::YRadians(y) => *props = SetOrientation::y_radians(*props, y),
+        Update::ZRadians(z) => *props = SetOrientation::z_radians(*props, z),
+        Update::Radians(v) => *props = SetOrientation::radians(*props, v),
+        Update::Quat(q) => *props = Properties::Quat(q),
     }
 }

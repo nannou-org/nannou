@@ -87,27 +87,31 @@ impl Arrow {
 impl<'a> DrawingArrow<'a> {
     /// Short-hand for the `stroke_weight` method.
     pub fn weight(self, weight: f32) -> Self {
-        self.map_ty(|ty| ty.weight(weight))
+        self.stroke_weight(weight)
     }
 
     /// Short-hand for the `stroke_tolerance` method.
     pub fn tolerance(self, tolerance: f32) -> Self {
-        self.map_ty(|ty| ty.tolerance(tolerance))
+        self.stroke_tolerance(tolerance)
     }
 
     /// Specify the start point of the arrow.
     pub fn start(self, start: Vec2) -> Self {
-        self.map_ty(|ty| ty.start(start))
+        update_arrow(&self.draw, self.index, |arrow| {
+            arrow.line.start = Some(start)
+        });
+        self
     }
 
     /// Specify the end point of the arrow.
     pub fn end(self, end: Vec2) -> Self {
-        self.map_ty(|ty| ty.end(end))
+        update_arrow(&self.draw, self.index, |arrow| arrow.line.end = Some(end));
+        self
     }
 
     /// Specify the start and end points of the arrow.
     pub fn points(self, start: Vec2, end: Vec2) -> Self {
-        self.map_ty(|ty| ty.points(start, end))
+        self.start(start).end(end)
     }
 
     /// The length of the arrow head.
@@ -116,14 +120,20 @@ impl<'a> DrawingArrow<'a> {
     ///
     /// This value will be clamped to the length of the line itself.
     pub fn head_length(self, length: f32) -> Self {
-        self.map_ty(|ty| ty.head_length(length))
+        update_arrow(&self.draw, self.index, |arrow| {
+            arrow.head_length = Some(length)
+        });
+        self
     }
 
     /// The width of the arrow head.
     ///
     /// By default, this is equal to `weight * 2.0`.
     pub fn head_width(self, width: f32) -> Self {
-        self.map_ty(|ty| ty.head_width(width))
+        update_arrow(&self.draw, self.index, |arrow| {
+            arrow.head_width = Some(width)
+        });
+        self
     }
 }
 
@@ -154,15 +164,6 @@ impl SetColor for Arrow {
 impl From<Arrow> for Primitive {
     fn from(prim: Arrow) -> Self {
         Primitive::Arrow(prim)
-    }
-}
-
-impl Into<Option<Arrow>> for Primitive {
-    fn into(self) -> Option<Arrow> {
-        match self {
-            Primitive::Arrow(prim) => Some(prim),
-            _ => None,
-        }
     }
 }
 
@@ -265,4 +266,12 @@ impl Default for Arrow {
             head_width,
         }
     }
+}
+
+// Update the inner `Arrow` of the primitive being drawn at `index`.
+fn update_arrow(draw: &crate::draw::Draw, index: usize, f: impl FnOnce(&mut Arrow)) {
+    crate::draw::drawing::with_primitive(draw, index, |prim| match prim {
+        Primitive::Arrow(arrow) => f(arrow),
+        _ => bevy::log::warn_once!("expected an `Arrow` primitive"),
+    })
 }
