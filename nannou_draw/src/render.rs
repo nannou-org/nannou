@@ -536,6 +536,11 @@ where
     ) -> Result<RenderPipelineDescriptor, SpecializedMeshPipelineError> {
         let mut descriptor = self.mesh_pipeline.specialize(key.mesh_key, layout)?;
 
+        // The draw API makes no winding-order guarantees - e.g. 2D primitives may wind
+        // either way depending on their orientation - so, like the pre-bevy nannou
+        // renderer, cull nothing. Models may override this in their `specialize`.
+        descriptor.primitive.cull_mode = None;
+
         if let Some(vertex_shader) = &self.vertex_shader {
             descriptor.vertex.shader = vertex_shader.clone();
             descriptor.vertex.shader_defs.push(ShaderDefVal::UInt(
