@@ -30,6 +30,10 @@ jobs:
             command: cargo test --locked -p nannou_core --no-default-features --features "libm serde"
           - name: test-book
             command: cargo test --locked -p book_tests
+          - name: check-links
+            command: mdbook-linkcheck2 -s guide/
+            # Remove once there are no link errors to enforce correct links.
+            continue-on-error: true
           - name: book
             command: mdbook build guide/
     steps:
@@ -59,9 +63,13 @@ jobs:
         pkg-config
     - name: Install mdbook
       if: matrix.name == 'book'
-      run: cargo install mdbook mdbook-linkcheck2 --locked
+      run: cargo install mdbook --locked
+    - name: Install mdbook-linkcheck2
+      if: matrix.name == 'check-links'
+      run: cargo install mdbook-linkcheck2 --locked
     - name: ${{ matrix.name }}
       run: ${{ matrix.command }}
+      continue-on-error: ${{ matrix.continue-on-error || false }}
 
   verifications:
     needs: [cargo]

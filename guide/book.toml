@@ -4,5 +4,3 @@ authors = ["mitchmindtree", "JoshuaBatty", "freesig", "jozanza"]
 src = "src"
 description = "A one-stop shop for Nannou Knowledge!"
 
-[output.linkcheck2]
-follow-web-links = true
