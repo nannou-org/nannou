@@ -17,7 +17,14 @@
 //! and [`nannou::sketch`](sketch()) builders provide the familiar nannou entry points, while
 //! [`NannouPlugin`] bundles nannou's functionality as a Bevy [`Plugin`] so it can also be added to
 //! an existing Bevy `App`.
+//!
+//! When using nannou as a Bevy plugin, the [`context::App`] system param gives your own Bevy
+//! systems access to nannou's conveniences (time, input, the focused window and the `Draw` API)
+//! with no `unsafe` and no builder machinery. See the [`context`] module and the `system_param`
+//! example for details.
+use bevy::diagnostic::FrameTimeDiagnosticsPlugin;
 use bevy::prelude::{App as BevyApp, Plugin};
+use bevy::winit::WinitSettings;
 
 pub use find_folder;
 pub use lyon;
@@ -25,10 +32,11 @@ pub use lyon;
 #[doc(inline)]
 pub use nannou_core::{glam, math, rand};
 
-pub use self::app::App;
+pub use self::context::App;
 
 pub mod app;
 mod camera;
+pub mod context;
 mod frame;
 pub mod geom;
 pub mod image;
@@ -48,6 +56,17 @@ pub struct NannouPlugin;
 impl Plugin for NannouPlugin {
     fn build(&self, app: &mut BevyApp) {
         app.add_plugins(nannou_draw::NannouDrawPlugin);
+        // `FramePlugin` extracts per-window scale factors so a `Frame` can be constructed from a
+        // (custom or classic) render-world system.
+        app.add_plugins(crate::frame::FramePlugin);
+        // Ensure the resources the `bevy::App` system param relies on are present regardless of
+        // whether `NannouPlugin` is used standalone or via the `nannou::app`/`sketch` builders.
+        // `FrameTimeDiagnosticsPlugin` backs `App::fps`; guard against a double-add in case the
+        // user has already registered it.
+        if !app.is_plugin_added::<FrameTimeDiagnosticsPlugin>() {
+            app.add_plugins(FrameTimeDiagnosticsPlugin::default());
+        }
+        app.init_resource::<WinitSettings>();
         #[cfg(feature = "isf")]
         {
             app.add_plugins(nannou_isf::NannouIsfPlugin);

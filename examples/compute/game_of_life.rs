@@ -74,8 +74,8 @@ fn model(app: &App) -> Model {
     image.texture_descriptor.usage =
         TextureUsages::COPY_DST | TextureUsages::STORAGE_BINDING | TextureUsages::TEXTURE_BINDING;
     image.sampler = ImageSampler::Descriptor(ImageSamplerDescriptor::nearest());
-    let image0 = app.assets_mut().add(image.clone());
-    let image1 = app.assets_mut().add(image);
+    let image0 = app.asset_server().add(image.clone());
+    let image1 = app.asset_server().add(image);
     Model {
         texture_a: image0.clone(),
         texture_b: image1,

@@ -37,7 +37,7 @@ use nannou::prelude::bevy_asset::RenderAssetUsages;
 use nannou::prelude::*;
 
 fn main() {
-    nannou::app(model).run();
+    nannou::app(model).update(update).run();
 }
 
 struct Model {
@@ -51,6 +51,7 @@ struct Model {
 fn model(app: &App) -> Model {
     let _window = app
         .new_window()
+        .primary()
         .size(512, 512)
         .view(view)
         .key_pressed(key_pressed)
@@ -61,14 +62,15 @@ fn model(app: &App) -> Model {
     let win = window.rect();
     let image = Image::new_fill(
         Extent3d {
-            width: win.x().to_u32().unwrap(),
-            height: win.y().to_u32().unwrap(),
+            width: win.w().to_u32().unwrap(),
+            height: win.h().to_u32().unwrap(),
             depth_or_array_layers: 1,
         },
         TextureDimension::D2,
         &[0, 0, 0, 0],
         TextureFormat::Rgba8Unorm,
-        // Need to keep this image CPU persistent in order to add additional glyphs later on
+        // Keep the image in the main world so we can rewrite its pixels with
+        // freshly generated noise each frame (see `update`).
         RenderAssetUsages::MAIN_WORLD | RenderAssetUsages::RENDER_WORLD,
     );
     let texture = app.asset_server().add(image);
@@ -81,7 +83,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn view(app: &App, model: &Model) {
+fn update(app: &App, model: &mut Model) {
     let win = app.window_rect();
     let noise = nannou::noise::Fbm::new()
         .set_seed(model.noise_random_seed)
@@ -89,10 +91,9 @@ fn view(app: &App, model: &Model) {
         .set_persistence(model.falloff as f64);
 
     let noise_x_range = map_range(app.mouse().x, win.left(), win.right(), 0.0, win.w() / 10.0);
-    let noise_y_range = map_range(app.mouse().x, win.top(), win.bottom(), 0.0, win.h() / 10.0);
+    let noise_y_range = map_range(app.mouse().y, win.top(), win.bottom(), 0.0, win.h() / 10.0);
 
-    // FIXME: Image is no longer used? Should we update texture somehow?
-    let _image = image::ImageBuffer::from_fn(win.w() as u32, win.h() as u32, |x, y| {
+    let buffer = image::ImageBuffer::from_fn(win.w() as u32, win.h() as u32, |x, y| {
         let noise_x = map_range(x, 0, win.w() as u32, 0.0, noise_x_range) as f64;
         let noise_y = map_range(y, 0, win.h() as u32, 0.0, noise_y_range) as f64;
         let mut noise_value = 0.0;
@@ -119,9 +120,18 @@ fn view(app: &App, model: &Model) {
         nannou::image::Rgba([n, n, n, std::u8::MAX])
     });
 
+    // Upload the freshly generated noise into the persistent texture. The image
+    // keeps its CPU-side data (`MAIN_WORLD`), so overwriting it re-uploads the
+    // pixels to the GPU texture.
+    let raw = buffer.into_raw();
+    app.modify_image(&model.texture, move |image| image.data = Some(raw));
+}
+
+fn view(app: &App, model: &Model) {
+    let win = app.window_rect();
     let draw = app.draw();
-    draw.rect().texture(&model.texture);
     draw.background().color(BLACK);
+    draw.rect().w_h(win.w(), win.h()).texture(&model.texture);
 }
 
 fn key_released(app: &App, model: &mut Model, key: KeyCode) {

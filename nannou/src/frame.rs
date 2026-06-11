@@ -36,8 +36,11 @@ fn extract_scale_factors(
     }
 }
 
+/// The per-window scale factors extracted into the render world by [`FramePlugin`].
+///
+/// Take this as a `Res` in a render-world system to construct a [`Frame`] via [`Frame::new`].
 #[derive(Resource, Deref, DerefMut, Default)]
-pub(crate) struct ExtractedWindowsScaleFactor(EntityHashMap<f32>);
+pub struct ExtractedWindowsScaleFactor(EntityHashMap<f32>);
 
 pub struct Frame<'a, 'r, 'w, 's> {
     window_id: Entity,
@@ -45,6 +48,7 @@ pub struct Frame<'a, 'r, 'w, 's> {
     extracted_windows: &'r ExtractedWindows,
     scale_factors: &'r ExtractedWindowsScaleFactor,
     render_device: &'r RenderDevice,
+    frame_count: u32,
     render_context: RefCell<&'a mut RenderContext<'w, 's>>,
 }
 
@@ -52,12 +56,22 @@ impl<'a, 'r, 'w, 's> Frame<'a, 'r, 'w, 's> {
     pub const TEXTURE_FORMAT: wgpu::TextureFormat =
         nannou_wgpu::RenderPipelineBuilder::DEFAULT_COLOR_FORMAT;
 
-    pub(crate) fn new(
+    /// Construct a `Frame` from render-world resources.
+    ///
+    /// Use this to do custom wgpu rendering from your own render-world system: add
+    /// [`FramePlugin`] (bundled in [`NannouPlugin`](crate::NannouPlugin)), then take the
+    /// [`RenderContext`], a [`ViewTarget`] (e.g. via `ViewQuery`), and `Res`-access to
+    /// [`ExtractedWindows`], [`RenderDevice`] and [`ExtractedWindowsScaleFactor`]. `frame_count` is
+    /// the render-world [`FrameCount`](bevy::diagnostic::FrameCount) (`FrameCount.0`). See
+    /// `nannou::render` and the `wgpu_*` examples for the pattern the classic `app(..).render(..)`
+    /// builder uses internally.
+    pub fn new(
         render_device: &'r RenderDevice,
         scale_factors: &'r ExtractedWindowsScaleFactor,
         view_target_id: Entity,
         view_target: &'r ViewTarget,
         extracted_windows: &'r ExtractedWindows,
+        frame_count: u32,
         render_context: &'a mut RenderContext<'w, 's>,
     ) -> Self {
         Frame {
@@ -65,6 +79,7 @@ impl<'a, 'r, 'w, 's> Frame<'a, 'r, 'w, 's> {
             view_target,
             render_device,
             scale_factors,
+            frame_count,
             render_context: RefCell::new(render_context),
             extracted_windows,
         }
@@ -102,7 +117,8 @@ impl<'a, 'r, 'w, 's> Frame<'a, 'r, 'w, 's> {
     ///
     /// E.g. the first frame yielded will return `0`, the second will return `1`, and so on.
     pub fn nth(&self) -> u64 {
-        todo!()
+        // `FrameCount` is incremented in `Last`, so it reads `1` on the first rendered frame.
+        (self.frame_count as u64).saturating_sub(1)
     }
 
     /// The window's surface texture that will be the target for presenting this frame.

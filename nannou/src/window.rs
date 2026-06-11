@@ -1,51 +1,31 @@
 //! The nannou Window API.
 //!
-//! Create a new window via `app.new_window()`. This produces a [**Builder**](./struct.Builder.html)
-//! which can be used to build a [**Window**](./struct.Window.html).
+//! Create a new window via `app.new_window()`. This produces a [**Builder**](Builder) which can be
+//! used to build a window and obtain its [`Entity`].
 
-use std::{
-    cell::RefMut,
-    fmt,
-    ops::Deref,
-    path::{Path, PathBuf},
-};
+use std::{fmt, path::PathBuf};
 
+use crate::context::App;
 use crate::prelude::{MonitorSelection, render::NannouCamera};
-use crate::{App, geom::Point2, glam::Vec2, prelude::WindowResizeConstraints};
+use crate::{geom::Point2, glam::Vec2, prelude::WindowResizeConstraints};
 use bevy::{
     camera::Hdr,
     camera::RenderTarget,
     camera::visibility::RenderLayers,
     input::mouse::MouseWheel,
     prelude::*,
-    render::{
-        extract_component::ExtractComponent,
-        renderer::{RenderDevice, RenderQueue},
-        view::screenshot::{Screenshot, save_to_disk},
-    },
-    window::{CursorGrabMode, CursorIcon, PrimaryWindow, WindowLevel, WindowMode, WindowRef},
+    render::extract_component::ExtractComponent,
+    window::{PrimaryWindow, WindowLevel, WindowRef},
 };
-use nannou_core::geom;
-
-/// A nannou window.
-///
-/// The **Window** is a lightweight handle to a Bevy window [`Entity`], providing convenient
-/// access to the underlying [`bevy::window::Window`] component and related window state through
-/// the [`App`]'s ECS world.
-pub struct Window<'a, 'w> {
-    entity: Entity,
-    app: &'a App<'w>,
-}
 
 /// A context for building a window.
-pub struct Builder<'a, 'w, M = ()> {
-    app: &'a App<'w>,
+pub struct Builder<'a, 'w, 's, M = ()> {
+    app: &'a App<'w, 's>,
     window: bevy::window::Window,
     // TODO: make cameras and lights an array
     camera: Option<Entity>,
     light: Option<Entity>,
     primary: bool,
-    title_was_set: bool,
     user_functions: UserFunctions<M>,
     clear_color: Option<Color>,
     hdr: bool,
@@ -74,43 +54,6 @@ pub(crate) struct UserFunctions<M> {
     pub(crate) focused: Option<FocusedFn<M>>,
     pub(crate) unfocused: Option<UnfocusedFn<M>>,
     pub(crate) closed: Option<ClosedFn<M>>,
-}
-
-impl<'a, 'w> Window<'a, 'w> {
-    pub fn new(app: &'a App<'w>, entity: Entity) -> Self {
-        Window { app, entity }
-    }
-
-    #[allow(dead_code)]
-    fn window(&self) -> bevy::window::Window {
-        let world = self.app.component_world();
-        world
-            .get::<bevy::window::Window>(self.entity)
-            .unwrap()
-            .clone()
-    }
-
-    fn window_mut(&self) -> RefMut<'_, bevy::window::Window> {
-        let world = self.app.component_world_mut();
-
-        RefMut::map(world, |world| {
-            world
-                .get_mut::<bevy::window::Window>(self.entity)
-                .unwrap()
-                .into_inner()
-        })
-    }
-
-    fn cursor_options_mut(&self) -> RefMut<'_, bevy::window::CursorOptions> {
-        let world = self.app.component_world_mut();
-
-        RefMut::map(world, |world| {
-            world
-                .get_mut::<bevy::window::CursorOptions>(self.entity)
-                .unwrap()
-                .into_inner()
-        })
-    }
 }
 
 impl<M> Default for UserFunctions<M> {
@@ -171,12 +114,12 @@ impl<M> Clone for UserFunctions<M> {
 pub(crate) struct WindowUserFunctions<M: 'static>(pub(crate) UserFunctions<M>);
 
 /// The user function type for drawing their model to the surface of a single window.
-pub type ViewFn<Model> = fn(&App, &Model);
+pub type ViewFn<Model> = fn(&App<'_, '_>, &Model);
 
 /// The same as `ViewFn`, but provides no user model to draw from.
 ///
 /// Useful for simple, stateless sketching.
-pub type SketchFn = fn(&App);
+pub type SketchFn = fn(&App<'_, '_>);
 
 /// The user's view function, whether with a model or without one.
 pub(crate) enum View<M> {
@@ -194,76 +137,75 @@ impl<M> Clone for View<M> {
 }
 
 /// A function for processing key press events.
-pub type KeyPressedFn<Model> = fn(&App, &mut Model, KeyCode);
+pub type KeyPressedFn<Model> = fn(&App<'_, '_>, &mut Model, KeyCode);
 
 /// A function for processing key release events.
-pub type KeyReleasedFn<Model> = fn(&App, &mut Model, KeyCode);
+pub type KeyReleasedFn<Model> = fn(&App<'_, '_>, &mut Model, KeyCode);
 
 /// A function for processing received characters.
-pub type ReceivedCharacterFn<Model> = fn(&App, &mut Model, char);
+pub type ReceivedCharacterFn<Model> = fn(&App<'_, '_>, &mut Model, char);
 
 /// A function for processing mouse moved events.
-pub type MouseMovedFn<Model> = fn(&App, &mut Model, Point2);
+pub type MouseMovedFn<Model> = fn(&App<'_, '_>, &mut Model, Point2);
 
 /// A function for processing mouse pressed events.
-pub type MousePressedFn<Model> = fn(&App, &mut Model, MouseButton);
+pub type MousePressedFn<Model> = fn(&App<'_, '_>, &mut Model, MouseButton);
 
 /// A function for processing mouse released events.
-pub type MouseReleasedFn<Model> = fn(&App, &mut Model, MouseButton);
+pub type MouseReleasedFn<Model> = fn(&App<'_, '_>, &mut Model, MouseButton);
 
 /// A function for processing mouse entered events.
-pub type MouseEnteredFn<Model> = fn(&App, &mut Model);
+pub type MouseEnteredFn<Model> = fn(&App<'_, '_>, &mut Model);
 
 /// A function for processing mouse exited events.
-pub type MouseExitedFn<Model> = fn(&App, &mut Model);
+pub type MouseExitedFn<Model> = fn(&App<'_, '_>, &mut Model);
 
 /// A function for processing mouse wheel events.
-pub type MouseWheelFn<Model> = fn(&App, &mut Model, MouseWheel);
+pub type MouseWheelFn<Model> = fn(&App<'_, '_>, &mut Model, MouseWheel);
 
 /// A function for processing window moved events.
-pub type MovedFn<Model> = fn(&App, &mut Model, IVec2);
+pub type MovedFn<Model> = fn(&App<'_, '_>, &mut Model, IVec2);
 
 /// A function for processing window resized events.
-pub type ResizedFn<Model> = fn(&App, &mut Model, Vec2);
+pub type ResizedFn<Model> = fn(&App<'_, '_>, &mut Model, Vec2);
 
 /// A function for processing touch events.
-pub type TouchFn<Model> = fn(&App, &mut Model, TouchInput);
+pub type TouchFn<Model> = fn(&App<'_, '_>, &mut Model, TouchInput);
 
 // https://github.com/bevyengine/bevy/issues/6174
 // A function for processing touchpad pressure events.
 // pub type TouchpadPressureFn<Model> = fn(&App, &mut Model, TouchpadPressure);
 
 /// A function for processing hovered file events.
-pub type HoveredFileFn<Model> = fn(&App, &mut Model, PathBuf);
+pub type HoveredFileFn<Model> = fn(&App<'_, '_>, &mut Model, PathBuf);
 
 /// A function for processing hovered file cancelled events.
-pub type HoveredFileCancelledFn<Model> = fn(&App, &mut Model);
+pub type HoveredFileCancelledFn<Model> = fn(&App<'_, '_>, &mut Model);
 
 /// A function for processing dropped file events.
-pub type DroppedFileFn<Model> = fn(&App, &mut Model, PathBuf);
+pub type DroppedFileFn<Model> = fn(&App<'_, '_>, &mut Model, PathBuf);
 
 /// A function for processing window focused events.
-pub type FocusedFn<Model> = fn(&App, &mut Model);
+pub type FocusedFn<Model> = fn(&App<'_, '_>, &mut Model);
 
 /// A function for processing window unfocused events.
-pub type UnfocusedFn<Model> = fn(&App, &mut Model);
+pub type UnfocusedFn<Model> = fn(&App<'_, '_>, &mut Model);
 
 /// A function for processing window closed events.
-pub type ClosedFn<Model> = fn(&App, &mut Model);
+pub type ClosedFn<Model> = fn(&App<'_, '_>, &mut Model);
 
-impl<'a, 'w, M> Builder<'a, 'w, M>
+impl<'a, 'w, 's, M> Builder<'a, 'w, 's, M>
 where
     M: 'static,
 {
     /// Begin building a new window.
-    pub fn new(app: &'a App<'w>) -> Self {
+    pub fn new(app: &'a App<'w, 's>) -> Self {
         Builder {
             app,
             window: bevy::window::Window::default(),
             camera: None,
             light: None,
             primary: false,
-            title_was_set: false,
             user_functions: UserFunctions::<M>::default(),
             clear_color: None,
             hdr: false,
@@ -361,15 +303,6 @@ where
         self.user_functions.touch = Some(f);
         self
     }
-    //
-    // /// A function for processing touchpad pressure events associated with this window.
-    // pub fn touchpad_pressure<M>(mut self, f: TouchpadPressureFn<M>) -> Self
-    // where
-    //     M: 'static,
-    // {
-    //     self.user_functions.touchpad_pressure = Some(f);
-    //     self
-    // }
 
     /// A function for processing window moved events associated with this window.
     pub fn moved(mut self, f: MovedFn<M>) -> Self {
@@ -424,109 +357,94 @@ where
         self
     }
 
-    /// Builds the window, inserts it into the `App`'s display map and returns the unique ID.
+    /// Builds the window and its camera, returning the window's [`Entity`].
+    ///
+    /// The window and camera are spawned via the `App`'s deferred command queue, so they become
+    /// available on the following frame. The returned [`Entity`] is reserved immediately and is
+    /// safe to store and use straight away.
     pub fn build(self) -> Entity {
-        if cfg!(target_arch = "wasm32") && !self.primary {
-            // TODO: figure out a way to dynamically attach to a canvas with new windows
+        let Builder {
+            app,
+            window,
+            camera,
+            light,
+            primary,
+            user_functions,
+            clear_color,
+            hdr,
+        } = self;
+
+        if cfg!(target_arch = "wasm32") && !primary {
+            // TODO: figure out a way to dynamically attach to a canvas with new windows.
             panic!("Non-primary windows are not supported on wasm");
         }
 
-        let entity = if !cfg!(target_arch = "wasm32") {
-            let entity = self
-                .app
-                .component_world_mut()
-                .spawn((self.window, WindowUserFunctions(self.user_functions)))
-                .id();
+        let layer = RenderLayers::layer(app.window_count());
+        let user_functions = WindowUserFunctions(user_functions);
+        // Remember the window so it can be read back before the deferred spawn is applied.
+        let window_for_cache = window.clone();
 
-            if self.primary {
-                let mut q = self.app.component_world_mut().query::<&PrimaryWindow>();
-                if q.single(&mut self.app.component_world_mut()).is_ok() {
-                    panic!("Only one primary window can be created");
+        // On wasm we reuse the existing primary window (created up-front so the renderer has a
+        // canvas) rather than spawning a new one.
+        #[cfg(target_arch = "wasm32")]
+        let existing_primary = Some(app.main_window().id());
+        #[cfg(not(target_arch = "wasm32"))]
+        let existing_primary: Option<Entity> = None;
+
+        let window_entity = app.command_scope(move |mut commands| {
+            let window_entity = match existing_primary {
+                Some(entity) => {
+                    commands
+                        .entity(entity)
+                        .insert((window, user_functions, layer.clone()));
+                    entity
                 }
-
-                self.app
-                    .component_world_mut()
-                    .entity_mut(entity)
-                    .insert(PrimaryWindow);
-            }
-
-            entity
-        } else {
-            let mut q = self
-                .app
-                .component_world_mut()
-                .query_filtered::<(Entity, &mut bevy::window::Window), With<PrimaryWindow>>();
-            let entity = if let Ok((entity, mut window)) =
-                q.single_mut(&mut self.app.component_world_mut())
-            {
-                *window = self.window;
-                entity
-            } else {
-                panic!("No primary window found");
+                None => {
+                    let mut window = commands.spawn((window, user_functions, layer.clone()));
+                    if primary {
+                        window.insert(PrimaryWindow);
+                    }
+                    window.id()
+                }
             };
 
-            self.app
-                .component_world_mut()
-                .entity_mut(entity)
-                .insert(WindowUserFunctions(self.user_functions));
-
-            entity
-        };
-
-        let layer = RenderLayers::layer(self.app.window_count());
-
-        if let Some(camera) = self.camera {
-            // Update the camera's render target to be the window.
-            self.app
-                .component_world_mut()
-                .entity_mut(camera)
-                .insert(RenderTarget::Window(WindowRef::Entity(entity)));
-            let mut q = self
-                .app
-                .component_world_mut()
-                .query::<Option<&RenderLayers>>();
-            if let Ok(None) = q.get(&*self.app.component_world_mut(), camera) {
-                self.app
-                    .component_world_mut()
-                    .entity_mut(camera)
-                    .insert(layer.clone());
+            match camera {
+                // Point an existing camera at the new window.
+                Some(camera) => {
+                    commands.entity(camera).insert((
+                        RenderTarget::Window(WindowRef::Entity(window_entity)),
+                        layer.clone(),
+                    ));
+                }
+                // Otherwise spawn a default camera that renders to the window.
+                None => {
+                    let mut camera = commands.spawn((
+                        Camera {
+                            clear_color: clear_color
+                                .map(ClearColorConfig::Custom)
+                                .unwrap_or(ClearColorConfig::None),
+                            ..default()
+                        },
+                        RenderTarget::Window(WindowRef::Entity(window_entity)),
+                        Transform::from_xyz(0.0, 0.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
+                        Projection::Orthographic(OrthographicProjection::default_3d()),
+                        layer.clone(),
+                        NannouCamera,
+                    ));
+                    if hdr {
+                        camera.insert(Hdr);
+                    }
+                }
             }
-        } else {
-            info!("No camera provided for window, creating a default camera");
-            let cam_entity = self
-                .app
-                .component_world_mut()
-                .spawn((
-                    Camera {
-                        clear_color: self
-                            .clear_color
-                            .map(ClearColorConfig::Custom)
-                            .unwrap_or(ClearColorConfig::None),
-                        ..default()
-                    },
-                    RenderTarget::Window(WindowRef::Entity(entity)),
-                    Transform::from_xyz(0.0, 0.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
-                    Projection::Orthographic(OrthographicProjection::default_3d()),
-                    layer.clone(),
-                    NannouCamera,
-                ))
-                .id();
-            if self.hdr {
-                self.app
-                    .component_world_mut()
-                    .entity_mut(cam_entity)
-                    .insert(Hdr);
+
+            if let Some(light) = light {
+                commands.entity(light).insert(layer.clone());
             }
-        }
 
-        if let Some(light) = self.light {
-            self.app
-                .component_world_mut()
-                .entity_mut(light)
-                .insert(layer.clone());
-        }
-
-        entity
+            window_entity
+        });
+        app.record_pending_window(window_entity, primary, window_for_cache);
+        window_entity
     }
 
     fn map_window<F>(self, map: F) -> Self
@@ -587,7 +505,7 @@ where
         })
     }
 
-    /// Requests the window to be a specific size in points.
+    /// Requests the window to be a specific size in pixels.
     ///
     /// This describes to the "inner" part of the window, not including desktop decorations like the
     /// title bar.
@@ -607,11 +525,10 @@ where
     }
 
     /// Requests a specific title for the window.
-    pub fn title<T>(mut self, title: T) -> Self
+    pub fn title<T>(self, title: T) -> Self
     where
         T: Into<String>,
     {
-        self.title_was_set = true;
         self.map_window(|mut w| {
             w.title = title.into();
             w
@@ -692,327 +609,5 @@ impl<M> fmt::Debug for View<M> {
         };
 
         write!(f, "View::{}", variant)
-    }
-}
-
-impl<'a, 'w> Window<'a, 'w> {
-    /// A unique identifier associated with this window.
-    pub fn id(&self) -> Entity {
-        self.entity
-    }
-
-    pub fn layer(&self) -> Option<RenderLayers> {
-        let world = self.app.component_world();
-        world.get::<RenderLayers>(self.entity).cloned()
-    }
-
-    /// Returns the scale factor that can be used to map logical pixels to physical pixels and vice
-    /// versa.
-    ///
-    /// Throughout nannou, you will see "logical pixels" referred to as "points", and "physical
-    /// pixels" referred to as "pixels".
-    ///
-    /// This is typically `1.0` for a normal display, `2.0` for a retina display and higher on more
-    /// modern displays.
-    ///
-    /// You can read more about what this scale factor means within winit's [dpi module
-    /// documentation](https://docs.rs/winit/latest/winit/dpi/index.html).
-    ///
-    /// ## Platform-specific
-    ///
-    /// - **X11:** This respects Xft.dpi, and can be overridden using the `WINIT_X11_SCALE_FACTOR`
-    ///   environment variable.
-    /// - **Android:** Always returns 1.0.
-    /// - **iOS:** Can only be called on the main thread. Returns the underlying `UiView`'s
-    ///   `contentScaleFactor`.
-    pub fn scale_factor(&self) -> f32 {
-        self.window_mut().scale_factor()
-    }
-
-    /// The width and height in pixels of the client area of the window.
-    ///
-    /// The client area is the content of the window, excluding the title bar and borders.
-    pub fn size_pixels(&self) -> UVec2 {
-        self.window_mut().physical_size()
-    }
-
-    /// The width and height in points of the client area of the window.
-    ///
-    /// The client area is the content of the window, excluding the title bar and borders.
-    ///
-    /// This is the same as dividing the result  of `size_pixels()` by `scale_factor()`.
-    pub fn size_points(&self) -> Vec2 {
-        self.window_mut().size()
-    }
-
-    /// Modifies the inner size of the window.
-    ///
-    /// See the `size` methods for more informations about the values.
-    pub fn set_size_pixels(&self, width: u32, height: u32) {
-        self.window_mut()
-            .resolution
-            .set_physical_resolution(width, height)
-    }
-
-    /// Modifies the inner size of the window using point values.
-    ///
-    /// See the `size` methods for more informations about the values.
-    pub fn set_size_points(&self, width: f32, height: f32) {
-        self.window_mut().resolution.set(width, height)
-    }
-
-    /// Sets a minimum size for the window.
-    pub fn set_min_size_points(&self, size: Option<Vec2>) {
-        if let Some(size) = size {
-            self.window_mut().resize_constraints.min_width = size.x;
-            self.window_mut().resize_constraints.min_height = size.y;
-        } else {
-            self.window_mut().resize_constraints.min_width = f32::INFINITY;
-            self.window_mut().resize_constraints.min_height = f32::INFINITY;
-        }
-    }
-
-    /// Sets a maximum size for the window.
-    pub fn set_max_size_points(&self, size: Option<Vec2>) {
-        if let Some(size) = size {
-            self.window_mut().resize_constraints.max_width = size.x;
-            self.window_mut().resize_constraints.max_height = size.y;
-        } else {
-            self.window_mut().resize_constraints.max_width = f32::INFINITY;
-            self.window_mut().resize_constraints.max_height = f32::INFINITY;
-        }
-    }
-
-    /// Modifies the title of the window.
-    ///
-    /// This is a no-op if the window has already been closed.
-    pub fn set_title(&self, title: String) {
-        self.window_mut().title = title;
-    }
-
-    /// Set the visibility of the window.
-    ///
-    /// ## Platform-specific
-    ///
-    /// - Android: Has no effect.
-    /// - iOS: Can only be called on the main thread.
-    /// - Web: Has no effect.
-    pub fn set_visible(&self, visible: bool) {
-        self.window_mut().visible = visible;
-    }
-
-    /// Sets whether the window is resizable or not.
-    ///
-    /// Note that making the window unresizable doesn't exempt you from handling **Resized**, as
-    /// that event can still be triggered by DPI scaling, entering fullscreen mode, etc.
-    pub fn set_resizable(&self, resizable: bool) {
-        self.window_mut().resizable = resizable
-    }
-
-    /// Sets the window to minimized or back.
-    pub fn set_minimized(&self, minimized: bool) {
-        self.window_mut().set_minimized(minimized)
-    }
-
-    /// Sets the window to maximized or back.
-    pub fn set_maximized(&self, maximized: bool) {
-        self.window_mut().set_maximized(maximized)
-    }
-
-    /// Set the window to fullscreen on the primary monitor.
-    ///
-    /// `true` enables fullscreen, `false` disables fullscreen.
-    ///
-    /// See the `set_fullscreen_with` method for more options and details about behaviour related
-    /// to fullscreen.
-    pub fn set_fullscreen(&self, fullscreen: bool) {
-        if fullscreen {
-            self.window_mut().mode = WindowMode::BorderlessFullscreen(MonitorSelection::Current);
-        } else {
-            self.window_mut().mode = WindowMode::Windowed;
-        }
-    }
-
-    /// Sets the window mode
-    pub fn set_mode(&self, mode: WindowMode) {
-        self.window_mut().mode = mode;
-    }
-
-    /// Gets the window's current fullscreen state.
-    ///
-    /// ## Platform-specific
-    ///
-    /// - **iOS:** Can only be called on the main thread.
-    pub fn mode(&self) -> WindowMode {
-        self.window_mut().mode
-    }
-
-    /// Turn window decorations on or off.
-    ///
-    /// ## Platform-specific
-    ///
-    /// - **iOS:** Can only be called on the main thread. Controls whether the status bar is hidden
-    ///   via `setPrefersStatusBarHidden`.
-    /// - **Web:** Has no effect.
-    pub fn set_decorations(&self, decorations: bool) {
-        self.window_mut().decorations = decorations;
-    }
-
-    /// Change whether or not the window will always be on top of other windows.
-    pub fn set_always_on_top(&self, always_on_top: bool) {
-        self.window_mut().window_level = if always_on_top {
-            WindowLevel::AlwaysOnTop
-        } else {
-            WindowLevel::Normal
-        }
-    }
-
-    /// Sets the window icon. On Windows and X11, this is typically the small icon in the top-left
-    /// corner of the titlebar.
-    ///
-    /// ## Platform-specific
-    ///
-    /// This only has effect on Windows and X11.
-    ///
-    /// On Windows, this sets ICON_SMALL. The base size for a window icon is 16x16, but it's
-    /// recommended to account for screen scaling and pick a multiple of that, i.e. 32x32.
-    ///
-    /// X11 has no universal guidelines for icon sizes, so you're at the whims of the WM. That
-    /// said, it's usually in the same ballpark as on Windows.
-    pub fn set_window_icon(&self, _window_icon: Option<()>) {
-        todo!("https://github.com/bevyengine/bevy/issues/1031")
-    }
-
-    /// Sets the location of IME candidate box in client area coordinates relative to the top left.
-    ///
-    /// ## Platform-specific
-    ///
-    /// - **iOS:** Has no effect.
-    /// - **Web:** Has no effect.
-    pub fn set_ime_position_points(&self, x: f32, y: f32) {
-        self.window_mut().ime_position = Vec2::new(x, y);
-    }
-
-    /// Modifies the mouse cursor of the window.
-    ///
-    /// ## Platform-specific
-    ///
-    /// - **iOS:** Has no effect.
-    /// - **Android:** Has no effect.
-    pub fn set_cursor_icon(&self, cursor: CursorIcon) {
-        self.app
-            .component_world_mut()
-            .entity_mut(self.entity)
-            .insert(cursor);
-    }
-
-    /// Changes the position of the cursor in logical window coordinates.
-    ///
-    /// ## Platform-specific
-    ///
-    /// - **iOS:** Always returns an `Err`.
-    /// - **Web:** Has no effect.
-    pub fn set_cursor_position_points(&self, x: f32, y: f32) {
-        self.window_mut().set_cursor_position(Some(Vec2::new(x, y)));
-    }
-
-    /// Grabs the cursor, preventing it from leaving the window.
-    ///
-    /// ## Platform-specific
-    ///
-    /// - **macOS:** Locks the cursor in a fixed location.
-    /// - **Wayland:** Locks the cursor in a fixed location.
-    /// - **Android:** Has no effect.
-    /// - **iOS:** Always returns an Err.
-    /// - **Web:** Has no effect.
-    pub fn set_cursor_grab(&self, grab: bool) {
-        self.cursor_options_mut().grab_mode = if grab {
-            CursorGrabMode::Locked
-        } else {
-            CursorGrabMode::None
-        };
-    }
-
-    /// Set the cursor's visibility.
-    ///
-    /// If `false`, hides the cursor. If `true`, shows the cursor.
-    ///
-    /// ## Platform-specific
-    ///
-    /// On **Windows**, **X11** and **Wayland**, the cursor is only hidden within the confines of
-    /// the window.
-    ///
-    /// On **macOS**, the cursor is hidden as long as the window has input focus, even if the
-    /// cursor is outside of the window.
-    ///
-    /// This has no effect on **Android** or **iOS**.
-    pub fn set_cursor_visible(&self, visible: bool) {
-        self.cursor_options_mut().visible = visible;
-    }
-
-    /// Attempts to determine whether or not the window is currently fullscreen.
-    pub fn is_fullscreen(&self) -> bool {
-        self.window_mut().mode
-            == WindowMode::Fullscreen(MonitorSelection::Current, VideoModeSelection::Current)
-    }
-
-    /// The rectangle representing the position and dimensions of the window.
-    ///
-    /// The window's position will always be `[0.0, 0.0]`, as positions are generally described
-    /// relative to the centre of the window itself.
-    ///
-    /// The dimensions will be equal to the result of `size_points`. This represents the area
-    /// of the that we can draw to in a DPI-agnostic manner, typically useful for drawing and UI
-    /// positioning.
-    pub fn rect(&self) -> geom::Rect {
-        let size = self.size_points();
-        geom::Rect::from_x_y_w_h(0.0, 0.0, size.x, size.y)
-    }
-
-    /// Saves a screenshot of the window to the given path.
-    pub fn save_screenshot<P: AsRef<Path> + 'static>(&mut self, path: P) {
-        let mut world = self.app.component_world_mut();
-        world
-            .spawn(Screenshot::window(self.entity))
-            .observe(save_to_disk(path));
-    }
-
-    pub fn device(&self) -> std::cell::Ref<'_, wgpu::Device> {
-        std::cell::Ref::map(self.app.resource_world(), |x| {
-            x.resource::<RenderDevice>().wgpu_device()
-        })
-    }
-
-    pub fn queue(&self) -> std::cell::Ref<'_, wgpu::Queue> {
-        std::cell::Ref::map(self.app.resource_world(), |x| {
-            x.resource::<RenderQueue>().deref().deref().deref()
-        })
-    }
-
-    pub fn msaa_samples(&self) -> u32 {
-        let mut msaa_q = self
-            .app
-            .component_world_mut()
-            .query_filtered::<(&RenderTarget, &Msaa), With<NannouCamera>>();
-        for (render_target, msaa) in msaa_q.iter(&*self.app.component_world()) {
-            if let RenderTarget::Window(WindowRef::Entity(entity)) = render_target {
-                if *entity == self.entity {
-                    return msaa.samples();
-                }
-            }
-        }
-
-        panic!("No camera found for window");
-    }
-}
-
-// Some WGPU helper implementations.
-
-impl<'a> nannou_wgpu::WithDeviceQueuePair for &'a Window<'_, '_> {
-    fn with_device_queue_pair<F, O>(self, f: F) -> O
-    where
-        F: FnOnce(&wgpu::Device, &wgpu::Queue) -> O,
-    {
-        f(&self.device(), &self.queue())
     }
 }

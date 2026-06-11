@@ -54,8 +54,7 @@ fn update(app: &App, model: &mut Model) {
         ..
     } = *model;
 
-    let mut egui_ctx = app.egui_for_window(window);
-    let ctx = &egui_ctx.get_mut();
+    let ctx = app.egui_for_window(window);
 
     egui::Window::new("Workshop window").show(&ctx, |ui| {
         let mut changed = false;

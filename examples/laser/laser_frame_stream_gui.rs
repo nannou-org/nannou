@@ -151,8 +151,7 @@ fn model(app: &App) -> Model {
     let laser_streams = vec![];
 
     // A user-interface to tweak the settings.
-    let mut egui_ctx = app.egui();
-    let ctx = egui_ctx.get_mut();
+    let ctx = app.egui();
     ctx.set_style(style());
 
     Model {
@@ -322,11 +321,10 @@ fn update(app: &App, model: &mut Model) {
         ..
     } = *model;
 
-    let mut egui_ctx = app.egui();
-    let ctx = egui_ctx.get_mut();
+    let ctx = app.egui();
 
     // The timeline area.
-    egui::containers::CentralPanel::default().show(ctx, |ui| {
+    egui::containers::CentralPanel::default().show(&ctx, |ui| {
         fn grid_min_col_width(ui: &egui::Ui, n_options: usize) -> f32 {
             let gap_space = ui.spacing().item_spacing.x * (n_options as f32 - 1.0);
             let grid_w = ui.available_width();

@@ -66,6 +66,9 @@ path = "bevy/simple_shader.rs"
 [[example]]
 name = "windows"
 path = "bevy/windows.rs"
+[[example]]
+name = "system_param"
+path = "bevy/system_param.rs"
 
 # Communication
 [[example]]

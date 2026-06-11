@@ -6,6 +6,7 @@ use crate::{
 use bevy::{
     app::{App, Plugin},
     core_pipeline::schedule::{Core3d, Core3dSystems},
+    diagnostic::FrameCount,
     ecs::entity::Entity,
     prelude::{IntoScheduleConfigs, Res},
     render::{
@@ -80,6 +81,7 @@ fn nannou_render_system<M>(
     render_device: Res<RenderDevice>,
     scale_factors: Res<ExtractedWindowsScaleFactor>,
     time: Res<Time>,
+    frame_count: Res<FrameCount>,
 ) where
     M: Send + Sync + Clone + 'static,
 {
@@ -101,6 +103,7 @@ fn nannou_render_system<M>(
         view_entity,
         view_target,
         &extracted_windows,
+        frame_count.0,
         &mut ctx,
     );
 
