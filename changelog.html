@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-210b4bc3.js";
+            window.path_to_searchindex_js = "searchindex-48fe8330.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-ff7df133.js"></script>
@@ -225,6 +225,18 @@ tools.</li>
 <li><code>nannou_isf</code> (Interactive Shader Format) rendering ported to Bevy.</li>
 <li>Colour types and constants are now aligned with Bevy’s <code>bevy_color</code> (e.g. the
 CSS palette colour constants such as <code>PLUM</code> and <code>STEEL_BLUE</code>).</li>
+<li><code>draw.text()</code> now renders glyphs as textured quads sampling <code>bevy_text</code>’s
+cached glyph atlases (rasterised via <code>swash</code>) instead of tessellating glyph
+outlines every frame: dense or small text is far cheaper and pixel-crisp, and
+colour fonts (e.g. emoji) are supported. Note that glyphs are rasterised at
+their font size, so text under large <code>draw.scale(..)</code> factors will blur;
+resolution-independent vector text remains available via
+<code>draw.text_layout(..).build(rect)</code> and <code>draw.path().events(..)</code>.</li>
+<li>Text layout shares <code>bevy_text</code>’s <code>parley</code> font database: fonts loaded as Bevy
+<code>Font</code> assets can be selected with <code>draw.text(..).font(&lt;family name&gt;)</code>,
+system-installed fonts are discovered automatically (<code>system_font_discovery</code>
+feature, enabled by default) and the bundled Noto Sans (<code>notosans</code> feature,
+enabled by default) is the default face.</li>
 <li>The <code>view</code> function no longer receives or returns a <code>Frame</code>; it is simply
 called each time a window needs to be redrawn.</li>
 </ul>
