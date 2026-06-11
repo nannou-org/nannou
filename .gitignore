@@ -3,7 +3,7 @@ saved_timeline_data.json
 simple_capture/
 draw_capture/
 draw_capture_hi_res/
-target/
+target
 **/*.rs.bk
 .DS_Store
 .idea/
