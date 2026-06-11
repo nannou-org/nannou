@@ -59,7 +59,7 @@ jobs:
         pkg-config
     - name: Install mdbook
       if: matrix.name == 'book'
-      run: cargo install mdbook --locked
+      run: cargo install mdbook mdbook-linkcheck2 --locked
     - name: ${{ matrix.name }}
       run: ${{ matrix.command }}
 
