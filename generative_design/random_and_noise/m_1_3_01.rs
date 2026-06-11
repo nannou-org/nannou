@@ -28,7 +28,6 @@
  * s                   : save png
  */
 use nannou::noise::NoiseFn;
-use nannou::noise::Seedable;
 use nannou::prelude::*;
 
 fn main() {
@@ -59,7 +58,7 @@ fn view(app: &App, model: &Model) {
 
     draw.background().color(WHITE);
 
-    let noise = nannou::noise::Perlin::new().set_seed(model.act_random_seed);
+    let noise = nannou::noise::Perlin::new(model.act_random_seed);
 
     let noise_x_range = map_range(app.mouse().x, win.left(), win.right(), 0.0, win.w()) / 10.0;
 

@@ -26,7 +26,7 @@
  * backspace           : clear screen
  * s                   : save png
  */
-use nannou::noise::{NoiseFn, Perlin, Seedable};
+use nannou::noise::{NoiseFn, Perlin};
 use nannou::prelude::*;
 
 fn main() {
@@ -205,7 +205,7 @@ fn model(app: &App) -> Model {
 }
 
 fn update(_app: &App, model: &mut Model) {
-    let noise = Perlin::new().set_seed(model.noise_seed);
+    let noise = Perlin::new(model.noise_seed);
 
     for agent in &mut model.agents {
         agent.update(noise, model.draw_mode);

@@ -32,7 +32,7 @@
  * s                   : save png
  */
 use nannou::image;
-use nannou::noise::{MultiFractal, NoiseFn, Seedable};
+use nannou::noise::{MultiFractal, NoiseFn};
 use nannou::prelude::bevy_asset::RenderAssetUsages;
 use nannou::prelude::*;
 
@@ -85,8 +85,7 @@ fn model(app: &App) -> Model {
 
 fn update(app: &App, model: &mut Model) {
     let win = app.window_rect();
-    let noise = nannou::noise::Fbm::new()
-        .set_seed(model.noise_random_seed)
+    let noise = nannou::noise::Fbm::<nannou::noise::Perlin>::new(model.noise_random_seed)
         .set_octaves(model.octaves)
         .set_persistence(model.falloff as f64);
 
