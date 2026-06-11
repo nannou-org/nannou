@@ -25,6 +25,13 @@ use crate::render::{DefaultNannouShaderModel, ErasedShaderModel, ShaderModel};
 /// inner **geom::Graph**. This ensures the correct instantiation order is maintained within the
 /// graph. As a result, each **Drawing** is associated with a single, unique node. Thus a
 /// **Drawing** can be thought of as a way of specifying properties for a node.
+///
+/// The type parameter `T` is a zero-cost marker: the primitive itself is stored type-erased as a
+/// [`Primitive`] within the **Draw**'s state, and `T` only determines which builder methods are
+/// available (via bounds like `T: SetColor`) and tracks type-state transitions (e.g.
+/// `PathInit -> PathFill -> Path`). The method bodies delegate to non-generic functions that
+/// mutate the stored primitive in place, keeping monomorphisation in downstream crates to a
+/// minimum.
 pub struct Drawing<'a, T> {
     // The `Draw` instance used to create this drawing.
     pub(crate) draw: DrawRef<'a>,
@@ -885,4 +892,3 @@ pub(crate) fn with_primitive_ctxt(
         }
     }
 }
-

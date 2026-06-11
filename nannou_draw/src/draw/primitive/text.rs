@@ -180,8 +180,7 @@ impl<'a> DrawingText<'a> {
 
     /// A method for specifying the font family used for displaying the `Text`.
     pub fn font(self, family: impl Into<String>) -> Self {
-        let family = family.into();
-        update_text_layout(&self.draw, self.index, |l| l.font_family(family));
+        set_font(&self.draw, self.index, family.into());
         self
     }
 
@@ -258,9 +257,7 @@ impl<'a> DrawingText<'a> {
         C: Into<Color>,
     {
         let glyph_colors: Vec<Color> = glyph_colors.into_iter().map(|c| c.into()).collect();
-        update_text(&self.draw, self.index, |text| {
-            text.style.glyph_colors = glyph_colors
-        });
+        set_glyph_colors(&self.draw, self.index, glyph_colors);
         self
     }
 }
@@ -283,6 +280,20 @@ fn update_text_layout(
         let layout = std::mem::take(&mut text.style.layout);
         text.style.layout = f(layout);
     })
+}
+
+// Set the font family of the `Text` primitive being drawn at `index`.
+//
+// Non-generic so that the body compiles here rather than in the caller's crate.
+fn set_font(draw: &crate::draw::Draw, index: usize, family: String) {
+    update_text_layout(draw, index, |l| l.font_family(family))
+}
+
+// Set the per-glyph colors of the `Text` primitive being drawn at `index`.
+//
+// Non-generic so that the body compiles here rather than in the caller's crate.
+fn set_glyph_colors(draw: &crate::draw::Draw, index: usize, colors: Vec<Color>) {
+    update_text(draw, index, |text| text.style.glyph_colors = colors)
 }
 
 /// A run of glyph quads sampling a single font atlas texture.

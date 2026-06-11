@@ -70,6 +70,24 @@ ECS, renderer, asset system and plugins) is now available to nannou apps.
   enabled by default) is the default face.
 - The `view` function no longer receives or returns a `Frame`; it is simply
   called each time a window needs to be redrawn.
+- `Draw` and `Drawing` no longer carry a shader-model type parameter
+  ([#1054](https://github.com/nannou-org/nannou/issues/1054)). The drawing
+  state was already stored type-erased, so the parameter only bloated
+  monomorphisation in downstream sketches. `Draw<SM>` is now `Draw`,
+  `Drawing<'a, T, SM>` is `Drawing<'a, T>` (where `T` is a zero-cost marker
+  gating the per-primitive builder methods), and likewise for `Background`,
+  `Instanced` and `Indirect`. Consequences:
+  - `Drawing::map_shader_model::<SM>(..)` is checked at runtime: the closure
+    parameter now needs a type annotation (e.g. `|mut mat: MyModel|`), and if
+    the active model is not an `SM` a warning is emitted once and the mapping
+    is skipped.
+  - `Draw::{alpha_blend,color_blend,blend,polygon_mode}` and
+    `Drawing::base_color` only apply to the default nannou shader model; with
+    a custom model active they warn once and no-op.
+  - `Drawing::texture(..)` now works with *any* shader model via
+    `ShaderModel::set_texture` (previously restricted to the default model).
+  - `Drawing::map_ty` and the `Into<Option<T>>` conversions on `Primitive`
+    are removed; builder methods now mutate the stored primitive in place.
 
 ### Dependencies & toolchain
 

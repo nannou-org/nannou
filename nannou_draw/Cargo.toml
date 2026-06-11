@@ -35,3 +35,7 @@ notosans = ["dep:notosans"]
 # Discover fonts installed on the system (e.g. via fontconfig on Linux),
 # making them available to `draw.text().font(..)` by family name.
 system_font_discovery = ["bevy/system_font_discovery", "parley/system"]
+
+[[bench]]
+name = "drawing"
+harness = false

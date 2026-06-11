@@ -60,16 +60,21 @@ impl<'a> DrawingTri<'a> {
     where
         P: Into<Vec2>,
     {
-        let tri = geom::Tri([a.into(), b.into(), c.into()]);
-        update_tri(&self.draw, self.index, |t| t.tri = tri);
+        set_points(
+            &self.draw,
+            self.index,
+            geom::Tri([a.into(), b.into(), c.into()]),
+        );
         self
     }
 }
 
-// Update the inner `Tri` of the primitive being drawn at `index`.
-fn update_tri(draw: &crate::draw::Draw, index: usize, f: impl FnOnce(&mut Tri)) {
+// Set the corner points of the `Tri` primitive being drawn at `index`.
+//
+// Non-generic so that the body compiles here rather than in the caller's crate.
+fn set_points(draw: &crate::draw::Draw, index: usize, points: geom::Tri<Vec2>) {
     crate::draw::drawing::with_primitive(draw, index, |prim| match prim {
-        Primitive::Tri(tri) => f(tri),
+        Primitive::Tri(tri) => tri.tri = points,
         _ => bevy::log::warn_once!("expected a `Tri` primitive"),
     })
 }

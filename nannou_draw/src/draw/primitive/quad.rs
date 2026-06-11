@@ -172,16 +172,21 @@ impl<'a> DrawingQuad<'a> {
     where
         P: Into<Vec2>,
     {
-        let quad = geom::Quad([a.into(), b.into(), c.into(), d.into()]);
-        update_quad(&self.draw, self.index, |q| q.quad = quad);
+        set_points(
+            &self.draw,
+            self.index,
+            geom::Quad([a.into(), b.into(), c.into(), d.into()]),
+        );
         self
     }
 }
 
-// Update the inner `Quad` of the primitive being drawn at `index`.
-fn update_quad(draw: &crate::draw::Draw, index: usize, f: impl FnOnce(&mut Quad)) {
+// Set the corner points of the `Quad` primitive being drawn at `index`.
+//
+// Non-generic so that the body compiles here rather than in the caller's crate.
+fn set_points(draw: &crate::draw::Draw, index: usize, points: geom::Quad<Vec2>) {
     crate::draw::drawing::with_primitive(draw, index, |prim| match prim {
-        Primitive::Quad(quad) => f(quad),
+        Primitive::Quad(quad) => quad.quad = points,
         _ => bevy::log::warn_once!("expected a `Quad` primitive"),
     })
 }
