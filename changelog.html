@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-48fe8330.js";
+            window.path_to_searchindex_js = "searchindex-744b2a6b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-ff7df133.js"></script>
@@ -239,6 +239,27 @@ feature, enabled by default) and the bundled Noto Sans (<code>notosans</code> fe
 enabled by default) is the default face.</li>
 <li>The <code>view</code> function no longer receives or returns a <code>Frame</code>; it is simply
 called each time a window needs to be redrawn.</li>
+<li><code>Draw</code> and <code>Drawing</code> no longer carry a shader-model type parameter
+(<a href="https://github.com/nannou-org/nannou/issues/1054">#1054</a>). The drawing
+state was already stored type-erased, so the parameter only bloated
+monomorphisation in downstream sketches. <code>Draw&lt;SM&gt;</code> is now <code>Draw</code>,
+<code>Drawing&lt;'a, T, SM&gt;</code> is <code>Drawing&lt;'a, T&gt;</code> (where <code>T</code> is a zero-cost marker
+gating the per-primitive builder methods), and likewise for <code>Background</code>,
+<code>Instanced</code> and <code>Indirect</code>. Consequences:
+<ul>
+<li><code>Drawing::map_shader_model::&lt;SM&gt;(..)</code> is checked at runtime: the closure
+parameter now needs a type annotation (e.g. <code>|mut mat: MyModel|</code>), and if
+the active model is not an <code>SM</code> a warning is emitted once and the mapping
+is skipped.</li>
+<li><code>Draw::{alpha_blend,color_blend,blend,polygon_mode}</code> and
+<code>Drawing::base_color</code> only apply to the default nannou shader model; with
+a custom model active they warn once and no-op.</li>
+<li><code>Drawing::texture(..)</code> now works with <em>any</em> shader model via
+<code>ShaderModel::set_texture</code> (previously restricted to the default model).</li>
+<li><code>Drawing::map_ty</code> and the <code>Into&lt;Option&lt;T&gt;&gt;</code> conversions on <code>Primitive</code>
+are removed; builder methods now mutate the stored primitive in place.</li>
+</ul>
+</li>
 </ul>
 <h3 id="dependencies--toolchain"><a class="header" href="#dependencies--toolchain">Dependencies &amp; toolchain</a></h3>
 <ul>
