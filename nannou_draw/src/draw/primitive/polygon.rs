@@ -8,7 +8,6 @@ use crate::draw::primitive::path::{self, PathEventSource};
 use crate::draw::properties::spatial::{orientation, position};
 use crate::draw::properties::{SetColor, SetOrientation, SetPosition, SetStroke};
 use crate::draw::{self, Drawing};
-use crate::render::ShaderModel;
 
 /// A trait implemented for all polygon draw primitives.
 pub trait SetPolygon: Sized {
@@ -65,10 +64,10 @@ pub struct Polygon {
 }
 
 /// Initialised drawing state for a polygon.
-pub type DrawingPolygonInit<'a, SM> = Drawing<'a, PolygonInit, SM>;
+pub type DrawingPolygonInit<'a> = Drawing<'a, PolygonInit>;
 
 /// Initialised drawing state for a polygon.
-pub type DrawingPolygon<'a, SM> = Drawing<'a, Polygon, SM>;
+pub type DrawingPolygon<'a> = Drawing<'a, Polygon>;
 
 impl PolygonInit {
     /// Stroke the outline with the given color.
@@ -417,10 +416,9 @@ impl draw::render::RenderPrimitive for Polygon {
     }
 }
 
-impl<'a, T, SM> Drawing<'a, T, SM>
+impl<'a, T> Drawing<'a, T>
 where
     T: SetPolygon + Into<Primitive> + Clone,
-    SM: ShaderModel + Default,
     Primitive: Into<Option<T>>,
 {
     /// Specify no fill color and in turn no fill tessellation for the polygon.
@@ -445,10 +443,7 @@ where
     }
 }
 
-impl<'a, SM> DrawingPolygonInit<'a, SM>
-where
-    SM: ShaderModel + Default,
-{
+impl<'a> DrawingPolygonInit<'a> {
     /// Stroke the outline with the given color.
     pub fn stroke<C>(self, color: C) -> Self
     where
@@ -458,7 +453,7 @@ where
     }
 
     /// Describe the polygon with a sequence of path events.
-    pub fn events<I>(self, events: I) -> DrawingPolygon<'a, SM>
+    pub fn events<I>(self, events: I) -> DrawingPolygon<'a>
     where
         I: IntoIterator<Item = PathEvent>,
     {
@@ -466,7 +461,7 @@ where
     }
 
     /// Describe the polygon with a sequence of points.
-    pub fn points<I>(self, points: I) -> DrawingPolygon<'a, SM>
+    pub fn points<I>(self, points: I) -> DrawingPolygon<'a>
     where
         I: IntoIterator,
         I::Item: Into<Vec2>,
@@ -474,7 +469,7 @@ where
         self.map_ty_with_context(|ty, ctxt| ty.points(ctxt, points))
     }
 
-    pub fn points_colored<I, P, C>(self, points: I) -> DrawingPolygon<'a, SM>
+    pub fn points_colored<I, P, C>(self, points: I) -> DrawingPolygon<'a>
     where
         I: IntoIterator<Item = (P, C)>,
         P: Into<Vec2>,
@@ -486,7 +481,7 @@ where
     }
 
     /// Consumes an iterator of points and converts them to an iterator yielding path events.
-    pub fn points_vertex<I, P, C, U>(self, points: I) -> DrawingPolygon<'a, SM>
+    pub fn points_vertex<I, P, C, U>(self, points: I) -> DrawingPolygon<'a>
     where
         I: IntoIterator<Item = (P, C, U)>,
         P: Into<Vec2>,

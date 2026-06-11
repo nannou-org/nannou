@@ -61,6 +61,28 @@ use std::{any::TypeId, hash::Hash, marker::PhantomData};
 pub const DEFAULT_NANNOU_SHADER_HANDLE: Handle<Shader> =
     uuid_handle!("f2dbf06f-38d5-47f1-8ad4-3f188d888dd0");
 
+/// A dyn-safe view of a [`ShaderModel`] instance, allowing the draw state to store and
+/// manipulate models of any type without knowing the concrete type.
+pub(crate) trait ErasedShaderModel: Send + Sync + 'static {
+    fn as_any(&self) -> &dyn std::any::Any;
+    fn clone_erased(&self) -> Box<dyn ErasedShaderModel>;
+    fn set_texture_erased(&mut self, texture: Handle<Image>);
+}
+
+impl<SM: ShaderModel> ErasedShaderModel for SM {
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
+    fn clone_erased(&self) -> Box<dyn ErasedShaderModel> {
+        Box::new(self.clone())
+    }
+
+    fn set_texture_erased(&mut self, texture: Handle<Image>) {
+        self.set_texture(texture);
+    }
+}
+
 pub trait ShaderModel:
     Asset + AsBindGroup + Clone + Default + Sized + Send + Sync + 'static
 {
@@ -622,7 +644,7 @@ fn update_shader_model<SM>(
         let state = draw.state.write().unwrap();
         state.shader_models.iter().for_each(|(id, model)| {
             if id.type_id() == TypeId::of::<SM>() {
-                let model = model.downcast_ref::<SM>().unwrap();
+                let model = model.as_any().downcast_ref::<SM>().unwrap();
                 models.insert(id.typed(), model.clone()).unwrap();
             }
         });
@@ -720,7 +742,7 @@ fn update_draw_mesh(
                     let base = last_shader_model
                         .as_ref()
                         .and_then(|id| draw_state.shader_models.get(id))
-                        .and_then(|model| model.downcast_ref::<DefaultNannouShaderModel>())
+                        .and_then(|model| model.as_any().downcast_ref::<DefaultNannouShaderModel>())
                         .cloned()
                         .unwrap_or_default();
 

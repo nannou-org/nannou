@@ -1,28 +1,18 @@
 use bevy::prelude::Color;
 
 use crate::draw::{Draw, DrawCommand};
-use crate::render::ShaderModel;
 
 /// A type used to update the background colour.
-pub struct Background<'a, SM>
-where
-    SM: ShaderModel + Default,
-{
-    draw: &'a Draw<SM>,
+pub struct Background<'a> {
+    draw: &'a Draw,
 }
 
 /// Begin coloring the background.
-pub fn new<SM>(draw: &Draw<SM>) -> Background<'_, SM>
-where
-    SM: ShaderModel + Default,
-{
+pub fn new(draw: &Draw) -> Background<'_> {
     Background { draw }
 }
 
-impl<'a, SM> Background<'a, SM>
-where
-    SM: ShaderModel + Default,
-{
+impl<'a> Background<'a> {
     /// Clear the background with the given color.
     ///
     /// This method supports any color type that can be converted into RGBA.

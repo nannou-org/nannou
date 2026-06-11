@@ -25,19 +25,13 @@ use bevy::{
 };
 use std::{hash::Hash, marker::PhantomData, ops::Range};
 
-pub struct Instanced<'a, SM>
-where
-    SM: ShaderModel + Default,
-{
-    draw: &'a Draw<SM>,
+pub struct Instanced<'a> {
+    draw: &'a Draw,
     primitive_index: Option<usize>,
     range: Option<Range<u32>>,
 }
 
-impl<'a, SM> Drop for Instanced<'a, SM>
-where
-    SM: ShaderModel + Default,
-{
+impl<'a> Drop for Instanced<'a> {
     fn drop(&mut self) {
         if let Some((index, data)) = self.primitive_index.take().zip(self.range.take()) {
             self.insert_instanced_draw_command(index, data);
@@ -45,10 +39,7 @@ where
     }
 }
 
-pub fn new<SM>(draw: &Draw<SM>) -> Instanced<'_, SM>
-where
-    SM: ShaderModel + Default,
-{
+pub fn new(draw: &Draw) -> Instanced<'_> {
     Instanced {
         draw,
         primitive_index: None,
@@ -56,11 +47,8 @@ where
     }
 }
 
-impl<'a, SM> Instanced<'a, SM>
-where
-    SM: ShaderModel + Default,
-{
-    pub fn primitive<T>(mut self, drawing: Drawing<T, SM>) -> Instanced<'a, SM>
+impl<'a> Instanced<'a> {
+    pub fn primitive<T>(mut self, drawing: Drawing<T>) -> Instanced<'a>
     where
         T: Into<Primitive>,
     {
@@ -74,7 +62,7 @@ where
         self
     }
 
-    pub fn range(mut self, range: Range<u32>) -> Instanced<'a, SM> {
+    pub fn range(mut self, range: Range<u32>) -> Instanced<'a> {
         self.range = Some(range);
         self
     }

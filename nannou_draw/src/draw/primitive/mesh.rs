@@ -9,7 +9,6 @@ use crate::draw::primitive::{Primitive, Vertex};
 use crate::draw::properties::spatial::{orientation, position};
 use crate::draw::properties::{SetColor, SetOrientation, SetPosition};
 use crate::draw::{self, Drawing};
-use crate::render::ShaderModel;
 
 /// The mesh type prior to being initialised with vertices or indices.
 #[derive(Clone, Debug, Default)]
@@ -28,7 +27,7 @@ pub struct PrimitiveMesh {
 #[derive(Clone, Debug, Default)]
 struct FillColor(Option<Color>);
 
-pub type DrawingMesh<'a, SM> = Drawing<'a, PrimitiveMesh, SM>;
+pub type DrawingMesh<'a> = Drawing<'a, PrimitiveMesh>;
 
 impl Vertexless {
     /// Describe the mesh with a sequence of textured points.
@@ -293,10 +292,7 @@ impl PrimitiveMesh {
     }
 }
 
-impl<'a, SM> Drawing<'a, Vertexless, SM>
-where
-    SM: ShaderModel + Default,
-{
+impl<'a> Drawing<'a, Vertexless> {
     /// Describe the mesh with a sequence of points.
     ///
     /// The given iterator may yield any type that can be converted directly into `Vec3`s.
@@ -304,7 +300,7 @@ where
     /// This method assumes that the entire mesh should be coloured with a single colour. If a
     /// colour is not specified via one of the builder methods, a default colour will be retrieved
     /// from the inner `Theme`.
-    pub fn points<I>(self, points: I) -> DrawingMesh<'a, SM>
+    pub fn points<I>(self, points: I) -> DrawingMesh<'a>
     where
         I: IntoIterator,
         I::Item: Into<Vec3>,
@@ -317,7 +313,7 @@ where
     /// Each of the points must be represented as a tuple containing the point and the color in
     /// that order, e.g. `(point, color)`. `point` may be of any type that implements
     /// `Into<Vec3>` and `color` may be of any type that implements `IntoColor`.
-    pub fn points_colored<I, P, C>(self, points: I) -> DrawingMesh<'a, SM>
+    pub fn points_colored<I, P, C>(self, points: I) -> DrawingMesh<'a>
     where
         I: IntoIterator<Item = (P, C)>,
         P: Into<Vec3>,
@@ -336,17 +332,14 @@ where
         self,
         texture_handle: Handle<Image>,
         points: I,
-    ) -> DrawingMesh<'a, SM>
+    ) -> DrawingMesh<'a>
     where
         I: IntoIterator<Item = (P, T)>,
         P: Into<Vec3>,
         T: Into<Vec2>,
     {
-        self.map_shader_model(|mut model| {
-            model.set_texture(texture_handle);
-            model
-        })
-        .map_ty_with_context(|ty, ctxt| ty.points_textured(ctxt.mesh, points))
+        self.texture(&texture_handle)
+            .map_ty_with_context(|ty, ctxt| ty.points_textured(ctxt.mesh, points))
     }
 
     /// Describe the mesh with a sequence of triangles.
@@ -357,7 +350,7 @@ where
     /// This method assumes that the entire mesh should be coloured with a single colour. If a
     /// colour is not specified via one of the builder methods, a default colour will be retrieved
     /// from the inner `Theme`.
-    pub fn tris<I, V>(self, tris: I) -> DrawingMesh<'a, SM>
+    pub fn tris<I, V>(self, tris: I) -> DrawingMesh<'a>
     where
         I: IntoIterator<Item = geom::Tri<V>>,
         V: Into<Vec3>,
@@ -370,7 +363,7 @@ where
     /// Each of the vertices must be represented as a tuple containing the point and the color in
     /// that order, e.g. `(point, color)`. `point` may be of any type that implements `Into<Vec3>`
     /// and `color` may be of any type that implements `IntoColor`.
-    pub fn tris_colored<I, P, C>(self, tris: I) -> DrawingMesh<'a, SM>
+    pub fn tris_colored<I, P, C>(self, tris: I) -> DrawingMesh<'a>
     where
         I: IntoIterator<Item = geom::Tri<(P, C)>>,
         P: Into<Vec3>,
@@ -389,17 +382,14 @@ where
         self,
         texture_handle: Handle<Image>,
         tris: I,
-    ) -> DrawingMesh<'a, SM>
+    ) -> DrawingMesh<'a>
     where
         I: IntoIterator<Item = geom::Tri<(P, T)>>,
         P: Into<Vec3>,
         T: Into<Vec2>,
     {
-        self.map_shader_model(|mut model| {
-            model.set_texture(texture_handle);
-            model
-        })
-        .map_ty_with_context(|ty, ctxt| ty.tris_textured(ctxt.mesh, tris))
+        self.texture(&texture_handle)
+            .map_ty_with_context(|ty, ctxt| ty.tris_textured(ctxt.mesh, tris))
     }
 
     /// Describe the mesh with the given indexed points.
@@ -407,7 +397,7 @@ where
     /// Each trio of `indices` describes a single triangle made up of `points`.
     ///
     /// Each point may be any type that may be converted directly into the `Vec3` type.
-    pub fn indexed<V, I>(self, points: V, indices: I) -> DrawingMesh<'a, SM>
+    pub fn indexed<V, I>(self, points: V, indices: I) -> DrawingMesh<'a>
     where
         V: IntoIterator,
         V::Item: Into<Vec3>,
@@ -423,7 +413,7 @@ where
     /// Each of the `points` must be represented as a tuple containing the point and the color in
     /// that order, e.g. `(point, color)`. `point` may be of any type that implements
     /// `Into<Vec3>` and `color` may be of any type that implements `IntoColor`.
-    pub fn indexed_colored<V, I, P, C>(self, points: V, indices: I) -> DrawingMesh<'a, SM>
+    pub fn indexed_colored<V, I, P, C>(self, points: V, indices: I) -> DrawingMesh<'a>
     where
         V: IntoIterator<Item = (P, C)>,
         I: IntoIterator<Item = usize>,
@@ -446,18 +436,15 @@ where
         texture_handle: Handle<Image>,
         points: V,
         indices: I,
-    ) -> DrawingMesh<'a, SM>
+    ) -> DrawingMesh<'a>
     where
         V: IntoIterator<Item = (P, T)>,
         I: IntoIterator<Item = usize>,
         P: Into<Vec3>,
         T: Into<Vec2>,
     {
-        self.map_shader_model(|mut model| {
-            model.set_texture(texture_handle);
-            model
-        })
-        .map_ty_with_context(|ty, ctxt| ty.indexed_textured(ctxt.mesh, points, indices))
+        self.texture(&texture_handle)
+            .map_ty_with_context(|ty, ctxt| ty.indexed_textured(ctxt.mesh, points, indices))
     }
 }
 

@@ -178,19 +178,19 @@ fn view(app: &App, model: &Model) {
     }
 }
 
-fn draw_particles_circle(draw: &Draw<ShaderModel>) {
+fn draw_particles_circle(draw: &Draw) {
     draw.instanced()
         .primitive(draw.ellipse().w_h(5.0, 5.0))
         .range(0..NUM_PARTICLES);
 }
 
-fn draw_particles_square(draw: &Draw<ShaderModel>) {
+fn draw_particles_square(draw: &Draw) {
     draw.instanced()
         .primitive(draw.rect().w_h(5.0, 5.0))
         .range(0..NUM_PARTICLES);
 }
 
-fn draw_particles_triangle(draw: &Draw<ShaderModel>) {
+fn draw_particles_triangle(draw: &Draw) {
     draw.instanced()
         .primitive(draw.tri().w_h(5.0, 5.0))
         .range(0..NUM_PARTICLES);

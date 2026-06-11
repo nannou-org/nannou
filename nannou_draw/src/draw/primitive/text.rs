@@ -6,7 +6,6 @@ use crate::draw::primitive::Primitive;
 use crate::draw::properties::spatial::{self, dimension, orientation, position};
 use crate::draw::properties::{SetColor, SetDimensions, SetOrientation, SetPosition};
 use crate::draw::{self, Drawing};
-use crate::render::ShaderModel;
 use crate::text::{self, Align, FontSize, Justify, Layout, Scalar, Wrap};
 use bevy::platform::hash::FixedHasher;
 use bevy::prelude::*;
@@ -34,7 +33,7 @@ pub struct Style {
 }
 
 /// The drawing context for the **Text** primitive.
-pub type DrawingText<'a, SM> = Drawing<'a, Text, SM>;
+pub type DrawingText<'a> = Drawing<'a, Text>;
 
 impl Text {
     /// Begin drawing some text.
@@ -154,10 +153,7 @@ impl Text {
     }
 }
 
-impl<'a, SM> DrawingText<'a, SM>
-where
-    SM: ShaderModel + Default,
-{
+impl<'a> DrawingText<'a> {
     /// The font size to use for the text.
     pub fn font_size(self, size: text::FontSize) -> Self {
         self.map_ty(|ty| ty.font_size(size))

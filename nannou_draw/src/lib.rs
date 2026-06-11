@@ -12,7 +12,7 @@
 //!
 //! [Bevy]: https://bevyengine.org
 
-use crate::render::{NannouRenderPlugin, NannouShaderModel};
+use crate::render::NannouRenderPlugin;
 use bevy::prelude::*;
 use draw::Draw;
 use text::font::SharedTextCx;
@@ -50,6 +50,6 @@ fn spawn_draw(
     for entity in query.iter() {
         commands
             .entity(entity)
-            .insert(Draw::<NannouShaderModel>::new(entity, text_cx.clone()));
+            .insert(Draw::new(entity, text_cx.clone()));
     }
 }

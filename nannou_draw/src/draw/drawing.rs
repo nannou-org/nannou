@@ -1,4 +1,3 @@
-use std::any::TypeId;
 use std::marker::PhantomData;
 
 use bevy::asset::UntypedAssetId;
@@ -12,7 +11,7 @@ use crate::draw::properties::{
     SetColor, SetDimensions, SetFill, SetOrientation, SetPosition, SetStroke,
 };
 use crate::draw::{Draw, DrawCommand, DrawRef};
-use crate::render::{DefaultNannouShaderModel, ShaderModel};
+use crate::render::{DefaultNannouShaderModel, ErasedShaderModel, ShaderModel};
 
 /// A **Drawing** in progress.
 ///
@@ -24,12 +23,9 @@ use crate::render::{DefaultNannouShaderModel, ShaderModel};
 /// inner **geom::Graph**. This ensures the correct instantiation order is maintained within the
 /// graph. As a result, each **Drawing** is associated with a single, unique node. Thus a
 /// **Drawing** can be thought of as a way of specifying properties for a node.
-pub struct Drawing<'a, T, SM>
-where
-    SM: ShaderModel + Default,
-{
+pub struct Drawing<'a, T> {
     // The `Draw` instance used to create this drawing.
-    draw: DrawRef<'a, SM>,
+    draw: DrawRef<'a>,
     // The draw command index of the primitive being drawn.
     pub(crate) index: usize,
     // The draw command index of the shader model being used.
@@ -55,14 +51,9 @@ pub struct DrawingContext<'a> {
 }
 
 /// Construct a new **Drawing** instance.
-pub fn new<T, SM: ShaderModel>(
-    draw: &Draw<SM>,
-    index: usize,
-    model_index: usize,
-) -> Drawing<'_, T, SM>
+pub fn new<T>(draw: &Draw, index: usize, model_index: usize) -> Drawing<'_, T>
 where
     T: Into<Primitive>,
-    SM: ShaderModel + Default,
 {
     let _ty = PhantomData;
     let finish_on_drop = true;
@@ -75,10 +66,7 @@ where
     }
 }
 
-impl<'a, T, SM> Drop for Drawing<'a, T, SM>
-where
-    SM: ShaderModel + Default,
-{
+impl<'a, T> Drop for Drawing<'a, T> {
     fn drop(&mut self) {
         if self.finish_on_drop {
             self.finish_inner()
@@ -104,10 +92,7 @@ impl<'a> DrawingContext<'a> {
     }
 }
 
-impl<'a, T, SM> Drawing<'a, T, SM>
-where
-    SM: ShaderModel + Default,
-{
+impl<'a, T> Drawing<'a, T> {
     // Shared between the **finish** method and the **Drawing**'s **Drop** implementation.
     //
     // 1. Create vertices based on node-specific position, points, etc.
@@ -143,12 +128,41 @@ where
         self.finish_inner()
     }
 
-    // Map the the parent's shader model to a new shader model type, taking ownership over the
-    // draw instance clone.
-    pub fn map_shader_model<F>(mut self, map: F) -> Drawing<'a, T, SM>
+    /// Map the parent's shader model to a new instance, drawing this primitive and any
+    /// subsequent drawings with the result.
+    ///
+    /// The active shader model must be of type `SM`; if it is not, a warning is emitted and the
+    /// mapping is skipped.
+    pub fn map_shader_model<SM, F>(self, map: F) -> Drawing<'a, T>
     where
+        SM: ShaderModel,
         F: FnOnce(SM) -> SM,
     {
+        let shader_model = {
+            let state = self.draw.state.read().unwrap();
+            state.shader_models[&self.draw.shader_model]
+                .as_any()
+                .downcast_ref::<SM>()
+                .cloned()
+        };
+        match shader_model {
+            Some(shader_model) => {
+                let shader_model = map(shader_model);
+                self.with_new_shader_model(Box::new(shader_model))
+            }
+            None => {
+                bevy::log::warn_once!(
+                    "`map_shader_model`: the active shader model is not of the requested type; \
+                     the mapping has been skipped"
+                );
+                self
+            }
+        }
+    }
+
+    // Insert the given model under a fresh id, drawing this primitive and any subsequent
+    // drawings with it. Takes ownership over the draw instance clone.
+    fn with_new_shader_model(mut self, model: Box<dyn ErasedShaderModel>) -> Drawing<'a, T> {
         self.finish_on_drop = false;
 
         let Drawing {
@@ -158,22 +172,14 @@ where
             ..
         } = self;
 
-        let state = draw.state.clone();
-        let shader_model = state.read().unwrap().shader_models[&self.draw.shader_model]
-            .downcast_ref::<SM>()
-            .unwrap()
-            .clone();
-
         let new_id = UntypedAssetId::Uuid {
-            type_id: TypeId::of::<SM>(),
+            type_id: model.as_any().type_id(),
             uuid: Uuid::new_v4(),
         };
 
-        let shader_model = map(shader_model.clone());
+        let state = draw.state.clone();
         let mut state = state.write().unwrap();
-        state
-            .shader_models
-            .insert(new_id.clone(), Box::new(shader_model));
+        state.shader_models.insert(new_id.clone(), model);
         // Mark the last shader model as the new model so that further drawings use the same model
         // as the parent draw ref.
         state.last_shader_model = Some(new_id.clone());
@@ -184,7 +190,6 @@ where
             shader_model: new_id.clone(),
             window: draw.window,
             text_cx: draw.text_cx.clone(),
-            _shader_model: Default::default(),
         };
 
         Drawing {
@@ -199,7 +204,7 @@ where
     // Map the given function onto the primitive stored within **Draw** at `index`.
     //
     // The functionn is only applied if the node has not yet been **Drawn**.
-    fn map_primitive<F, T2>(mut self, map: F) -> Drawing<'a, T2, SM>
+    fn map_primitive<F, T2>(mut self, map: F) -> Drawing<'a, T2>
     where
         F: FnOnce(Primitive) -> Primitive,
         T2: Into<Primitive> + Clone,
@@ -229,7 +234,7 @@ where
     // The same as `map_primitive` but also passes a mutable reference to the vertex data to the
     // map function. This is useful for types that may have an unknown number of arbitrary
     // vertices.
-    fn map_primitive_with_context<F, T2>(mut self, map: F) -> Drawing<'a, T2, SM>
+    fn map_primitive_with_context<F, T2>(mut self, map: F) -> Drawing<'a, T2>
     where
         F: FnOnce(Primitive, DrawingContext) -> Primitive,
         T2: Into<Primitive> + Clone,
@@ -265,7 +270,7 @@ where
     /// The function is only applied if the node has not yet been **Drawn**.
     ///
     /// **Panics** if the primitive does not contain type **T**.
-    pub fn map_ty<F, T2>(self, map: F) -> Drawing<'a, T2, SM>
+    pub fn map_ty<F, T2>(self, map: F) -> Drawing<'a, T2>
     where
         F: FnOnce(T) -> T2,
         T2: Into<Primitive> + Clone,
@@ -284,7 +289,7 @@ where
     /// The function is only applied if the node has not yet been **Drawn**.
     ///
     /// **Panics** if the primitive does not contain type **T**.
-    pub(crate) fn map_ty_with_context<F, T2>(self, map: F) -> Drawing<'a, T2, SM>
+    pub(crate) fn map_ty_with_context<F, T2>(self, map: F) -> Drawing<'a, T2>
     where
         F: FnOnce(T, DrawingContext) -> T2,
         T2: Into<Primitive> + Clone,
@@ -301,10 +306,9 @@ where
 
 // SetColor implementations.
 
-impl<'a, T, SM> Drawing<'a, T, SM>
+impl<'a, T> Drawing<'a, T>
 where
     T: SetColor + Into<Primitive> + Clone,
-    SM: ShaderModel + Default,
     Primitive: Into<Option<T>>,
 {
     /// Specify a color.
@@ -457,10 +461,9 @@ where
 
 // SetDimensions implementations.
 
-impl<'a, T, SM> Drawing<'a, T, SM>
+impl<'a, T> Drawing<'a, T>
 where
     T: SetDimensions + Into<Primitive> + Clone,
-    SM: ShaderModel + Default,
     Primitive: Into<Option<T>>,
 {
     /// Set the absolute width for the node.
@@ -516,10 +519,9 @@ where
 
 // SetPosition methods.
 
-impl<'a, T, SM> Drawing<'a, T, SM>
+impl<'a, T> Drawing<'a, T>
 where
     T: SetPosition + Into<Primitive> + Clone,
-    SM: ShaderModel + Default,
     Primitive: Into<Option<T>>,
 {
     /// Build with the given **Absolute** **Position** along the *x* axis.
@@ -560,10 +562,9 @@ where
 
 // SetOrientation methods.
 
-impl<'a, T, SM> Drawing<'a, T, SM>
+impl<'a, T> Drawing<'a, T>
 where
     T: SetOrientation + Into<Primitive> + Clone,
-    SM: ShaderModel + Default,
     Primitive: Into<Option<T>>,
 {
     /// Describe orientation via the vector that points to the given target.
@@ -683,10 +684,9 @@ where
 
 // SetFill methods
 
-impl<'a, T, SM> Drawing<'a, T, SM>
+impl<'a, T> Drawing<'a, T>
 where
     T: SetFill + Into<Primitive> + Clone,
-    SM: ShaderModel + Default,
     Primitive: Into<Option<T>>,
 {
     /// Specify the whole set of fill tessellation options.
@@ -727,10 +727,9 @@ where
 
 // SetStroke methods
 
-impl<'a, T, SM> Drawing<'a, T, SM>
+impl<'a, T> Drawing<'a, T>
 where
     T: SetStroke + Into<Primitive> + Clone,
-    SM: ShaderModel + Default,
     Primitive: Into<Option<T>>,
 {
     /// The start line cap as specified by the SVG spec.
@@ -869,29 +868,29 @@ where
     }
 }
 
-impl<'a, T, SM> Drawing<'a, T, SM>
-where
-    T: Into<Primitive> + Clone,
-    SM: ShaderModel + Default,
-    Primitive: Into<Option<T>>,
-{
-}
-
-impl<'a, T> Drawing<'a, T, DefaultNannouShaderModel>
-where
-    T: Into<Primitive>,
-{
+impl<'a, T> Drawing<'a, T> {
+    /// Set the base color of the shader model used to draw this primitive.
+    ///
+    /// This only applies to the default nannou shader model; if a custom shader model is active,
+    /// a warning is emitted and the color is ignored.
     pub fn base_color<C: Into<Color>>(self, color: C) -> Self {
-        self.map_shader_model(|mut model| {
-            model.color = color.into();
+        let color = color.into();
+        self.map_shader_model(|mut model: DefaultNannouShaderModel| {
+            model.color = color;
             model
         })
     }
 
+    /// Set the texture of the shader model used to draw this primitive.
+    ///
+    /// The texture is applied via [`ShaderModel::set_texture`], so this works with any shader
+    /// model type. Models without a texture slot ignore it.
     pub fn texture(self, texture: &Handle<Image>) -> Self {
-        self.map_shader_model(|mut model| {
-            model.texture = Some(texture.clone());
-            model
-        })
+        let mut model = {
+            let state = self.draw.state.read().unwrap();
+            state.shader_models[&self.draw.shader_model].clone_erased()
+        };
+        model.set_texture_erased(texture.clone());
+        self.with_new_shader_model(model)
     }
 }

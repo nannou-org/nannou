@@ -7,7 +7,6 @@ use crate::draw::primitive::path;
 use crate::draw::properties::spatial::{orientation, position};
 use crate::draw::properties::{SetColor, SetOrientation, SetPosition, SetStroke};
 use crate::draw::{self, Drawing};
-use crate::render::ShaderModel;
 
 /// A path containing only two points - a start and end.
 ///
@@ -20,7 +19,7 @@ pub struct Arrow {
 }
 
 /// The drawing context for a line.
-pub type DrawingArrow<'a, SM> = Drawing<'a, Arrow, SM>;
+pub type DrawingArrow<'a> = Drawing<'a, Arrow>;
 
 impl Arrow {
     /// Short-hand for the `stroke_weight` method.
@@ -85,10 +84,7 @@ impl Arrow {
     }
 }
 
-impl<'a, SM> DrawingArrow<'a, SM>
-where
-    SM: ShaderModel + Default,
-{
+impl<'a> DrawingArrow<'a> {
     /// Short-hand for the `stroke_weight` method.
     pub fn weight(self, weight: f32) -> Self {
         self.map_ty(|ty| ty.weight(weight))

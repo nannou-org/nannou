@@ -32,7 +32,7 @@ fn view(app: &App, _model: &Model, _window: Entity) {
 
     // We can also map the shader model manually
     draw.ellipse()
-        .map_shader_model(|mut mat| {
+        .map_shader_model(|mut mat: ShaderModel| {
             mat.color = BLUE.into();
             mat
         })
