@@ -29,6 +29,7 @@ use bevy::{
     prelude::{TypePath, *},
     render::{
         RenderApp, RenderStartup, RenderSystems,
+        batching::NoAutomaticBatching,
         extract_component::{ExtractComponent, ExtractComponentPlugin},
         extract_instances::{ExtractInstance, ExtractInstancesPlugin, ExtractedInstances},
         mesh::RenderMesh,
@@ -698,6 +699,7 @@ fn update_draw_mesh(
                             ShaderModelMesh,
                             NannouTransient,
                             NoFrustumCulling,
+                            NoAutomaticBatching,
                             DrawIndex(idx),
                             window_layers.clone(),
                         ));
@@ -741,6 +743,7 @@ fn update_draw_mesh(
                         ViewVisibility::default(),
                         NannouTransient,
                         NoFrustumCulling,
+                        NoAutomaticBatching,
                         DrawIndex(idx),
                         window_layers.clone(),
                     ));
@@ -779,6 +782,7 @@ fn update_draw_mesh(
                         ViewVisibility::default(),
                         NannouTransient,
                         NoFrustumCulling,
+                        NoAutomaticBatching,
                         DrawIndex(idx),
                         window_layers.clone(),
                     ));
