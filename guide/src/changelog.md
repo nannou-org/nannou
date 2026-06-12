@@ -153,6 +153,10 @@ Notable changes for `nannou_audio` users:
   ALSA, CoreAudio and JACK would begin processing as soon as they were built.
   Call `stream.play()` to start a stream - the nannou examples demonstrate
   this.
+- `Device::max_supported_input_channels` and
+  `Device::max_supported_output_channels` now return a `Result` rather than
+  panicking when the device's supported configurations cannot be queried
+  (e.g. the new retryable `ErrorKind::DeviceBusy`).
 - `nannou_midi`'s `midir` dependency is updated to `0.11` so that it can share
   the underlying ALSA bindings with CPAL.
 

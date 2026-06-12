@@ -53,21 +53,21 @@ impl Device {
     }
 
     /// The maximum number of output channels of any format supported by this device.
-    pub fn max_supported_output_channels(&self) -> usize {
-        self.supported_output_configs()
-            .expect("failed to get supported output audio stream formats")
+    pub fn max_supported_output_channels(&self) -> Result<usize, Error> {
+        let configs = self.supported_output_configs()?;
+        Ok(configs
             .map(|fmt| fmt.channels() as usize)
             .max()
-            .unwrap_or(0)
+            .unwrap_or(0))
     }
 
     /// The maximum number of input channels of any format supported by this device.
-    pub fn max_supported_input_channels(&self) -> usize {
-        self.supported_input_configs()
-            .expect("failed to get supported input audio stream formats")
+    pub fn max_supported_input_channels(&self) -> Result<usize, Error> {
+        let configs = self.supported_input_configs()?;
+        Ok(configs
             .map(|fmt| fmt.channels() as usize)
             .max()
-            .unwrap_or(0)
+            .unwrap_or(0))
     }
 }
 
