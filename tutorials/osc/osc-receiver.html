@@ -35,10 +35,10 @@
             const path_to_root = "../../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../../searchindex-acf3af26.js";
+            window.path_to_searchindex_js = "../../searchindex-78c7a061.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../../toc-ff7df133.js"></script>
+        <script src="../../toc-877d41e4.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -180,19 +180,19 @@
 <li>Author: mitchmindtree</li>
 <li>Required Knowledge:
 <ul>
-<li><a href="/tutorials/basics/anatomy-of-a-nannou-app.html">Anatomy of a nannou App</a></li>
-<li><a href="/tutorials/osc/osc-introduction.html">OSC introduction</a></li>
-<li><a href="/tutorials/osc/osc-sender.html">Sending OSC</a></li>
+<li><a href="../basics/anatomy-of-a-nannou-app.html">Anatomy of a nannou App</a></li>
+<li><a href="./osc-introduction.html">OSC introduction</a></li>
+<li><a href="./osc-sender.html">Sending OSC</a></li>
 </ul>
 </li>
 <li>Reading Time: 15 minutes</li>
 </ul>
 <hr>
-<p>In the <a href="/tutorials/osc/osc-sender.html">previous tutorial</a> we sent the position of
+<p>In the <a href="./osc-sender.html">previous tutorial</a> we sent the position of
 a circle out over OSC. In this tutorial we will do the opposite: we will <em>receive</em>
 OSC packets from another application and display them in a window.</p>
 <p>We will again use the <code>nannou_osc</code> crate. If you have not already added it to your
-project, see the <a href="/tutorials/osc/osc-introduction.html">OSC introduction</a>.</p>
+project, see the <a href="./osc-introduction.html">OSC introduction</a>.</p>
 <pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused_imports)]
 </span>use nannou_osc as osc;
 <span class="boring">fn main() {}</span></code></pre>
@@ -212,7 +212,7 @@ store both.</p>
 <p>Next, we set up our <code>Model</code> in the <code>model</code> function. An <code>osc::Receiver</code> is bound
 to a network <em>port</em> - the same port that the sending application is targeting.
 Make sure this matches the port used by your sender (in the
-<a href="/tutorials/osc/osc-sender.html">sending tutorial</a> we used <code>1234</code>, here we use
+<a href="./osc-sender.html">sending tutorial</a> we used <code>1234</code>, here we use
 <code>34254</code> to match nannou’s <code>osc_sender.rs</code> example - pick whichever you like, as
 long as the sender and receiver agree).</p>
 <pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(dead_code, unused_imports)]

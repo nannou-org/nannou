@@ -35,10 +35,10 @@
             const path_to_root = "../../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../../searchindex-acf3af26.js";
+            window.path_to_searchindex_js = "../../searchindex-78c7a061.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../../toc-ff7df133.js"></script>
+        <script src="../../toc-877d41e4.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -180,17 +180,17 @@
 <li>Author: <a href="https://madskjeldgaard.dk">madskjeldgaard</a></li>
 <li>Required Knowledge:
 <ul>
-<li><a href="/tutorials/basics/anatomy-of-a-nannou-app.html">Anatomy of a nannou App</a></li>
-<li><a href="/tutorials/basics/drawing-2d-shapes.html">Drawing 2D Shapes</a></li>
-<li><a href="/tutorials/draw/animating-a-circle.html">Animating a Circle</a></li>
-<li><a href="/tutorials/osc/osc-introduction.html">OSC introduction</a></li>
+<li><a href="../basics/anatomy-of-a-nannou-app.html">Anatomy of a nannou App</a></li>
+<li><a href="../draw/drawing-2d-shapes.html">Drawing 2D Shapes</a></li>
+<li><a href="../draw/animating-a-circle.html">Animating a Circle</a></li>
+<li><a href="./osc-introduction.html">OSC introduction</a></li>
 </ul>
 </li>
 <li>Reading Time: 20 minutes</li>
 </ul>
 <hr>
 <p>In this tutorial we will cover how to send OSC data from a nannou app to another application using the <code>nannou_osc</code> crate.</p>
-<p>We are going to write a simple program which has a circle moving about on the screen while the circle’s position is sent via OSC to another application. We will continue working on the app from <a href="/tutorials/draw/animating-a-circle.html">Animating a Circle</a>.</p>
+<p>We are going to write a simple program which has a circle moving about on the screen while the circle’s position is sent via OSC to another application. We will continue working on the app from <a href="../draw/animating-a-circle.html">Animating a Circle</a>.</p>
 <h2 id="setting-up-an-osc-sender"><a class="header" href="#setting-up-an-osc-sender">Setting up an OSC sender</a></h2>
 <p>At the top of your <code>main.rs</code>-file, import the <code>nannou_osc</code> crate and make it available in your program via the shorthand <code>osc</code>.</p>
 <pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused_imports)]
