@@ -20,6 +20,9 @@ rand = { workspace = true, features = ["small_rng", "thread_rng"] }
 # TODO: Needs no-std support before we can add text logic to this core.
 # rusttype = "0.8"
 
+[dev-dependencies]
+float_eq = "1.0.1"
+
 [features]
 default = ["std"]
 libm = ["glam/libm", "num-traits/libm"]
