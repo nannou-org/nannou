@@ -148,9 +148,11 @@ Notable changes for `nannou_audio` users:
   including the 24-bit `I24`/`U24`) rather than only `I16`/`U16`/`F32`.
   Formats beyond those three are converted to and from the stream's sample
   type via an intermediate `f32` representation.
-- Streams still begin processing as soon as they are built: CPAL `0.18`
-  returns all streams paused, so `nannou_audio` now plays them explicitly
-  before returning from `build`.
+- **Behaviour change:** streams are now returned *paused* from `build`,
+  matching CPAL `0.18`'s behaviour on every backend. Previously, streams on
+  ALSA, CoreAudio and JACK would begin processing as soon as they were built.
+  Call `stream.play()` to start a stream - the nannou examples demonstrate
+  this.
 - `nannou_midi`'s `midir` dependency is updated to `0.11` so that it can share
   the underlying ALSA bindings with CPAL.
 

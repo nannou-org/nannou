@@ -103,8 +103,8 @@ impl Host {
 
     /// Begin building a new input audio stream.
     ///
-    /// If this is the first time a stream has been created, this method will spawn the
-    /// `cpal::EventLoop::run` method on its own thread, ready to run built streams.
+    /// The stream produced by the builder's `build` method is paused. Call `Stream::play` to
+    /// begin processing audio.
     pub fn new_input_stream<M, S>(&self, model: M) -> stream::input::BuilderInit<M, S> {
         stream::input::Builder {
             capture: stream::input::default_capture_fn,
@@ -115,8 +115,8 @@ impl Host {
 
     /// Begin building a new output audio stream.
     ///
-    /// If this is the first time a stream has been created, this method will spawn the
-    /// `cpal::EventLoop::run` method on its own thread, ready to run built streams.
+    /// The stream produced by the builder's `build` method is paused. Call `Stream::play` to
+    /// begin processing audio.
     pub fn new_output_stream<M, S>(&self, model: M) -> stream::output::BuilderInit<M, S> {
         stream::output::Builder {
             render: stream::output::default_render_fn,
@@ -126,9 +126,6 @@ impl Host {
     }
 
     // Builder initialisation shared between input and output streams.
-    //
-    // If this is the first time a stream has been created, this method will spawn the
-    // `cpal::EventLoop::run` method on its own thread, ready to run built streams.
     fn new_stream<M, S>(&self, model: M) -> stream::Builder<M, S> {
         stream::Builder {
             host: self.host.clone(),

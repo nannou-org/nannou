@@ -2,7 +2,7 @@ use std::sync::atomic::AtomicBool;
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 
-use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use cpal::traits::{DeviceTrait, HostTrait};
 use dasp_sample::{FromSample, Sample, ToSample};
 
 use crate::{
@@ -89,6 +89,9 @@ impl<M, FR, FE, S> Builder<M, FR, FE, S> {
         self
     }
 
+    /// Build the output stream with the specified parameters.
+    ///
+    /// The returned stream is paused. Call [`Stream::play`] to begin processing audio.
     pub fn build(self) -> std::result::Result<Stream<M>, super::BuildError>
     where
         S: 'static + Send + Sample + ToSample<u16> + ToSample<i16> + ToSample<f32>,
@@ -260,15 +263,10 @@ impl<M, FR, FE, S> Builder<M, FR, FE, S> {
             None,
         )?;
 
-        // As of CPAL 0.18, streams are returned paused on every backend. Play the stream
-        // immediately to match the previous `nannou_audio` behaviour, where streams began
-        // processing as soon as they were successfully built.
-        stream.play()?;
-
         let shared = Arc::new(super::Shared {
             stream,
             model,
-            is_paused: AtomicBool::new(false),
+            is_paused: AtomicBool::new(true),
         });
 
         let stream = Stream {
