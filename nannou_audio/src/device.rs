@@ -2,9 +2,7 @@ use std::ops::Deref;
 
 use cpal::traits::DeviceTrait;
 
-use crate::{
-    DefaultStreamConfigError, DeviceNameError, SupportedStreamConfig, SupportedStreamConfigsError,
-};
+use crate::{Error, SupportedStreamConfig};
 
 /// A device that can be used to spawn an audio stream.
 pub struct Device {
@@ -23,36 +21,34 @@ pub type SupportedInputConfigs = cpal::SupportedInputConfigs;
 pub type SupportedOutputConfigs = cpal::SupportedOutputConfigs;
 
 impl Device {
-    /// The unique name associated with this device.
-    pub fn name(&self) -> Result<String, DeviceNameError> {
-        self.device.name()
+    /// The human-readable name associated with this device.
+    pub fn name(&self) -> Result<String, Error> {
+        self.device
+            .description()
+            .map(|desc| desc.name().to_string())
     }
 
     /// An iterator yielding formats that are supported by the backend.
     ///
     /// Can return an error if the device is no longer valid (e.g. it has been disconnected).
-    pub fn supported_input_configs(
-        &self,
-    ) -> Result<SupportedInputConfigs, SupportedStreamConfigsError> {
+    pub fn supported_input_configs(&self) -> Result<SupportedInputConfigs, Error> {
         self.device.supported_input_configs()
     }
 
     /// An iterator yielding configs that are supported by the backend.
     ///
     /// Can return an error if the device is no longer valid (e.g. it has been disconnected).
-    pub fn supported_output_configs(
-        &self,
-    ) -> Result<SupportedOutputConfigs, SupportedStreamConfigsError> {
+    pub fn supported_output_configs(&self) -> Result<SupportedOutputConfigs, Error> {
         self.device.supported_output_configs()
     }
 
     /// The default config used for input streams.
-    pub fn default_input_config(&self) -> Result<SupportedStreamConfig, DefaultStreamConfigError> {
+    pub fn default_input_config(&self) -> Result<SupportedStreamConfig, Error> {
         self.device.default_input_config()
     }
 
     /// The default config used for output streams.
-    pub fn default_output_config(&self) -> Result<SupportedStreamConfig, DefaultStreamConfigError> {
+    pub fn default_output_config(&self) -> Result<SupportedStreamConfig, Error> {
         self.device.default_output_config()
     }
 

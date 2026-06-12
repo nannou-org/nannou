@@ -130,16 +130,12 @@ fn get_spec(audio_host: &nannou_audio::Host) -> hound::WavSpec {
         .default_input_config()
         .unwrap();
 
-    let (bits_per_sample, sample_format) = match default_input_config.sample_format() {
-        audio::cpal::SampleFormat::I16 => (16, hound::SampleFormat::Int),
-        audio::cpal::SampleFormat::U16 => (16, hound::SampleFormat::Int),
-        audio::cpal::SampleFormat::F32 => (32, hound::SampleFormat::Float),
-    };
-
+    // The stream captures samples as `f32` (the default sample type) regardless of the
+    // device's native format, so the WAV is always written as 32-bit float.
     hound::WavSpec {
         channels: default_input_config.channels(),
-        sample_rate: default_input_config.sample_rate().0,
-        bits_per_sample,
-        sample_format,
+        sample_rate: default_input_config.sample_rate(),
+        bits_per_sample: 32,
+        sample_format: hound::SampleFormat::Float,
     }
 }

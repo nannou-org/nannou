@@ -19,11 +19,9 @@ pub use cpal;
 use cpal::traits::HostTrait;
 #[doc(inline)]
 pub use cpal::{
-    BackendSpecificError, BufferSize, BuildStreamError, DefaultStreamConfigError, DeviceNameError,
-    DevicesError, HostId, HostUnavailable, InputCallbackInfo, InputStreamTimestamp,
-    OutputCallbackInfo, OutputStreamTimestamp, PauseStreamError, PlayStreamError, StreamError,
-    SupportedBufferSize, SupportedInputConfigs, SupportedOutputConfigs, SupportedStreamConfig,
-    SupportedStreamConfigsError,
+    BufferSize, Error, ErrorKind, HostId, InputCallbackInfo, InputStreamTimestamp,
+    OutputCallbackInfo, OutputStreamTimestamp, SupportedBufferSize, SupportedInputConfigs,
+    SupportedOutputConfigs, SupportedStreamConfig,
 };
 pub use dasp_sample;
 
@@ -46,7 +44,7 @@ pub struct Host {
 
 impl Host {
     /// Instantiate the current host for the platform.
-    pub fn from_id(id: HostId) -> Result<Self, HostUnavailable> {
+    pub fn from_id(id: HostId) -> Result<Self, Error> {
         let host = cpal::host_from_id(id)?;
         Ok(Self::from_cpal_host(host))
     }
@@ -68,7 +66,7 @@ impl Host {
     /// Enumerate the available audio devices on the system.
     ///
     /// Produces an iterator yielding `Device`s.
-    pub fn devices(&self) -> Result<Devices, DevicesError> {
+    pub fn devices(&self) -> Result<Devices, Error> {
         let devices = self.host.devices()?;
         Ok(Devices { devices })
     }
@@ -76,7 +74,7 @@ impl Host {
     /// Enumerate the available audio devices on the system that support input streams.
     ///
     /// Produces an iterator yielding `Device`s.
-    pub fn input_devices(&self) -> Result<stream::input::Devices, DevicesError> {
+    pub fn input_devices(&self) -> Result<stream::input::Devices, Error> {
         let devices = self.host.input_devices()?;
         Ok(stream::input::Devices { devices })
     }
@@ -84,7 +82,7 @@ impl Host {
     /// Enumerate the available audio devices on the system that support output streams.
     ///
     /// Produces an iterator yielding `Device`s.
-    pub fn output_devices(&self) -> Result<stream::output::Devices, DevicesError> {
+    pub fn output_devices(&self) -> Result<stream::output::Devices, Error> {
         let devices = self.host.output_devices()?;
         Ok(stream::output::Devices { devices })
     }
