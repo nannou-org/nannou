@@ -131,6 +131,29 @@ For existing nannou `0.19` projects, the most common changes are:
 Sketches built with `nannou::sketch(view)` and the `Draw` API generally require
 minimal changes beyond updating colour constant names where they differ.
 
+## Audio
+
+`nannou_audio` now builds on [CPAL](https://crates.io/crates/cpal) `0.18`
+(previously `0.13`), bringing more reliable ALSA support
+([#1035](https://github.com/nannou-org/nannou/pull/1035)), new PipeWire and
+PulseAudio hosts on Linux and BSD, and many other backend improvements.
+Notable changes for `nannou_audio` users:
+
+- CPAL's per-operation error types (`BuildStreamError`, `StreamError`,
+  `DevicesError`, etc.) are replaced by a unified `cpal::Error` with an
+  `ErrorKind`. `Host`, `Device` and `Stream` methods now return `cpal::Error`,
+  stream error functions now receive a `cpal::Error`, and the cpal-specific
+  variants of `stream::BuildError` collapse into a single `Cpal` variant.
+- Streams can now negotiate any of CPAL's sample formats (`I8` through `F64`,
+  including the 24-bit `I24`/`U24`) rather than only `I16`/`U16`/`F32`.
+  Formats beyond those three are converted to and from the stream's sample
+  type via an intermediate `f32` representation.
+- Streams still begin processing as soon as they are built: CPAL `0.18`
+  returns all streams paused, so `nannou_audio` now plays them explicitly
+  before returning from `build`.
+- `nannou_midi`'s `midir` dependency is updated to `0.11` so that it can share
+  the underlying ALSA bindings with CPAL.
+
 ---
 
 # Version 0.19.0 (2024-01-17)
