@@ -19,12 +19,12 @@ pub mod output;
 pub mod duplex {}
 
 /// Called by the audio host in the case that an error occurs on an audio stream thread.
-pub trait ErrorFn<M>: Fn(&mut M, cpal::StreamError) {}
+pub trait ErrorFn<M>: Fn(&mut M, cpal::Error) {}
 
 /// The type of function accepted for model updates.
 pub type UpdateFn<M> = dyn FnOnce(&mut M) + Send + 'static;
 /// The default stream error function type used when unspecified.
-pub type DefaultErrorFn<M> = fn(&mut M, err: cpal::StreamError);
+pub type DefaultErrorFn<M> = fn(&mut M, err: cpal::Error);
 
 /// A clone-able handle around an audio stream.
 pub struct Stream<M> {
@@ -63,12 +63,8 @@ pub struct Builder<M, S = f32> {
 pub enum BuildError {
     #[error("failed to get default device")]
     DefaultDevice,
-    #[error("failed to enumerate available configs: {err}")]
-    SupportedStreamConfigs {
-        err: cpal::SupportedStreamConfigsError,
-    },
-    #[error("failed to build stream: {err}")]
-    BuildStream { err: cpal::BuildStreamError },
+    #[error(transparent)]
+    Cpal(#[from] cpal::Error),
 }
 
 #[derive(Debug)]
@@ -93,7 +89,7 @@ impl<M> Stream<M> {
     /// capture/render function.
     ///
     /// Has no effect if the stream is already running.
-    pub fn play(&self) -> Result<(), cpal::PlayStreamError> {
+    pub fn play(&self) -> Result<(), cpal::Error> {
         self.shared.play()
     }
 
@@ -102,7 +98,7 @@ impl<M> Stream<M> {
     /// Calling this will pause rendering/capturing.
     ///
     /// Has no effect is the stream was already paused.
-    pub fn pause(&self) -> Result<(), cpal::PauseStreamError> {
+    pub fn pause(&self) -> Result<(), cpal::Error> {
         self.shared.pause()
     }
 
@@ -179,13 +175,13 @@ impl<M> Stream<M> {
 }
 
 impl<M> Shared<M> {
-    fn play(&self) -> Result<(), cpal::PlayStreamError> {
+    fn play(&self) -> Result<(), cpal::Error> {
         self.stream.play()?;
         self.is_paused.store(false, atomic::Ordering::Relaxed);
         Ok(())
     }
 
-    fn pause(&self) -> Result<(), cpal::PauseStreamError> {
+    fn pause(&self) -> Result<(), cpal::Error> {
         self.stream.pause()?;
         self.is_paused.store(true, atomic::Ordering::Relaxed);
         Ok(())
@@ -200,7 +196,7 @@ impl<M> Shared<M> {
     }
 }
 
-impl<M, F> ErrorFn<M> for F where F: Fn(&mut M, cpal::StreamError) {}
+impl<M, F> ErrorFn<M> for F where F: Fn(&mut M, cpal::Error) {}
 
 impl<M> Clone for Stream<M> {
     fn clone(&self) -> Self {
@@ -223,18 +219,6 @@ impl<M> Drop for Shared<M> {
     }
 }
 
-impl From<cpal::BuildStreamError> for BuildError {
-    fn from(err: cpal::BuildStreamError) -> Self {
-        BuildError::BuildStream { err }
-    }
-}
-
-impl From<cpal::SupportedStreamConfigsError> for BuildError {
-    fn from(err: cpal::SupportedStreamConfigsError) -> Self {
-        BuildError::SupportedStreamConfigs { err }
-    }
-}
-
 // Checks if the target format has a CPAL sample format equivalent.
 //
 // If so, we can use the sample format to target a stream format that already has a
@@ -243,15 +227,47 @@ impl From<cpal::SupportedStreamConfigsError> for BuildError {
 // Otherwise we'll just fall back to the default sample format and do a conversionn.
 fn cpal_sample_format<S: Any>() -> Option<cpal::SampleFormat> {
     let type_id = TypeId::of::<S>();
-    if type_id == TypeId::of::<f32>() {
-        Some(cpal::SampleFormat::F32)
+    let format = if type_id == TypeId::of::<f32>() {
+        cpal::SampleFormat::F32
     } else if type_id == TypeId::of::<i16>() {
-        Some(cpal::SampleFormat::I16)
+        cpal::SampleFormat::I16
     } else if type_id == TypeId::of::<u16>() {
-        Some(cpal::SampleFormat::U16)
+        cpal::SampleFormat::U16
+    } else if type_id == TypeId::of::<i8>() {
+        cpal::SampleFormat::I8
+    } else if type_id == TypeId::of::<cpal::I24>() {
+        cpal::SampleFormat::I24
+    } else if type_id == TypeId::of::<i32>() {
+        cpal::SampleFormat::I32
+    } else if type_id == TypeId::of::<i64>() {
+        cpal::SampleFormat::I64
+    } else if type_id == TypeId::of::<u8>() {
+        cpal::SampleFormat::U8
+    } else if type_id == TypeId::of::<cpal::U24>() {
+        cpal::SampleFormat::U24
+    } else if type_id == TypeId::of::<u32>() {
+        cpal::SampleFormat::U32
+    } else if type_id == TypeId::of::<u64>() {
+        cpal::SampleFormat::U64
+    } else if type_id == TypeId::of::<f64>() {
+        cpal::SampleFormat::F64
     } else {
-        None
-    }
+        return None;
+    };
+    Some(format)
+}
+
+// Whether or not stream data of the given format can be accessed as a typed sample slice and
+// converted to/from the stream's sample type via the `dasp_sample` conversion traits.
+//
+// This excludes the DSD formats (1-bit streams packed into unsigned containers) for which no
+// `cpal::SizedSample` type exists.
+fn sample_format_convertible(format: cpal::SampleFormat) -> bool {
+    use cpal::SampleFormat::*;
+    matches!(
+        format,
+        I8 | I16 | I24 | I32 | I64 | U8 | U16 | U24 | U32 | U64 | F32 | F64
+    )
 }
 
 // Nannou allows the user to optionally specify each part of the stream config.
@@ -281,6 +297,11 @@ fn matching_supported_config(
         }
     }
     let sample_format = desired.sample_format.unwrap_or(supported_sample_format);
+
+    // Ensure we can convert between the stream's sample type and the resolved format.
+    if !sample_format_convertible(sample_format) {
+        return None;
+    }
 
     // Check for a matching number of channels.
     if let Some(channels) = desired.channels {
@@ -388,18 +409,16 @@ fn find_best_matching_config<F>(
     mut desired: DesiredStreamConfig,
     default: Option<cpal::SupportedStreamConfig>,
     supported_configs: F,
-) -> Result<Option<MatchingConfig>, cpal::SupportedStreamConfigsError>
+) -> Result<Option<MatchingConfig>, cpal::Error>
 where
-    F: Fn(
-        &cpal::Device,
-    ) -> Result<Vec<cpal::SupportedStreamConfigRange>, cpal::SupportedStreamConfigsError>,
+    F: Fn(&cpal::Device) -> Result<Vec<cpal::SupportedStreamConfigRange>, cpal::Error>,
 {
     // In the case that the user has not specified a sample rate, we want to try specifying a
     // reasonable default ourselves, otherwise CPAL can give back some extremely high frequency
     // ones by default that are generally less practical.
     let mut trying_default_sample_rate = false;
     if desired.sample_rate.is_none() {
-        desired.sample_rate = Some(cpal::SampleRate(DEFAULT_SAMPLE_RATE));
+        desired.sample_rate = Some(DEFAULT_SAMPLE_RATE);
         trying_default_sample_rate = true;
     }
 
@@ -427,7 +446,10 @@ where
         // If there are no matching configs with the target sample_format, drop the requirement
         // and we'll do a conversion to the desired sample rate from the default config in the
         // stream callback ourselves.
-        let default_sample_format = default.as_ref().map(|f| f.sample_format());
+        let default_sample_format = default
+            .as_ref()
+            .map(|f| f.sample_format())
+            .filter(|&format| sample_format_convertible(format));
         if desired.sample_format.is_some() && desired.sample_format != default_sample_format {
             desired.sample_format = default_sample_format;
             continue;
@@ -447,6 +469,6 @@ where
 }
 
 // The default error function used when unspecified.
-pub(crate) fn default_error_fn<M>(_: &mut M, err: cpal::StreamError) {
-    eprintln!("A `StreamError` occurred: {}", err);
+pub(crate) fn default_error_fn<M>(_: &mut M, err: cpal::Error) {
+    eprintln!("A stream error occurred: {}", err);
 }

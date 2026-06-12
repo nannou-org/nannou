@@ -19,11 +19,9 @@ pub use cpal;
 use cpal::traits::HostTrait;
 #[doc(inline)]
 pub use cpal::{
-    BackendSpecificError, BufferSize, BuildStreamError, DefaultStreamConfigError, DeviceNameError,
-    DevicesError, HostId, HostUnavailable, InputCallbackInfo, InputStreamTimestamp,
-    OutputCallbackInfo, OutputStreamTimestamp, PauseStreamError, PlayStreamError, StreamError,
-    SupportedBufferSize, SupportedInputConfigs, SupportedOutputConfigs, SupportedStreamConfig,
-    SupportedStreamConfigsError,
+    BufferSize, Error, ErrorKind, HostId, InputCallbackInfo, InputStreamTimestamp,
+    OutputCallbackInfo, OutputStreamTimestamp, SupportedBufferSize, SupportedInputConfigs,
+    SupportedOutputConfigs, SupportedStreamConfig,
 };
 pub use dasp_sample;
 
@@ -46,7 +44,7 @@ pub struct Host {
 
 impl Host {
     /// Instantiate the current host for the platform.
-    pub fn from_id(id: HostId) -> Result<Self, HostUnavailable> {
+    pub fn from_id(id: HostId) -> Result<Self, Error> {
         let host = cpal::host_from_id(id)?;
         Ok(Self::from_cpal_host(host))
     }
@@ -68,7 +66,7 @@ impl Host {
     /// Enumerate the available audio devices on the system.
     ///
     /// Produces an iterator yielding `Device`s.
-    pub fn devices(&self) -> Result<Devices, DevicesError> {
+    pub fn devices(&self) -> Result<Devices, Error> {
         let devices = self.host.devices()?;
         Ok(Devices { devices })
     }
@@ -76,7 +74,7 @@ impl Host {
     /// Enumerate the available audio devices on the system that support input streams.
     ///
     /// Produces an iterator yielding `Device`s.
-    pub fn input_devices(&self) -> Result<stream::input::Devices, DevicesError> {
+    pub fn input_devices(&self) -> Result<stream::input::Devices, Error> {
         let devices = self.host.input_devices()?;
         Ok(stream::input::Devices { devices })
     }
@@ -84,7 +82,7 @@ impl Host {
     /// Enumerate the available audio devices on the system that support output streams.
     ///
     /// Produces an iterator yielding `Device`s.
-    pub fn output_devices(&self) -> Result<stream::output::Devices, DevicesError> {
+    pub fn output_devices(&self) -> Result<stream::output::Devices, Error> {
         let devices = self.host.output_devices()?;
         Ok(stream::output::Devices { devices })
     }
@@ -105,8 +103,8 @@ impl Host {
 
     /// Begin building a new input audio stream.
     ///
-    /// If this is the first time a stream has been created, this method will spawn the
-    /// `cpal::EventLoop::run` method on its own thread, ready to run built streams.
+    /// The stream produced by the builder's `build` method is paused. Call `Stream::play` to
+    /// begin processing audio.
     pub fn new_input_stream<M, S>(&self, model: M) -> stream::input::BuilderInit<M, S> {
         stream::input::Builder {
             capture: stream::input::default_capture_fn,
@@ -117,8 +115,8 @@ impl Host {
 
     /// Begin building a new output audio stream.
     ///
-    /// If this is the first time a stream has been created, this method will spawn the
-    /// `cpal::EventLoop::run` method on its own thread, ready to run built streams.
+    /// The stream produced by the builder's `build` method is paused. Call `Stream::play` to
+    /// begin processing audio.
     pub fn new_output_stream<M, S>(&self, model: M) -> stream::output::BuilderInit<M, S> {
         stream::output::Builder {
             render: stream::output::default_render_fn,
@@ -128,9 +126,6 @@ impl Host {
     }
 
     // Builder initialisation shared between input and output streams.
-    //
-    // If this is the first time a stream has been created, this method will spawn the
-    // `cpal::EventLoop::run` method on its own thread, ready to run built streams.
     fn new_stream<M, S>(&self, model: M) -> stream::Builder<M, S> {
         stream::Builder {
             host: self.host.clone(),

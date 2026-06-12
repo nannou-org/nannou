@@ -3,7 +3,7 @@ use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 
 use cpal::traits::{DeviceTrait, HostTrait};
-use dasp_sample::{Sample, ToSample};
+use dasp_sample::{FromSample, Sample, ToSample};
 
 use crate::{
     Buffer, Device, Requester, Stream,
@@ -89,6 +89,9 @@ impl<M, FR, FE, S> Builder<M, FR, FE, S> {
         self
     }
 
+    /// Build the output stream with the specified parameters.
+    ///
+    /// The returned stream is paused. Call [`Stream::play`] to begin processing audio.
     pub fn build(self) -> std::result::Result<Stream<M>, super::BuildError>
     where
         S: 'static + Send + Sample + ToSample<u16> + ToSample<i16> + ToSample<f32>,
@@ -122,7 +125,7 @@ impl<M, FR, FE, S> Builder<M, FR, FE, S> {
         let desired = super::DesiredStreamConfig {
             sample_format: super::cpal_sample_format::<S>(),
             channels,
-            sample_rate: sample_rate.map(cpal::SampleRate),
+            sample_rate,
             device_buffer_size,
         };
 
@@ -139,7 +142,7 @@ impl<M, FR, FE, S> Builder<M, FR, FE, S> {
         let model_render = model.clone();
         let model_error = model.clone();
         let num_channels = matching.config.channels as usize;
-        let sample_rate = matching.config.sample_rate.0;
+        let sample_rate = matching.config.sample_rate;
         let sample_format = matching.sample_format;
         let stream_config = matching.config;
 
@@ -201,20 +204,45 @@ impl<M, FR, FE, S> Builder<M, FR, FE, S> {
                 }
             }
 
+            // As with `fill_output`, but converting via an intermediate `f32` for the formats
+            // whose conversions are not guaranteed by the `S` bounds on `build`.
+            fn fill_output_via_f32<O, S>(output: &mut [O], buffer: &[S])
+            where
+                O: Sample + FromSample<f32>,
+                S: Sample + ToSample<f32>,
+            {
+                for (out_sample, sample) in output.iter_mut().zip(buffer) {
+                    *out_sample = sample.to_sample::<f32>().to_sample();
+                }
+            }
+
+            macro_rules! fill_data {
+                ($T:ty, $fill:ident) => {{
+                    let output = data
+                        .as_slice_mut::<$T>()
+                        .expect("`Data` slice type did not match the negotiated sample format");
+                    $fill(output, &samples);
+                }};
+            }
+
             // Process the given buffer.
+            //
+            // Any sample format that passes the `sample_format_convertible` check during config
+            // negotiation must be handled here.
             match sample_format {
-                cpal::SampleFormat::U16 => {
-                    let output = data.as_slice_mut::<u16>().expect("expected u16 data");
-                    fill_output(output, &samples);
-                }
-                cpal::SampleFormat::I16 => {
-                    let output = data.as_slice_mut::<i16>().expect("expected i16 data");
-                    fill_output(output, &samples);
-                }
-                cpal::SampleFormat::F32 => {
-                    let output = data.as_slice_mut::<f32>().expect("expected f32 data");
-                    fill_output(output, &samples);
-                }
+                cpal::SampleFormat::U16 => fill_data!(u16, fill_output),
+                cpal::SampleFormat::I16 => fill_data!(i16, fill_output),
+                cpal::SampleFormat::F32 => fill_data!(f32, fill_output),
+                cpal::SampleFormat::I8 => fill_data!(i8, fill_output_via_f32),
+                cpal::SampleFormat::I24 => fill_data!(cpal::I24, fill_output_via_f32),
+                cpal::SampleFormat::I32 => fill_data!(i32, fill_output_via_f32),
+                cpal::SampleFormat::I64 => fill_data!(i64, fill_output_via_f32),
+                cpal::SampleFormat::U8 => fill_data!(u8, fill_output_via_f32),
+                cpal::SampleFormat::U24 => fill_data!(cpal::U24, fill_output_via_f32),
+                cpal::SampleFormat::U32 => fill_data!(u32, fill_output_via_f32),
+                cpal::SampleFormat::U64 => fill_data!(u64, fill_output_via_f32),
+                cpal::SampleFormat::F64 => fill_data!(f64, fill_output_via_f32),
+                format => unreachable!("unsupported sample format `{format:?}`"),
             }
         };
 
@@ -227,13 +255,18 @@ impl<M, FR, FE, S> Builder<M, FR, FE, S> {
             }
         };
 
-        let stream =
-            device.build_output_stream_raw(&stream_config, sample_format, render_fn, err_fn)?;
+        let stream = device.build_output_stream_raw(
+            stream_config,
+            sample_format,
+            render_fn,
+            err_fn,
+            None,
+        )?;
 
         let shared = Arc::new(super::Shared {
             stream,
             model,
-            is_paused: AtomicBool::new(false),
+            is_paused: AtomicBool::new(true),
         });
 
         let stream = Stream {
