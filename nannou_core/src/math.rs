@@ -108,9 +108,6 @@ pub trait MapRange: NumCast {
     // TODO: fn invert_range<T: NumCast>(self, min: Self, max: Self) -> Self;
 }
 
-// TODO: In `map_range`, the f64 intermediates work for correctness but pay unnecessary cast overhead for types
-// where direct arithmetic is possible (e.g. f32→f32, i32→i32). Consider specializing via a
-// helper trait or leveraging AsPrimitive from num_traits to avoid the double conversion.
 impl<S: NumCast> MapRange for S {
     /// Maps a value from an input range to an output range.
     ///
@@ -120,16 +117,16 @@ impl<S: NumCast> MapRange for S {
     /// # Examples
     /// ```
     /// # use nannou_core::prelude::*;
-    /// assert_eq!(map_range(128, 0, 255, 0.0, 1.0), 0.5019607843137255);
+    /// assert_eq!(128.map_range(0, 255, 0.0, 1.0), 0.5019607843137255);
     /// ```
     /// ```
     /// # use nannou_core::prelude::*;
-    /// assert_eq!(map_range(3, 0, 10, 0.0, 1.0), 0.3);
+    /// assert_eq!(3.map_range(0, 10, 0.0, 1.0), 0.3);
     /// ```
     /// ```
     /// # use nannou_core::prelude::*;
     /// // When the value is outside the input range, the result will be outside the output range.
-    /// let result = map_range(15, 0, 10, 0.0, 1.0);
+    /// let result = 15.map_range(0, 10, 0.0, 1.0);
     /// assert_eq!(result, 1.5);
     /// assert_eq!(clamp(result, 0.0, 1.0), 1.0);
     /// ```
@@ -137,6 +134,9 @@ impl<S: NumCast> MapRange for S {
     // fail. This would break some code but make users think about issues like converting to signed
     // ranges with unsigned types, etc. Would also reduce size of code generated due to all the panic
     // branches.
+    // TODO: The f64 intermediates work for correctness but pay unnecessary cast overhead for types
+    // where direct arithmetic is possible (e.g. f32→f32, i32→i32). Consider specializing via a
+    // helper trait or leveraging AsPrimitive from num_traits to avoid the double conversion.
     fn map_range<T: NumCast>(self, min: Self, max: Self, min_t: T, max_t: T) -> T {
         macro_rules! unwrap_or_panic {
             ($result:expr, $arg:expr) => {
@@ -150,7 +150,7 @@ impl<S: NumCast> MapRange for S {
         let max_f: f64 = unwrap_or_panic!(NumCast::from(max), "third");
         let min_t_f: f64 = unwrap_or_panic!(NumCast::from(min_t), "fourth");
         let max_t_f: f64 = unwrap_or_panic!(NumCast::from(max_t), "fifth");
-        
+
         NumCast::from((self_f - min_f) / (max_f - min_f) * (max_t_f - min_t_f) + min_t_f)
             .unwrap_or_else(|| panic!("[map_range] failed to cast result to target type"))
     }

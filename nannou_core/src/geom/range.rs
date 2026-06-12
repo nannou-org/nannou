@@ -4,7 +4,7 @@ use core::ops::{Add, Neg, Sub};
 
 use crate::geom::scalar;
 use crate::math::num_traits::{Float, NumCast, One, Zero};
-use crate::math::{self, two};
+use crate::math::{self, MapRange, two};
 
 /// Some start and end position along a single axis.
 ///
@@ -184,7 +184,7 @@ where
     where
         S: NumCast,
     {
-        math::map_range(value, self.start, self.end, other.start, other.end)
+        value.map_range(self.start, self.end, other.start, other.end)
     }
 
     /// Interpolates the **Range** using the given `weight`.
