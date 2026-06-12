@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-78c7a061.js";
+            window.path_to_searchindex_js = "searchindex-5d763e4e.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-877d41e4.js"></script>
@@ -2858,6 +2858,34 @@ and per-window view functions (via <code>Window::Builder::view</code>) are
 </ul>
 <p>Sketches built with <code>nannou::sketch(view)</code> and the <code>Draw</code> API generally require
 minimal changes beyond updating colour constant names where they differ.</p>
+<h2 id="audio-1"><a class="header" href="#audio-1">Audio</a></h2>
+<p><code>nannou_audio</code> now builds on <a href="https://crates.io/crates/cpal">CPAL</a> <code>0.18</code>
+(previously <code>0.13</code>), bringing more reliable ALSA support
+(<a href="https://github.com/nannou-org/nannou/pull/1035">#1035</a>), new PipeWire and
+PulseAudio hosts on Linux and BSD, and many other backend improvements.
+Notable changes for <code>nannou_audio</code> users:</p>
+<ul>
+<li>CPAL’s per-operation error types (<code>BuildStreamError</code>, <code>StreamError</code>,
+<code>DevicesError</code>, etc.) are replaced by a unified <code>cpal::Error</code> with an
+<code>ErrorKind</code>. <code>Host</code>, <code>Device</code> and <code>Stream</code> methods now return <code>cpal::Error</code>,
+stream error functions now receive a <code>cpal::Error</code>, and the cpal-specific
+variants of <code>stream::BuildError</code> collapse into a single <code>Cpal</code> variant.</li>
+<li>Streams can now negotiate any of CPAL’s sample formats (<code>I8</code> through <code>F64</code>,
+including the 24-bit <code>I24</code>/<code>U24</code>) rather than only <code>I16</code>/<code>U16</code>/<code>F32</code>.
+Formats beyond those three are converted to and from the stream’s sample
+type via an intermediate <code>f32</code> representation.</li>
+<li><strong>Behaviour change:</strong> streams are now returned <em>paused</em> from <code>build</code>,
+matching CPAL <code>0.18</code>’s behaviour on every backend. Previously, streams on
+ALSA, CoreAudio and JACK would begin processing as soon as they were built.
+Call <code>stream.play()</code> to start a stream - the nannou examples demonstrate
+this.</li>
+<li><code>Device::max_supported_input_channels</code> and
+<code>Device::max_supported_output_channels</code> now return a <code>Result</code> rather than
+panicking when the device’s supported configurations cannot be queried
+(e.g. the new retryable <code>ErrorKind::DeviceBusy</code>).</li>
+<li><code>nannou_midi</code>’s <code>midir</code> dependency is updated to <code>0.11</code> so that it can share
+the underlying ALSA bindings with CPAL.</li>
+</ul>
 <hr>
 <h1 id="version-0190-2024-01-17"><a class="header" href="#version-0190-2024-01-17">Version 0.19.0 (2024-01-17)</a></h1>
 <ul>
