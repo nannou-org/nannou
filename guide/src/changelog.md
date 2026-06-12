@@ -606,8 +606,8 @@ changelog entry
 - Update conrod dependencies to 0.68 for vulkano patch. New version includes
   copy/paste, double-click select and shift-click select support for the
   `TextEdit` widget.
-- [Breaking] Small change to Vulkan debug items.
-- [Breaking] New fields have been added to `DynamicState`.
+- \[Breaking\] Small change to Vulkan debug items.
+- \[Breaking\] New fields have been added to `DynamicState`.
 - Update shade_runner to 0.3 for vulkano patch.
 - Frame command buffer builder no longer provides access to unrelated
   `secondary` buffer methods.

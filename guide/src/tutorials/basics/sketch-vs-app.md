@@ -4,7 +4,7 @@
 
 - Author: mitchmindtree
 - Required Knowledge:
-    - [Getting Started](/getting_started.md)
+    - [Getting Started](../../getting_started.md)
 - Reading Time: 7 minutes
 
 ---
@@ -189,6 +189,6 @@ And that's it! You are now ready to take your sketch to the next level.
 | Templates | [template_sketch.rs](https://github.com/nannou-org/nannou/blob/master/examples/templates/template_sketch.rs) | [template_app.rs](https://github.com/nannou-org/nannou/blob/master/examples/templates/template_app.rs) |
 | Can make awesome stuff? | Yes | Yes |
 
-To learn more about nannou **sketches** visit the [Draw a sketch](/tutorials/basics/draw-a-sketch.md) tutorial.
+To learn more about nannou **sketches** visit the [Draw a sketch](./draw-a-sketch.md) tutorial.
 
-To learn more about nannou **apps** visit the [Anatomy of a nannou app](/tutorials/basics/anatomy-of-a-nannou-app.md) tutorial.
+To learn more about nannou **apps** visit the [Anatomy of a nannou app](./anatomy-of-a-nannou-app.md) tutorial.

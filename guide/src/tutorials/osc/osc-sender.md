@@ -4,17 +4,17 @@
 
 - Author: [madskjeldgaard](https://madskjeldgaard.dk)
 - Required Knowledge:
-    - [Anatomy of a nannou App](/tutorials/basics/anatomy-of-a-nannou-app.md)
-    - [Drawing 2D Shapes](/tutorials/basics/drawing-2d-shapes.md)
-    - [Animating a Circle](/tutorials/draw/animating-a-circle.md)
-    - [OSC introduction](/tutorials/osc/osc-introduction.md)
+    - [Anatomy of a nannou App](../basics/anatomy-of-a-nannou-app.md)
+    - [Drawing 2D Shapes](../draw/drawing-2d-shapes.md)
+    - [Animating a Circle](../draw/animating-a-circle.md)
+    - [OSC introduction](./osc-introduction.md)
 - Reading Time: 20 minutes
 
 ---
 
 In this tutorial we will cover how to send OSC data from a nannou app to another application using the `nannou_osc` crate.
 
-We are going to write a simple program which has a circle moving about on the screen while the circle's position is sent via OSC to another application. We will continue working on the app from [Animating a Circle](/tutorials/draw/animating-a-circle.md).
+We are going to write a simple program which has a circle moving about on the screen while the circle's position is sent via OSC to another application. We will continue working on the app from [Animating a Circle](../draw/animating-a-circle.md).
 
 ## Setting up an OSC sender
 

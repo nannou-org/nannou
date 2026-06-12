@@ -22,19 +22,19 @@ Tutorials for learning the basics of Rust with nannou.
 
 A suite of tutorials for getting familiar with the Nannou environment.
 
-- [Anatomy of a nannou app](/tutorials/basics/anatomy-of-a-nannou-app.md)
-- [Drawing a sketch](/tutorials/basics/draw-a-sketch.md)
-- [Sketch vs App](/tutorials/basics/sketch-vs-app.md)
-- [Window Coordinates](/tutorials/basics/window-coordinates.md)
+- [Anatomy of a nannou app](./tutorials/basics/anatomy-of-a-nannou-app.md)
+- [Drawing a sketch](./tutorials/basics/draw-a-sketch.md)
+- [Sketch vs App](./tutorials/basics/sketch-vs-app.md)
+- [Window Coordinates](./tutorials/basics/window-coordinates.md)
 - Nannou events
 
 ## Drawing
 
 Working with Nannou's `Draw` API - a simple approach of coding graphics.
 
-- [Drawing 2D shapes](/tutorials/draw/drawing-2d-shapes.md)
-- [Animating a circle](/tutorials/draw/animating-a-circle.md)
-- [Drawing images](/tutorials/draw/drawing-images.md)
+- [Drawing 2D shapes](./tutorials/draw/drawing-2d-shapes.md)
+- [Animating a circle](./tutorials/draw/animating-a-circle.md)
+- [Drawing images](./tutorials/draw/drawing-images.md)
 - Drawing 3D shapes
 - Drawing meshes
 
@@ -107,8 +107,8 @@ Detecting and outputting to LASER DACs on a network.
 
 ## OSC
 
-- [An intro to OSC](/tutorials/osc/osc-introduction.md).
-- [Sending OSC](/tutorials/osc/osc-sender.md).
+- [An intro to OSC](./tutorials/osc/osc-introduction.md).
+- [Sending OSC](./tutorials/osc/osc-sender.md).
 - Receiving OSC.
 
 ## DMX

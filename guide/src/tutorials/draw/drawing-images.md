@@ -4,8 +4,8 @@
 
 - Author: Josiah Savary
 - Required Knowledge:
-    - [Getting Started](/getting_started.md)
-    - [Draw a Sketch](./draw-a-sketch.md)
+    - [Getting Started](../../getting_started.md)
+    - [Draw a Sketch](../basics/draw-a-sketch.md)
 - Reading Time: 20 minutes
 
 ---

@@ -4,7 +4,7 @@
 
 - Author: mitchmindtree
 - Required Knowledge:
-    - [Getting Started](/getting_started.md)
+    - [Getting Started](../../getting_started.md)
 - Reading Time: 15 minutes
 
 ---
@@ -119,7 +119,7 @@ So satisfying!
 window?*
 
 One approach would be to calculate the position by hand. For example, we know
-the top-left corner is equal to [-300, 200]. From there, we need to move the
+the top-left corner is equal to \[-300, 200\]. From there, we need to move the
 square to the right by half the width and down by half the height:
 
 ```rust,no_run
@@ -181,7 +181,7 @@ let r = geom::Rect::from_w_h(100.0, 100.0);
 # }
 ```
 
-`r` now represents our square, positioned at [0.0, 0.0] with a width and height
+`r` now represents our square, positioned at \[0.0, 0.0\] with a width and height
 of 100.0. We can confirm this by changing our square drawing code to use `r`
 like so:
 
