@@ -101,6 +101,61 @@ impl Vec2Rotate for glam::Vec2 {
 
 impl Mat4LookTo for glam::Mat4 {}
 
+/// Functions that map an input range to an output range.
+pub trait MapRange: NumCast {
+    fn map_range<T: NumCast>(self, min: Self, max: Self, min_t: T, max_t: T) -> T;
+    // TODO: fn normalise_range<T: NumCast>(self, min: Self, max: Self) -> Self;
+    // TODO: fn invert_range<T: NumCast>(self, min: Self, max: Self) -> Self;
+}
+
+impl<S: NumCast> MapRange for S {
+    /// Maps a value from an input range to an output range.
+    ///
+    /// Note that `map_range` doesn't clamp the output: if `val` is outside the input range, the mapped
+    /// value will be outside the output range. (Use `clamp` to restrict the output, if desired.)
+    ///
+    /// # Examples
+    /// ```
+    /// # use nannou_core::prelude::*;
+    /// assert_eq!(128.map_range(0, 255, 0.0, 1.0), 0.5019607843137255);
+    /// ```
+    /// ```
+    /// # use nannou_core::prelude::*;
+    /// assert_eq!(3.map_range(0, 10, 0.0, 1.0), 0.3);
+    /// ```
+    /// ```
+    /// # use nannou_core::prelude::*;
+    /// // When the value is outside the input range, the result will be outside the output range.
+    /// let result = 15.map_range(0, 10, 0.0, 1.0);
+    /// assert_eq!(result, 1.5);
+    /// assert_eq!(clamp(result, 0.0, 1.0), 1.0);
+    /// ```
+    // TODO: Should consider refactoring this to only allow for conversions between types that cannot
+    // fail. This would break some code but make users think about issues like converting to signed
+    // ranges with unsigned types, etc. Would also reduce size of code generated due to all the panic
+    // branches.
+    // TODO: The f64 intermediates work for correctness but pay unnecessary cast overhead for types
+    // where direct arithmetic is possible (e.g. f32→f32, i32→i32). Consider specializing via a
+    // helper trait or leveraging AsPrimitive from num_traits to avoid the double conversion.
+    fn map_range<T: NumCast>(self, min: Self, max: Self, min_t: T, max_t: T) -> T {
+        macro_rules! unwrap_or_panic {
+            ($result:expr, $arg:expr) => {
+                $result
+                    .unwrap_or_else(|| panic!("[map_range] failed to cast {} arg to `f64`", $arg))
+            };
+        }
+
+        let self_f: f64 = unwrap_or_panic!(NumCast::from(self), "first");
+        let min_f: f64 = unwrap_or_panic!(NumCast::from(min), "second");
+        let max_f: f64 = unwrap_or_panic!(NumCast::from(max), "third");
+        let min_t_f: f64 = unwrap_or_panic!(NumCast::from(min_t), "fourth");
+        let max_t_f: f64 = unwrap_or_panic!(NumCast::from(max_t), "fifth");
+
+        NumCast::from((self_f - min_f) / (max_f - min_f) * (max_t_f - min_t_f) + min_t_f)
+            .unwrap_or_else(|| panic!("[map_range] failed to cast result to target type"))
+    }
+}
+
 /// Maps a value from an input range to an output range.
 ///
 /// Note that `map_range` doesn't clamp the output: if `val` is outside the input range, the mapped
@@ -122,10 +177,11 @@ impl Mat4LookTo for glam::Mat4 {}
 /// assert_eq!(result, 1.5);
 /// assert_eq!(clamp(result, 0.0, 1.0), 1.0);
 /// ```
-// TODO: Should consider refactoring this to only allow for conversions between types that cannot
-// fail. This would break some code but make users think about issues like converting to signed
-// ranges with unsigned types, etc. Would also reduce size of code generated due to all the panic
-// branches.
+// TODO: Remove this method in favor of `MapRange::map_range`.
+#[deprecated(
+    since = "0.19.0",
+    note = "use the `MapRange::map_range` method on your type instead"
+)]
 pub fn map_range<X, Y>(val: X, in_min: X, in_max: X, out_min: Y, out_max: Y) -> Y
 where
     X: NumCast,
