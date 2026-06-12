@@ -4,19 +4,19 @@
 
 - Author: mitchmindtree
 - Required Knowledge:
-    - [Anatomy of a nannou App](/tutorials/basics/anatomy-of-a-nannou-app.md)
-    - [OSC introduction](/tutorials/osc/osc-introduction.md)
-    - [Sending OSC](/tutorials/osc/osc-sender.md)
+    - [Anatomy of a nannou App](../basics/anatomy-of-a-nannou-app.md)
+    - [OSC introduction](./osc-introduction.md)
+    - [Sending OSC](./osc-sender.md)
 - Reading Time: 15 minutes
 
 ---
 
-In the [previous tutorial](/tutorials/osc/osc-sender.md) we sent the position of
+In the [previous tutorial](./osc-sender.md) we sent the position of
 a circle out over OSC. In this tutorial we will do the opposite: we will *receive*
 OSC packets from another application and display them in a window.
 
 We will again use the `nannou_osc` crate. If you have not already added it to your
-project, see the [OSC introduction](/tutorials/osc/osc-introduction.md).
+project, see the [OSC introduction](./osc-introduction.md).
 
 ```rust,no_run
 # #![allow(unused_imports)]
@@ -45,7 +45,7 @@ struct Model {
 Next, we set up our `Model` in the `model` function. An `osc::Receiver` is bound
 to a network *port* - the same port that the sending application is targeting.
 Make sure this matches the port used by your sender (in the
-[sending tutorial](/tutorials/osc/osc-sender.md) we used `1234`, here we use
+[sending tutorial](./osc-sender.md) we used `1234`, here we use
 `34254` to match nannou's `osc_sender.rs` example - pick whichever you like, as
 long as the sender and receiver agree).
 

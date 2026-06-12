@@ -4,7 +4,7 @@
 
 - Author: tpltnt, mitchmindtree
 - Required Knowledge:
-    - [Getting Started](/getting_started.md)
+    - [Getting Started](../../getting_started.md)
 - Reading Time: 10 minutes
 
 ---

@@ -4,20 +4,20 @@
 
 - Author: [madskjeldgaard](https://madskjeldgaard.dk)
 - Required Knowledge:
-    - [Getting Started](/getting_started.md)
-    - [Anatomy of a nannou app](/tutorials/basics/anatomy-of-a-nannou-app.md)
-    - [Drawing 2D Shapes](/tutorials/basics/drawing-2d-shapes.md)
+    - [Getting Started](../../getting_started.md)
+    - [Anatomy of a nannou app](../basics/anatomy-of-a-nannou-app.md)
+    - [Drawing 2D Shapes](./drawing-2d-shapes.md)
 - Reading Time: 10 minutes
 ---
 
-![osc-circle](/tutorials/basics/images/moving-circle.gif)
+![osc-circle](./images/moving-circle.gif)
 
 # Moving a circle about on the screen
 In this tutorial we will cover the basics of moving a shape around in the window of a nannou app.
 
 Let's start by making a simple program which draws a circle in the center of the screen.
 
-We will be using the barebones app from [Anatomy of a nannou app](/tutorials/basics/anatomy-of-a-nannou-app.md) as a starting point for this.
+We will be using the barebones app from [Anatomy of a nannou app](../basics/anatomy-of-a-nannou-app.md) as a starting point for this.
 
 Update the view function of your nannou-app to look like this:
 

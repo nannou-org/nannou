@@ -4,7 +4,7 @@
 
 - Author: [madskjeldgaard](https://madskjeldgaard.dk)
 - Required Knowledge:
-    - [Anatomy of a nannou App](/tutorials/basics/anatomy-of-a-nannou-app.md)
+    - [Anatomy of a nannou App](../basics/anatomy-of-a-nannou-app.md)
 - Reading Time: 5 minutes
 ---
 

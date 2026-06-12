@@ -30,10 +30,6 @@ jobs:
             command: cargo test --locked -p nannou_core --no-default-features --features "libm serde"
           - name: test-book
             command: cargo test --locked -p book_tests
-          - name: check-links
-            command: mdbook-linkcheck2 -s guide/
-            # Remove once there are no link errors to enforce correct links.
-            continue-on-error: true
           - name: book
             command: mdbook build guide/
     steps:
@@ -64,15 +60,22 @@ jobs:
     - name: Install mdbook
       if: matrix.name == 'book'
       run: cargo install mdbook --locked
-    - name: Install mdbook-linkcheck2
-      if: matrix.name == 'check-links'
-      run: cargo install mdbook-linkcheck2 --locked
     - name: ${{ matrix.name }}
       run: ${{ matrix.command }}
-      continue-on-error: ${{ matrix.continue-on-error || false }}
+
+  # Check the guide for broken links, using the same `mdbook-linkcheck2` as the
+  # nix dev shell (pinned via `flake.lock`).
+  check-links:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+    - uses: actions/checkout@v4
+    - uses: cachix/install-nix-action@v31
+    - name: Check guide links
+      run: nix shell --inputs-from . 'nixpkgs#mdbook-linkcheck2' --command mdbook-linkcheck2 --standalone guide/
 
   verifications:
-    needs: [cargo]
+    needs: [cargo, check-links]
     runs-on: ubuntu-latest
     steps:
     - run: echo "Verifications complete"
