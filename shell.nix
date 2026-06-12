@@ -1,5 +1,6 @@
 { lib
 , mdbook
+, mdbook-linkcheck2
 , nannou
 , mkShell
 , rust-analyzer
@@ -11,6 +12,7 @@ mkShell {
   inputsFrom = [ nannou ];
   buildInputs = [
     mdbook
+    mdbook-linkcheck2
     rust-analyzer
     rustfmt
   ];
