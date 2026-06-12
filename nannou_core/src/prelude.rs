@@ -14,7 +14,7 @@ pub use crate::glam::{
 };
 pub use crate::math::num_traits::*;
 pub use crate::math::{
-    Mat4LookTo, Vec2Angle, Vec2Rotate, clamp, deg_to_rad, fmod, map_range, partial_max,
+    MapRange, Mat4LookTo, Vec2Angle, Vec2Rotate, clamp, deg_to_rad, fmod, map_range, partial_max,
     partial_min, rad_to_deg, rad_to_turns, turns_to_rad,
 };
 // NOTE: These helper functions rely on a thread-local RNG and are currently only available via std.
