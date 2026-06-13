@@ -16,8 +16,8 @@
         <link rel="icon" href="favicon-de23e50b.svg">
         <link rel="shortcut icon" href="favicon-8114d1fc.png">
         <link rel="stylesheet" href="css/variables-8adf115d.css">
-        <link rel="stylesheet" href="css/general-0392ca55.css">
-        <link rel="stylesheet" href="css/chrome-fc474251.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
         <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-5d763e4e.js";
+            window.path_to_searchindex_js = "searchindex-70ef8dd3.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-877d41e4.js"></script>
+        <script src="toc-fb0cdf53.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -2601,12 +2601,23 @@ your own review!</li>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="publishing-new-versions"><a class="header" href="#publishing-new-versions">Publishing New Versions</a></h1>
 <p>The nannou repo allows community members to open a PR for publishing a new
-version of any or all of the nannou crates. This makes it much easier for
-maintainers to publish a new release - all we have to do is accept your PR!</p>
-<p>If you would like to see a new version of a crate published, follow these steps:</p>
+version of the nannou crates. This makes it much easier for maintainers to
+publish a new release - all we have to do is accept your PR!</p>
+<p>Publishing is automated with <a href="https://release-plz.dev"><code>release-plz</code></a>. Once a version-bump
+PR is merged into <code>master</code>, CI publishes every nannou crate whose version isn’t
+yet on crates.io - in the correct dependency order - then creates the <code>vX.Y.Z</code>
+git tag and a GitHub Release with auto-generated notes. You never need to run
+<code>cargo publish</code> by hand.</p>
+<blockquote>
+<p><em><strong>Maintainers</strong>: publishing authenticates to crates.io with <a href="https://crates.io/docs/trusted-publishing">Trusted
+Publishing</a> (no stored API token) and is gated on the
+<code>RELEASE_PLZ_ENABLED</code> repository variable - while it isn’t set to <code>true</code>,
+nothing is published. See <a href="#trusted-publishing-setup">Trusted Publishing setup</a>
+below for the one-time configuration.</em></p>
+</blockquote>
+<p>If you would like to see a new version published, follow these steps.</p>
 <h2 id="choose-a-version"><a class="header" href="#choose-a-version">Choose a Version</a></h2>
-<p>The version to use for the next version of the crate(s) you wish to publish will
-depend on the changes that have been made to the crate(s). The nannou crates
+<p>The version to use depends on the changes that have been made. The nannou crates
 follow the rust convention which you can read about <a href="https://doc.rust-lang.org/cargo/reference/manifest.html#the-version-field">here</a>.</p>
 <blockquote>
 <p><em><strong>Hot tip</strong>! Each of the numbers in a crate version has its own name:</em></p>
@@ -2616,61 +2627,80 @@ follow the rust convention which you can read about <a href="https://doc.rust-la
 “minor” version and the <code>3</code> is the “patch” or “tiny” version. Keep an eye out
 for these names when reading about versioning in Rust.</em></p>
 </blockquote>
-<p>Also necessary to keep in mind is that nannou synchronises versions that
-represent a breaking change (e.g. a change from <code>0.15.3</code> to <code>0.16.0</code> or <code>1.0.4</code>
-to <code>2.0.0</code>). In these cases, all crates with the name <code>nannou</code> or <code>nannou_*</code>
-should be published together with the same version. This version synchronisation
-makes it easier for users to intuit compatible versions of nannou crates without
-the need to manually check all of the dependency versions on crates.io.</p>
-<h2 id="update-cargotoml"><a class="header" href="#update-cargotoml">Update Cargo.toml</a></h2>
-<p>There are two sections of the <code>Cargo.toml</code> file(s) that will need updating.</p>
-<ol>
-<li>The <code>version</code> field under the <code>[package]</code> section.</li>
-<li>The <code>version</code> field of the <code>[dependencies]</code> and <code>[dev-dependencies]</code>
-sections of each crate in the repo that uses the crate. E.g. the <code>nannou</code>
-crate is a dependency of <code>nannou_isf</code>. If we wish to update the version of
-<code>nannou</code>, we will also need to update the version of <code>nannou</code> specified in
-the <code>[dependencies]</code> section of <code>nannou_isf</code>.</li>
-</ol>
-<p>This can be quite a lot of Cargo.toml changes in the case that you are updating
-the version of all of the <code>nannou_*</code> crates!</p>
-<p>To make this easier, the nannou repo includes a small program at
-<code>scripts/set_version</code>. You can use it like so:</p>
+<p>By convention the published <code>nannou</code> crates share a single version (the
+workspace version) and are bumped together, so users can reason about compatible
+versions at a glance. This is a convention rather than a hard requirement -
+<code>set_version</code> (below) bumps them together for you, but nothing stops you choosing
+versions differently when a release calls for it. Crates that aren’t published -
+the examples and various support crates - keep their own versions and are left
+alone.</p>
+<h2 id="bump-the-version"><a class="header" href="#bump-the-version">Bump the Version</a></h2>
+<p>The version lives in a single place - <code>[workspace.package].version</code> in the root
+<code>Cargo.toml</code> - which the published crates inherit via <code>version.workspace = true</code>.
+The matching version requirements for the internal <code>nannou_*</code> dependencies live
+in the root <code>[workspace.dependencies]</code> table.</p>
+<p>To bump both at once, use the small program at <code>scripts/set_version</code>:</p>
 <pre><code>cargo run --bin set_version -- "0.42.0"
 </code></pre>
-<p>This will:</p>
-<ul>
-<li>Find all crates via the cargo workspace Cargo.toml file.</li>
-<li>Sets the specified version number for each of the <code>nannou*</code> packages and
-updates each of their respective <code>nannou*</code> dependencies.</li>
-<li>Edits their Cargo.toml files with the result.</li>
-</ul>
+<p>This sets <code>[workspace.package].version</code> and the <code>version</code> of each internal
+<code>nannou*</code> entry in <code>[workspace.dependencies]</code> to the new version.</p>
 <h2 id="update-the-guide"><a class="header" href="#update-the-guide">Update the Guide</a></h2>
-<p>There are two places where we must update the version in the guide:</p>
+<p>There are two places to update in the guide:</p>
 <ol>
-<li>The <strong>Changelog</strong>. You can find it at <code>guide/src/changelog.md</code>. See the most
-recent version in the guide for a demonstration of how to update the version.
-For the most part, this just involves adding a date and release heading under
-the <code>Unreleased</code> heading.</li>
-<li>Update the nannou version number in step 3 of the
-<code>guide/src/getting_started/create_a_project.md</code> section.  See the
-<code>[dependencies]</code> section of the code snippet.</li>
+<li>The <strong>Changelog</strong> at <code>guide/src/changelog.md</code>. This is hand-written prose,
+maintained separately from the auto-generated GitHub Release notes - it’s
+where we describe a release’s highlights and any migration notes. Add a date
+and release heading under the <code>Unreleased</code> heading (see the most recent
+version for an example).</li>
+<li>The nannou version number in step 3 of
+<code>guide/src/getting_started/create_a_project.md</code> (the <code>[dependencies]</code> section
+of the code snippet).</li>
 </ol>
-<p>Otherwise, we avoid referring to specific versions in the guide to make updating
-easier. If you happen to be familiar with grep, this command can help you to
-double check that there are no more places to update:</p>
+<p>Otherwise we avoid referring to specific versions in the guide to make updating
+easier. If you’re familiar with grep, this can help double-check there are no
+more places to update:</p>
 <pre><code>grep -nr "= \"0.14\"" guide/
 </code></pre>
-<p>where <code>0.14</code> would be replaced with the beginning of the previous version of
-<code>nannou</code>. This should should list the files and line numbers where the previous
-version still exists and likely needs updating.</p>
+<p>where <code>0.14</code> is the beginning of the previous version of <code>nannou</code>. This lists
+the files and line numbers where the previous version still appears and likely
+needs updating.</p>
 <h2 id="open-a-pr"><a class="header" href="#open-a-pr">Open a PR</a></h2>
 <p>Now you should be ready to open a PR! Be sure to follow the <a href="#pr-checklist">PR
 Checklist</a>.</p>
-<p>Once your PR is reviewed and merged, the nannou repo’s CI bot will automatically
-publish the new versions.</p>
+<blockquote>
+<p><em><strong>Tip</strong>: writing <a href="https://www.conventionalcommits.org">Conventional Commit</a> messages (<code>feat:</code>,
+<code>fix:</code>, <code>feat!:</code> for breaking changes, etc.) keeps the auto-generated GitHub
+Release notes tidy, since <code>release-plz</code> groups them by type.</em></p>
+</blockquote>
+<p>Once your PR is reviewed and merged, CI publishes the new versions, tags the
+release and cuts a GitHub Release automatically.</p>
 <p>Congrats, you just published some new goodies to crates.io for the nannou
 community!</p>
+<h2 id="trusted-publishing-setup"><a class="header" href="#trusted-publishing-setup">Trusted Publishing setup</a></h2>
+<blockquote>
+<p><em>This section is for maintainers - it’s a one-time setup, not part of the
+per-release flow above.</em></p>
+</blockquote>
+<p>CI authenticates to crates.io with <a href="https://crates.io/docs/trusted-publishing">Trusted Publishing</a> over
+GitHub OIDC, so there is no long-lived crates.io API token stored as a secret.
+The release job mints a short-lived token at publish time via
+<a href="https://github.com/rust-lang/crates-io-auth-action"><code>rust-lang/crates-io-auth-action</code></a> (this is why the job has the
+<code>id-token: write</code> permission).</p>
+<p>For this to work, <strong>each published crate needs a trusted publisher configured on
+crates.io</strong>. On the crate’s crates.io page, go to <em>Settings -&gt; Trusted
+Publishing -&gt; Add a new trusted publisher</em> and enter:</p>
+<ul>
+<li><strong>Repository owner</strong>: <code>nannou-org</code></li>
+<li><strong>Repository name</strong>: <code>nannou</code></li>
+<li><strong>Workflow filename</strong>: <code>ci.yml</code></li>
+<li><strong>Environment</strong>: leave empty (or set a GitHub Actions environment name if you
+also add a matching <code>environment:</code> to the release job for extra protection)</li>
+</ul>
+<p>crates.io only lets you add a trusted publisher for a crate that <strong>already
+exists</strong>. Any crate that has never been published must therefore be published
+once with a token first (e.g. a one-off <code>cargo publish</code> using a personal API
+token), after which its trusted publisher can be configured. From then on every
+release goes through CI with no stored secret.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="nix-shell"><a class="header" href="#nix-shell">Nix Shell</a></h1>
 <p>The nannou repo offers a Nix shell as a way of providing a reproducible
@@ -3702,11 +3732,11 @@ fail.</li>
 
         <script src="elasticlunr-ef4e11c1.min.js"></script>
         <script src="mark-09e88c2c.min.js"></script>
-        <script src="searcher-09f2665d.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
 
         <script src="clipboard-1626706a.min.js"></script>
         <script src="highlight-abc7f01d.js"></script>
-        <script src="book-c22b7243.js"></script>
+        <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
 
