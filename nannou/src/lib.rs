@@ -72,10 +72,6 @@ impl Plugin for NannouPlugin {
             app.add_plugins(FrameTimeDiagnosticsPlugin::default());
         }
         app.init_resource::<WinitSettings>();
-        #[cfg(feature = "isf")]
-        {
-            app.add_plugins(nannou_isf::NannouIsfPlugin);
-        }
         #[cfg(feature = "video")]
         {
             app.add_plugins(nannou_video::NannouVideoPlugin);

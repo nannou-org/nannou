@@ -24,9 +24,6 @@ bevy_egui = { workspace = true, optional = true }
 bevy_common_assets = { workspace = true, optional = true }
 nannou_derive = { workspace = true }
 nannou_draw = { workspace = true }
-# `nannou_isf` isn't published yet, so it's pinned independently (not part of the
-# lockstep workspace version) rather than referenced via `workspace = true`.
-nannou_isf = { version = "0.1.0", path = "../nannou_isf", optional = true }
 nannou_video = { workspace = true, optional = true }
 find_folder = { workspace = true }
 lyon = { workspace = true }
@@ -69,7 +66,6 @@ egui = ["dep:bevy_egui", "bevy_egui/immutable_ctx"]
 # TODO: re-enable once `bevy-inspector-egui` supports Bevy 0.19.
 #inspector = ["egui", "dep:bevy-inspector-egui"]
 hot_reload = ["bevy/file_watcher", "bevy/multi_threaded"]
-isf = ["nannou_isf"]
 nightly = ["nannou_draw/nightly"]
 # Bundle Noto Sans as the default font, for deterministic rendering across
 # machines regardless of installed system fonts.
