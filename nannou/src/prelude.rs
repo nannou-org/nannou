@@ -36,8 +36,6 @@ pub use nannou_draw::render::blend::*;
 pub use nannou_draw::text::*;
 pub use nannou_draw::*;
 
-#[cfg(feature = "isf")]
-pub use nannou_isf::prelude::*;
 #[cfg(feature = "video")]
 pub use nannou_video::prelude::*;
 

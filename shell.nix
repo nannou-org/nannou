@@ -3,6 +3,7 @@
 , mdbook-linkcheck2
 , nannou
 , mkShell
+, release-plz
 , rust-analyzer
 , rustfmt
 , stdenv
@@ -13,6 +14,7 @@ mkShell {
   buildInputs = [
     mdbook
     mdbook-linkcheck2
+    release-plz
     rust-analyzer
     rustfmt
   ];

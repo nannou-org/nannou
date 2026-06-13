@@ -21,7 +21,7 @@ bevy = { workspace = true, default-features = false, features = [
     "zstd_rust",
 ]}
 lyon.workspace = true
-nannou_core = { path = "../nannou_core" }
+nannou_core = { workspace = true }
 notosans = { workspace = true, optional = true }
 parley.workspace = true
 skrifa.workspace = true

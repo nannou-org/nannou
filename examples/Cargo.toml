@@ -1,6 +1,7 @@
 [package]
 name = "examples"
-version.workspace = true
+version = "0.1.0"
+publish = false
 authors = [
     "mitchmindtree <mitchell.nordine@gmail.com>",
     "JoshuaBatty <joshpbatty@gmail.com>",
@@ -17,10 +18,13 @@ edition.workspace = true
 audrey.workspace = true
 bevy.workspace = true
 hrtf.workspace = true
-nannou = { version = "0.19.0", path = "../nannou" }
-nannou_audio = { version = "0.19.0", path = "../nannou_audio" }
-nannou_laser = { version = "0.19.0", features = ["ffi", "ilda-idtf"], path = "../nannou_laser" }
-nannou_osc = { version = "0.19.0", path = "../nannou_osc" }
+nannou = { workspace = true }
+nannou_audio = { workspace = true }
+# `nannou_isf` isn't published; depended on directly here (this crate is
+# `publish = false`) to keep the `isf_simple` example working.
+nannou_isf = { path = "../nannou_isf" }
+nannou_laser = { workspace = true, features = ["ffi", "ilda-idtf"] }
+nannou_osc = { workspace = true }
 walkdir.workspace = true
 hound.workspace = true
 ringbuf.workspace = true
@@ -141,7 +145,6 @@ path = "draw/draw_transform.rs"
 [[example]]
 name = "isf_simple"
 path = "isf/simple.rs"
-required-features = ["nannou/isf", "nannou/egui"]
 
 # Laser
 [[example]]

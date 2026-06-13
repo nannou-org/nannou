@@ -1,0 +1,145 @@
+name: nannou
+on: [push, pull_request]
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+
+# If a new commit is pushed to a PR, cancel any in-progress work on the same PR.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cargo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: fmt
+            command: cargo fmt --verbose --all -- --check
+          - name: check
+            command: cargo check --locked --workspace
+          - name: check-examples
+            command: cargo check --locked --examples --workspace
+          - name: check-all-features
+            command: cargo check --locked --examples --workspace --all-features
+          - name: test-core
+            command: cargo test --locked -p nannou_core --no-default-features --features "libm serde"
+          - name: test-book
+            command: cargo test --locked -p book_tests
+          - name: book
+            command: mdbook build guide/
+    steps:
+    - uses: actions/checkout@v4
+    - uses: cachix/install-nix-action@v31
+    # Put the flake-locked Rust toolchain on PATH *before* `rust-cache` runs, so
+    # it keys its cache on the toolchain we actually build with rather than the
+    # runner's preinstalled Rust (and so it doesn't depend on the runner having
+    # Rust at all).
+    - name: Expose the flake's Rust toolchain
+      run: nix develop --command bash -c 'command -v cargo rustc rustfmt | xargs -n1 dirname | sort -u' >> "$GITHUB_PATH"
+    # Cache cargo's registry and the (pruned) target dir. rust-cache already
+    # folds the rustc version (the flake's, from the step above) and a hash of
+    # all Cargo.lock/Cargo.toml files into the key automatically; we add
+    # `flake.lock` so it also rotates when other pinned dev-shell inputs (system
+    # libraries, etc.) change.
+    - uses: Swatinem/rust-cache@v2
+      with:
+        key: ${{ hashFiles('flake.lock') }}
+    # Build inside the flake dev shell, which also sets the system-library env
+    # (LD_LIBRARY_PATH, pkg-config paths, ...) - the same `nix develop`
+    # environment used locally, so there's no duplicated apt dependency list.
+    - name: ${{ matrix.name }}
+      run: nix develop --command ${{ matrix.command }}
+
+  # Check the guide for broken links, using the same `mdbook-linkcheck2` as the
+  # nix dev shell (pinned via `flake.lock`).
+  check-links:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+    - uses: actions/checkout@v4
+    - uses: cachix/install-nix-action@v31
+    - name: Check guide links
+      run: nix shell --inputs-from . 'nixpkgs#mdbook-linkcheck2' --command mdbook-linkcheck2 --standalone guide/
+
+  verifications:
+    needs: [cargo, check-links]
+    runs-on: ubuntu-latest
+    steps:
+    - run: echo "Verifications complete"
+
+  # Publish any crates whose version isn't yet on crates.io, in dependency
+  # order, then create the workspace `vX.Y.Z` tag and a GitHub Release. Runs
+  # after CI passes on a push to `master`. Configured via `release-plz.toml`.
+  #
+  # Gated on the `RELEASE_PLZ_ENABLED` repository variable so this machinery can
+  # land while the first release is deferred (e.g. until Bevy is stable): the
+  # job is skipped - and nothing is published - until the variable is set to
+  # `true` in the repository settings. Note that several crates have never been
+  # published, so enabling this will publish them at the current version
+  # regardless of a bump. See `guide/src/contributing/publishing-new-versions.md`.
+  release-plz:
+    if: >-
+      github.event_name == 'push'
+      && github.ref == 'refs/heads/master'
+      && vars.RELEASE_PLZ_ENABLED == 'true'
+    needs: [verifications]
+    permissions:
+      contents: write
+      # Required for crates.io Trusted Publishing: lets the job mint a GitHub
+      # OIDC token that `crates-io-auth-action` exchanges for a short-lived
+      # crates.io token, so no long-lived API token needs to be stored.
+      id-token: write
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - uses: cachix/install-nix-action@v31
+    - name: Authenticate to crates.io via Trusted Publishing
+      id: auth
+      uses: rust-lang/crates-io-auth-action@v1
+    # Publish from the flake dev shell, which provides cargo, release-plz and
+    # all the system libraries needed to build the crates - the same
+    # `nix develop` environment used locally, so there's no duplicated apt
+    # dependency list to keep in sync (cf. the `check-links` job).
+    - name: Run release-plz
+      run: nix develop --command release-plz release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Short-lived crates.io token minted via Trusted Publishing (OIDC);
+        # release-plz passes it through to `cargo publish`. No crates.io secret
+        # is stored. Requires each crate to have a trusted publisher configured
+        # on crates.io - see `guide/src/contributing/publishing-new-versions.md`.
+        CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+
+  # Publish the guide by pushing it to `deploy` branch.
+  guide-push-to-deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs: [verifications]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: cachix/install-nix-action@v31
+    # Build the guide with the flake's pinned mdbook (same as `check-links`).
+    - name: Build guide
+      run: nix shell --inputs-from . 'nixpkgs#mdbook' --command mdbook build guide/
+    - name: Commit book to deploy branch
+      run: |
+        git config user.email "action@github.com"
+        git config user.name "GitHub Action"
+        git remote add nannou-org https://${{ secrets.DEPLOY_GUIDE_TOKEN }}@github.com/${{ github.repository }}.git
+        git fetch nannou-org &&
+        git config credential.helper "store --file=.git/credentials" &&
+        echo "https://${{ secrets.DEPLOY_GUIDE_TOKEN }}:@github.com" > .git/credentials &&
+        git checkout deploy &&
+        cp -r guide/book/* . &&
+        git add -A . &&
+        git commit -m "Automated commit in preparation for deployment: $GITHUB_RUN_NUMBER" || true
+    - name: Push changes to deploy branch
+      run: |
+        git push --force --quiet nannou-org deploy &>/dev/null

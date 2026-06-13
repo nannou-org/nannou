@@ -3056,6 +3056,7 @@ dependencies = [
  "hrtf",
  "nannou",
  "nannou_audio",
+ "nannou_isf",
  "nannou_laser",
  "nannou_osc",
  "ringbuf",
@@ -4885,7 +4886,6 @@ dependencies = [
  "nannou_core",
  "nannou_derive",
  "nannou_draw",
- "nannou_isf",
  "nannou_video",
  "nannou_wgpu",
  "noise",
@@ -4918,7 +4918,7 @@ dependencies = [
 
 [[package]]
 name = "nannou_derive"
-version = "0.1.0"
+version = "0.19.0"
 dependencies = [
  "bevy",
  "nannou",
@@ -4929,7 +4929,7 @@ dependencies = [
 
 [[package]]
 name = "nannou_draw"
-version = "0.1.0"
+version = "0.19.0"
 dependencies = [
  "bevy",
  "bitflags 2.11.1",
@@ -4966,7 +4966,7 @@ dependencies = [
 
 [[package]]
 name = "nannou_midi"
-version = "0.1.0"
+version = "0.19.0"
 dependencies = [
  "bevy",
  "crossbeam-channel",
@@ -4982,7 +4982,7 @@ dependencies = [
 
 [[package]]
 name = "nannou_video"
-version = "0.1.0"
+version = "0.19.0"
 dependencies = [
  "bevy",
  "flume",
@@ -4999,7 +4999,7 @@ dependencies = [
 
 [[package]]
 name = "nannou_webcam"
-version = "0.1.0"
+version = "0.19.0"
 dependencies = [
  "bevy",
  "console_error_panic_hook",

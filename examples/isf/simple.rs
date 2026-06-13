@@ -1,7 +1,13 @@
 use nannou::prelude::*;
+// ISF support lives in the standalone `nannou_isf` crate - depend on it directly
+// and register its plugin (nannou no longer bundles an `isf` feature).
+use nannou_isf::{NannouIsfPlugin, prelude::*};
 
 fn main() {
-    nannou::app(model).update(update).run();
+    nannou::app(model)
+        .add_plugin(NannouIsfPlugin)
+        .update(update)
+        .run();
 }
 
 #[derive(Reflect)]
