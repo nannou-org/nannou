@@ -114,7 +114,7 @@ Publishing -> Add a new trusted publisher* and enter:
 
 - **Repository owner**: `nannou-org`
 - **Repository name**: `nannou`
-- **Workflow filename**: `nannou.yml`
+- **Workflow filename**: `ci.yml`
 - **Environment**: leave empty (or set a GitHub Actions environment name if you
   also add a matching `environment:` to the release job for extra protection)
 
