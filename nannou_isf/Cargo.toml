@@ -1,6 +1,10 @@
 [package]
 name = "nannou_isf"
-version.workspace = true
+# Not published yet (ISF support is still being ported to Bevy). Kept as a
+# workspace member - built and checked in CI - but excluded from release, so it
+# is pinned independently rather than tracking the lockstep workspace version.
+version = "0.1.0"
+publish = false
 description = "Interactive Shader Format (ISF) support, built on Bevy for nannou - the creative-coding framework."
 readme = "README.md"
 edition.workspace = true

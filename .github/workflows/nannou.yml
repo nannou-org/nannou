@@ -34,34 +34,26 @@ jobs:
             command: mdbook build guide/
     steps:
     - uses: actions/checkout@v4
-    - uses: dtolnay/rust-toolchain@stable
-      with:
-        components: rustfmt
+    - uses: cachix/install-nix-action@v31
+    # Put the flake-locked Rust toolchain on PATH *before* `rust-cache` runs, so
+    # it keys its cache on the toolchain we actually build with rather than the
+    # runner's preinstalled Rust (and so it doesn't depend on the runner having
+    # Rust at all).
+    - name: Expose the flake's Rust toolchain
+      run: nix develop --command bash -c 'command -v cargo rustc rustfmt | xargs -n1 dirname | sort -u' >> "$GITHUB_PATH"
+    # Cache cargo's registry and the (pruned) target dir. rust-cache already
+    # folds the rustc version (the flake's, from the step above) and a hash of
+    # all Cargo.lock/Cargo.toml files into the key automatically; we add
+    # `flake.lock` so it also rotates when other pinned dev-shell inputs (system
+    # libraries, etc.) change.
     - uses: Swatinem/rust-cache@v2
-    - name: Install Linux dependencies
-      run: >
-        sudo apt-get update &&
-        sudo apt-get install --no-install-recommends -y
-        libasound2-dev
-        libfontconfig-dev
-        libudev-dev
-        libwayland-dev
-        libxkbcommon-dev
-        libvulkan-dev
-        libclang-dev
-        libavcodec-dev
-        libavformat-dev
-        libavutil-dev
-        libavfilter-dev
-        libavdevice-dev
-        libswscale-dev
-        libswresample-dev
-        pkg-config
-    - name: Install mdbook
-      if: matrix.name == 'book'
-      run: cargo install mdbook --locked
+      with:
+        key: ${{ hashFiles('flake.lock') }}
+    # Build inside the flake dev shell, which also sets the system-library env
+    # (LD_LIBRARY_PATH, pkg-config paths, ...) - the same `nix develop`
+    # environment used locally, so there's no duplicated apt dependency list.
     - name: ${{ matrix.name }}
-      run: ${{ matrix.command }}
+      run: nix develop --command ${{ matrix.command }}
 
   # Check the guide for broken links, using the same `mdbook-linkcheck2` as the
   # nix dev shell (pinned via `flake.lock`).
@@ -80,41 +72,50 @@ jobs:
     steps:
     - run: echo "Verifications complete"
 
-  # Publish all the crates.
-  cargo-publish:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+  # Publish any crates whose version isn't yet on crates.io, in dependency
+  # order, then create the workspace `vX.Y.Z` tag and a GitHub Release. Runs
+  # after CI passes on a push to `master`. Configured via `release-plz.toml`.
+  #
+  # Gated on the `RELEASE_PLZ_ENABLED` repository variable so this machinery can
+  # land while the first release is deferred (e.g. until Bevy is stable): the
+  # job is skipped - and nothing is published - until the variable is set to
+  # `true` in the repository settings. Note that several crates have never been
+  # published, so enabling this will publish them at the current version
+  # regardless of a bump. See `guide/src/contributing/publishing-new-versions.md`.
+  release-plz:
+    if: >-
+      github.event_name == 'push'
+      && github.ref == 'refs/heads/master'
+      && vars.RELEASE_PLZ_ENABLED == 'true'
     needs: [verifications]
-    env:
-      CRATESIO_TOKEN: ${{ secrets.CRATESIO_TOKEN }}
+    permissions:
+      contents: write
+      # Required for crates.io Trusted Publishing: lets the job mint a GitHub
+      # OIDC token that `crates-io-auth-action` exchanges for a short-lived
+      # crates.io token, so no long-lived API token needs to be stored.
+      id-token: write
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    - uses: dtolnay/rust-toolchain@stable
-    - uses: Swatinem/rust-cache@v2
-    - name: Cargo publish nannou_core
-      continue-on-error: true
-      run: cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_core/Cargo.toml
-    - name: Cargo publish nannou_wgpu
-      continue-on-error: true
-      run: cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_wgpu/Cargo.toml
-    - name: Cargo publish nannou_mesh
-      continue-on-error: true
-      run: cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_mesh/Cargo.toml
-    - name: Cargo publish nannou
-      continue-on-error: true
-      run: cargo publish --token $CRATESIO_TOKEN --manifest-path nannou/Cargo.toml
-    - name: Cargo publish nannou_audio
-      continue-on-error: true
-      run: cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_audio/Cargo.toml
-    - name: Cargo publish nannou_laser
-      continue-on-error: true
-      run: cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_laser/Cargo.toml
-    - name: Cargo publish nannou_osc
-      continue-on-error: true
-      run: cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_osc/Cargo.toml
-    - name: Cargo publish nannou_egui
-      continue-on-error: true
-      run: cargo publish --token $CRATESIO_TOKEN --manifest-path nannou_egui/Cargo.toml
+      with:
+        fetch-depth: 0
+    - uses: cachix/install-nix-action@v31
+    - name: Authenticate to crates.io via Trusted Publishing
+      id: auth
+      uses: rust-lang/crates-io-auth-action@v1
+    # Publish from the flake dev shell, which provides cargo, release-plz and
+    # all the system libraries needed to build the crates - the same
+    # `nix develop` environment used locally, so there's no duplicated apt
+    # dependency list to keep in sync (cf. the `check-links` job).
+    - name: Run release-plz
+      run: nix develop --command release-plz release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Short-lived crates.io token minted via Trusted Publishing (OIDC);
+        # release-plz passes it through to `cargo publish`. No crates.io secret
+        # is stored. Requires each crate to have a trusted publisher configured
+        # on crates.io - see `guide/src/contributing/publishing-new-versions.md`.
+        CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
 
   # Publish the guide by pushing it to `deploy` branch.
   guide-push-to-deploy:
@@ -123,11 +124,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    - uses: dtolnay/rust-toolchain@stable
-    - uses: Swatinem/rust-cache@v2
-    - name: Install mdbook
-      run: cargo install mdbook --locked
-    - run: mdbook build guide/
+    - uses: cachix/install-nix-action@v31
+    # Build the guide with the flake's pinned mdbook (same as `check-links`).
+    - name: Build guide
+      run: nix shell --inputs-from . 'nixpkgs#mdbook' --command mdbook build guide/
     - name: Commit book to deploy branch
       run: |
         git config user.email "action@github.com"

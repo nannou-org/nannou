@@ -1,6 +1,7 @@
 [package]
 name = 'book_tests'
 version = '0.1.0'
+publish = false
 authors = ['mitchmindtree <mitchell.nordine@gmail.com>']
 edition.workspace = true
 description = 'For testing the nannou-guide, while including the nannou dependencies.'
@@ -16,6 +17,6 @@ skeptic = { git = "https://github.com/Erk-/rust-skeptic", branch = "fix-rust-1-7
 # https://github.com/budziq/rust-skeptic/pull/142
 skeptic = { git = "https://github.com/Erk-/rust-skeptic", branch = "fix-rust-1-77" }
 #skeptic = "0.13"
-nannou = { version ="0.19.0", path = "../../nannou" }
-nannou_osc = { version ="0.19.0", path = "../../nannou_osc" }
+nannou = { workspace = true }
+nannou_osc = { workspace = true }
 

@@ -1,6 +1,6 @@
 [package]
 name = "nannou"
-version = "0.19.0"
+version.workspace = true
 authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
 description = "A Creative Coding Framework for Rust."
 readme = "README.md"
@@ -22,14 +22,16 @@ bevy = { workspace = true, default-features = false, features = [
 #bevy-inspector-egui = { workspace = true, optional = true }
 bevy_egui = { workspace = true, optional = true }
 bevy_common_assets = { workspace = true, optional = true }
-nannou_derive = { path = "../nannou_derive" }
-nannou_draw = { path = "../nannou_draw" }
-nannou_isf = { path = "../nannou_isf", optional = true }
-nannou_video = { path = "../nannou_video", optional = true }
+nannou_derive = { workspace = true }
+nannou_draw = { workspace = true }
+# `nannou_isf` isn't published yet, so it's pinned independently (not part of the
+# lockstep workspace version) rather than referenced via `workspace = true`.
+nannou_isf = { version = "0.1.0", path = "../nannou_isf", optional = true }
+nannou_video = { workspace = true, optional = true }
 find_folder = { workspace = true }
 lyon = { workspace = true }
-nannou_core = { version ="0.19.0", path = "../nannou_core", features = ["std"] }
-nannou_wgpu = { version = "0.19.0", path = "../nannou_wgpu", features = ["capturer"]}
+nannou_core = { workspace = true, features = ["std"] }
+nannou_wgpu = { workspace = true, features = ["capturer"] }
 noise = { workspace = true }
 pennereq = { workspace = true }
 serde = { workspace = true, features = ["derive"], optional = true }

@@ -28,7 +28,9 @@ rustPlatform.buildRustPackage rec {
     ".lock"
     ".wgsl"
   ];
-  version = (builtins.fromTOML (builtins.readFile ./nannou/Cargo.toml)).package.version;
+  # All crates inherit the workspace version (`version.workspace = true`), so
+  # read it from the single source of truth in the workspace manifest.
+  version = (builtins.fromTOML (builtins.readFile ./Cargo.toml)).workspace.package.version;
 
   cargoLock = {
     lockFile = ./Cargo.lock;

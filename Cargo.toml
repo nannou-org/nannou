@@ -24,7 +24,10 @@ resolver = "2"
 [workspace.package]
 edition = "2024"
 license = "MIT OR Apache-2.0"
-version = "0.1.0"
+# The single source of truth for the version of every published nannou crate.
+# All `nannou*` crates inherit this via `version.workspace = true` and are
+# released in lockstep. Bump it with `cargo run --bin set_version -- "X.Y.Z"`.
+version = "0.19.0"
 homepage = "https://nannou.cc"
 repository = "https://github.com/nannou-org/nannou.git"
 
@@ -96,3 +99,18 @@ console_error_panic_hook = "0.1"
 getrandom = { version = "0.3", default-features = false }
 wgpu = "29"
 wikipedia = "0.5"
+
+# Internal nannou crates. Each carries both a `version` (required so dependent
+# crates publish correctly) and a `path` (used for local development). Members
+# reference them via `{ workspace = true }`, so these version requirements live
+# in one place and `set_version` bumps them in lockstep with
+# `workspace.package.version`.
+nannou = { version = "0.19.0", path = "nannou" }
+nannou_audio = { version = "0.19.0", path = "nannou_audio" }
+nannou_core = { version = "0.19.0", path = "nannou_core" }
+nannou_derive = { version = "0.19.0", path = "nannou_derive" }
+nannou_draw = { version = "0.19.0", path = "nannou_draw" }
+nannou_laser = { version = "0.19.0", path = "nannou_laser" }
+nannou_osc = { version = "0.19.0", path = "nannou_osc" }
+nannou_video = { version = "0.19.0", path = "nannou_video" }
+nannou_wgpu = { version = "0.19.0", path = "nannou_wgpu" }

@@ -1,0 +1,49 @@
+# release-plz configuration.
+#
+# nannou uses release-plz only for the *release* half of its flow (not the
+# auto-bumping Release PR). The maintainer bumps the single, lockstep version
+# (`cargo run --bin set_version -- "X.Y.Z"`), opens a normal PR and merges it;
+# the `release-plz release` job in CI then publishes every crate whose manifest
+# version isn't yet on crates.io - in dependency order - and tags + cuts a
+# GitHub Release. See `guide/src/contributing/publishing-new-versions.md`.
+
+[workspace]
+# Keep the hand-written changelog prose in `guide/src/changelog.md`; don't let
+# release-plz maintain committed `CHANGELOG.md` files. Generated notes still
+# appear in each GitHub Release (see `git_release_body`'s `{{ changelog }}`).
+changelog_update = false
+
+# All nannou crates share one version and ship together, so we want a single
+# workspace-wide `vX.Y.Z` tag + GitHub Release rather than one per crate.
+# Disable both here, then re-enable them only on the umbrella `nannou` crate.
+git_tag_enable = false
+git_release_enable = false
+
+# CI's `verifications` job already builds the whole workspace before this runs,
+# so skip the redundant per-crate verify build during publish. This also keeps
+# publishing fast enough to finish within the ~30-minute crates.io Trusted
+# Publishing token window (each lockstep release republishes every crate,
+# including the Bevy-heavy ones).
+publish_no_verify = true
+
+[[package]]
+name = "nannou"
+# The umbrella crate carries the single workspace-wide tag and GitHub Release,
+# reproducing the historical one-`vX.Y.Z`-tag-per-release scheme.
+git_tag_enable = true
+git_tag_name = "v{{ version }}"
+git_release_enable = true
+# Fold the sibling crates' commits into nannou's release notes so the single
+# GitHub Release reflects the whole workspace's changes.
+changelog_include = [
+    "nannou_audio",
+    "nannou_core",
+    "nannou_derive",
+    "nannou_draw",
+    "nannou_laser",
+    "nannou_midi",
+    "nannou_osc",
+    "nannou_video",
+    "nannou_webcam",
+    "nannou_wgpu",
+]
