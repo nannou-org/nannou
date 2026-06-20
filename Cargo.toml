@@ -79,7 +79,7 @@ serde_yaml = "0.9"
 # Must semver-unify with `bevy_text`'s `swash` dependency: glyph rasterisation
 # goes through bevy's `ScaleCx` resource, whose types must match.
 swash = { version = "0.2.6", default-features = false, features = ["std", "scale"] }
-syn = "1"
+syn = "2"
 thiserror = "2"
 tempfile = "3"
 tokio = "1"

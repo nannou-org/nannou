@@ -4935,7 +4935,7 @@ name = "nannou_derive"
 version = "0.20.0"
 dependencies = [
  "quote 1.0.45",
- "syn 1.0.109",
+ "syn 2.0.118",
 ]
 
 [[package]]

@@ -1,11 +1,12 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{ItemStruct, Lit, Meta, NestedMeta, parse_macro_input, parse_quote};
+use syn::punctuated::Punctuated;
+use syn::{Expr, ExprLit, ItemStruct, Lit, Meta, Token, parse_macro_input};
 
 #[proc_macro_attribute]
 pub fn shader_model(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let mut input = parse_macro_input!(item as ItemStruct);
-    let attrs = parse_macro_input!(attr as syn::AttributeArgs);
+    let input = parse_macro_input!(item as ItemStruct);
+    let attrs = parse_macro_input!(attr with Punctuated::<Meta, Token![,]>::parse_terminated);
 
     let (vertex_shader, fragment_shader) = parse_shader_attributes(&attrs);
 
@@ -21,12 +22,8 @@ pub fn shader_model(attr: TokenStream, item: TokenStream) -> TokenStream {
         .map(|path| quote! { #path.into() })
         .unwrap_or_else(|| quote! { ::nannou::prelude::ShaderRef::Default });
 
-    // Add derive attributes
-    input
-        .attrs
-        .push(parse_quote!(#[derive(::bevy::asset::Asset, ::bevy::prelude::TypePath, ::nannou::prelude::AsBindGroup, Debug, Clone, Default)]));
-
     let expanded = quote! {
+        #[derive(::bevy::asset::Asset, ::bevy::prelude::TypePath, ::nannou::prelude::AsBindGroup, Debug, Clone, Default)]
         #input
 
         impl #impl_generics ::nannou::prelude::render::ShaderModel for #name #ty_generics #where_clause {
@@ -43,23 +40,36 @@ pub fn shader_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     TokenStream::from(expanded)
 }
 
-fn parse_shader_attributes(attrs: &[syn::NestedMeta]) -> (Option<String>, Option<String>) {
+fn parse_shader_attributes(
+    attrs: &Punctuated<Meta, Token![,]>,
+) -> (Option<String>, Option<String>) {
     let mut vertex_shader = None;
     let mut fragment_shader = None;
 
-    for attr in attrs {
-        if let NestedMeta::Meta(Meta::NameValue(nv)) = attr {
+    for meta in attrs {
+        if let Meta::NameValue(nv) = meta {
             if nv.path.is_ident("vertex") {
-                if let Lit::Str(lit) = &nv.lit {
-                    vertex_shader = Some(lit.value());
+                if let Some(value) = lit_str_value(&nv.value) {
+                    vertex_shader = Some(value);
                 }
             } else if nv.path.is_ident("fragment") {
-                if let Lit::Str(lit) = &nv.lit {
-                    fragment_shader = Some(lit.value());
+                if let Some(value) = lit_str_value(&nv.value) {
+                    fragment_shader = Some(value);
                 }
             }
         }
     }
 
     (vertex_shader, fragment_shader)
+}
+
+/// Extract the value of a string-literal expression (`syn 2` stores attribute
+/// `name = value` values as an `Expr` rather than a `Lit`).
+fn lit_str_value(expr: &Expr) -> Option<String> {
+    match expr {
+        Expr::Lit(ExprLit {
+            lit: Lit::Str(lit), ..
+        }) => Some(lit.value()),
+        _ => None,
+    }
 }
