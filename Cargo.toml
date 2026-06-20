@@ -92,7 +92,7 @@ walkdir = "2"
 wasm-bindgen = "0.2"
 web-sys = "0.3"
 console_error_panic_hook = "0.1"
-getrandom = { version = "0.3", default-features = false }
+getrandom = { version = "0.4", default-features = false }
 wgpu = "29"
 wikipedia = "0.5"
 
