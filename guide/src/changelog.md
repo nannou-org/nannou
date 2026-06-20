@@ -5,7 +5,7 @@ back to the origins.
 
 ---
 
-# Unreleased
+# Version 0.20.0 (2026-06-20)
 
 ## The Bevy Refactor
 

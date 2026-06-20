@@ -468,7 +468,10 @@ pub(crate) fn queue_shader_model<SM, QF, RC>(
                 .specialize(&pipeline_cache, &custom_pipeline, key, &mesh.layout)
                 .unwrap();
 
-            phase.add(Transparent3d {
+            // Bevy 0.19 split `SortedRenderPhase::add` into retained/transient
+            // variants. This queue rebuilds the phase every frame (like Bevy's
+            // sprite path), so use `add_transient` to clear items each frame.
+            phase.add_transient(Transparent3d {
                 sorting_info: TransparentSortingInfo3d::AlwaysOnTop,
                 distance: draw_idx.0 as f32,
                 pipeline,

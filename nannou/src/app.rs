@@ -206,6 +206,23 @@ impl RunMode {
     }
 }
 
+/// Build `bevy_egui`'s plugin in single-pass mode.
+///
+/// Single-pass mode lets nannou users build egui UI imperatively from their
+/// `update`/`view` functions; `bevy_egui`'s multi-pass default instead expects
+/// UI to be built within the dedicated `EguiPrimaryContextPass` schedule. The
+/// `enable_multipass_for_primary_context` flag is deprecated upstream (single-
+/// pass "may get deprecated in the future"), hence `#[allow(deprecated)]`;
+/// revisit if nannou moves its egui integration onto that schedule.
+#[cfg(feature = "egui")]
+#[allow(deprecated)]
+fn egui_plugin() -> bevy_egui::EguiPlugin {
+    bevy_egui::EguiPlugin {
+        enable_multipass_for_primary_context: false,
+        ..bevy_egui::EguiPlugin::default()
+    }
+}
+
 impl<M> Builder<M>
 where
     M: 'static,
@@ -281,13 +298,7 @@ where
                         ..default()
                     }),
                 #[cfg(feature = "egui")]
-                // Single-pass mode lets nannou users build egui UI imperatively from
-                // their `update`/`view` functions (the multi-pass default expects UI
-                // to be built within the dedicated `EguiPrimaryContextPass` schedule).
-                bevy_egui::EguiPlugin {
-                    enable_multipass_for_primary_context: false,
-                    ..bevy_egui::EguiPlugin::default()
-                },
+                egui_plugin(),
                 NannouPlugin,
             ))
             .init_resource::<RunMode>();

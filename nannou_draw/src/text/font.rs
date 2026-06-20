@@ -40,7 +40,11 @@ pub(crate) fn init_shared_text_cx(app: &mut App) {
         }
     }
 
-    app.insert_resource(bevy::text::FontCx(font.clone()));
+    // Bevy 0.19 turned `FontCx` from a tuple struct into one with a private
+    // field, so build it via `Default` and set the public `context`.
+    let mut font_cx = bevy::text::FontCx::default();
+    font_cx.context = font.clone();
+    app.insert_resource(font_cx);
     let inner = NannouTextCxInner {
         font,
         layout: LayoutContext::new(),
