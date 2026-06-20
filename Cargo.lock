@@ -4904,9 +4904,6 @@ dependencies = [
 name = "nannou_derive"
 version = "0.20.0"
 dependencies = [
- "bevy",
- "nannou",
- "nannou_draw",
  "quote 1.0.42",
  "syn 1.0.109",
 ]

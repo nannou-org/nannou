@@ -12,8 +12,3 @@ proc-macro = true
 [dependencies]
 syn = { workspace = true, features = ["full"] }
 quote.workspace = true
-
-[dev-dependencies]
-bevy.workspace = true
-nannou_draw = { workspace = true }
-nannou = { workspace = true }

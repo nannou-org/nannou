@@ -1,6 +1,13 @@
-use bevy::shader::ShaderRef;
-use nannou_derive::shader_model;
-use nannou_draw::render::ShaderModel;
+//! Tests for the `#[shader_model]` attribute macro (from `nannou_derive`).
+//!
+//! These live in `nannou` rather than `nannou_derive` because the macro expands
+//! to `::nannou::prelude::*` (and `::bevy::*`) paths, so the generated code only
+//! resolves where `nannou` is in scope. Keeping them here avoids `nannou_derive`
+//! having to dev-depend on `nannou` - a cycle that can't be published.
+
+use nannou::prelude::ShaderRef;
+use nannou::prelude::render::ShaderModel;
+use nannou::prelude::shader_model;
 
 #[shader_model]
 struct TestShaderModel {}
