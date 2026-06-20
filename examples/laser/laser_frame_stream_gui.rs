@@ -152,7 +152,7 @@ fn model(app: &App) -> Model {
 
     // A user-interface to tweak the settings.
     let ctx = app.egui();
-    ctx.set_style(style());
+    ctx.set_global_style(style());
 
     Model {
         laser_api,
@@ -324,6 +324,11 @@ fn update(app: &App, model: &mut Model) {
     let ctx = app.egui();
 
     // The timeline area.
+    // `CentralPanel::show(ctx, ..)` was deprecated in egui 0.34 in favour of
+    // `show_inside(ui, ..)`, but bevy_egui doesn't yet expose a non-deprecated
+    // way to obtain a root `Ui` from its `Context`, so keep it (and silence the
+    // warning) until it does.
+    #[allow(deprecated)]
     egui::containers::CentralPanel::default().show(&ctx, |ui| {
         fn grid_min_col_width(ui: &egui::Ui, n_options: usize) -> f32 {
             let gap_space = ui.spacing().item_spacing.x * (n_options as f32 - 1.0);
