@@ -370,20 +370,6 @@ where
         self
     }
 
-    #[cfg(any(feature = "config_json", feature = "config_toml"))]
-    pub fn init_config<T>(mut self) -> Self
-    where
-        for<'de> T: serde::Deserialize<'de> + Asset,
-    {
-        self.app.add_plugins((
-            #[cfg(feature = "config_json")]
-            bevy_common_assets::json::JsonAssetPlugin::<T>::new(&[".json"]),
-            #[cfg(feature = "config_toml")]
-            bevy_common_assets::toml::TomlAssetPlugin::<T>::new(&[".toml"]),
-        ));
-        self
-    }
-
     pub fn add_plugin<P>(mut self, plugin: P) -> Self
     where
         P: Plugin,
