@@ -76,17 +76,13 @@ jobs:
   # order, then create the workspace `vX.Y.Z` tag and a GitHub Release. Runs
   # after CI passes on a push to `master`. Configured via `release-plz.toml`.
   #
-  # Gated on the `RELEASE_PLZ_ENABLED` repository variable so this machinery can
-  # land while the first release is deferred (e.g. until Bevy is stable): the
-  # job is skipped - and nothing is published - until the variable is set to
-  # `true` in the repository settings. Note that several crates have never been
-  # published, so enabling this will publish them at the current version
-  # regardless of a bump. See `guide/src/contributing/publishing-new-versions.md`.
+  # Several nannou crates were first published as `0.1.0` stubs, so this job
+  # publishes them at the current workspace version. See
+  # `guide/src/contributing/publishing-new-versions.md`.
   release-plz:
     if: >-
       github.event_name == 'push'
       && github.ref == 'refs/heads/master'
-      && vars.RELEASE_PLZ_ENABLED == 'true'
     needs: [verifications]
     permissions:
       contents: write
