@@ -30,7 +30,7 @@ use nannou::image;
 use nannou::image::DynamicImage;
 use nannou::prelude::*;
 use nannou::rand::rngs::SmallRng;
-use nannou::rand::{Rng, SeedableRng};
+use nannou::rand::{RngExt, SeedableRng};
 
 fn main() {
     nannou::app(model).run();

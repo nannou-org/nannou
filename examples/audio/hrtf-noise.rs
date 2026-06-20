@@ -16,7 +16,7 @@ use std::thread;
 use std::thread::JoinHandle;
 
 use nannou::prelude::*;
-use nannou::rand::{Rng, SeedableRng, rngs::SmallRng};
+use nannou::rand::{RngExt, SeedableRng, rngs::SmallRng};
 use nannou_audio as audio;
 use nannou_audio::Buffer;
 
