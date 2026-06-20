@@ -3126,6 +3126,9 @@ name = "fastrand"
 version = "2.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9f1f227452a390804cdb637b74a86990f2a7d7ba4b7d5693aac9b4dd6defd8d6"
+dependencies = [
+ "getrandom 0.3.4",
+]
 
 [[package]]
 name = "fax"
@@ -3243,6 +3246,18 @@ dependencies = [
  "futures-core",
  "futures-sink",
  "nanorand",
+ "spin 0.9.8",
+]
+
+[[package]]
+name = "flume"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5e139bc46ca777eb5efaf62df0ab8cc5fd400866427e56c68b22e414e53bd3be"
+dependencies = [
+ "fastrand",
+ "futures-core",
+ "futures-sink",
  "spin 0.9.8",
 ]
 
@@ -3510,9 +3525,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "899def5c37c4fd7b2664648c28120ecec138e4d395b459e5ca34f9cce2dd77fd"
 dependencies = [
  "cfg-if 1.0.4",
+ "js-sys",
  "libc",
  "r-efi 5.3.0",
  "wasip2",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -4967,7 +4984,7 @@ name = "nannou_video"
 version = "0.20.0"
 dependencies = [
  "bevy",
- "flume",
+ "flume 0.12.0",
  "gloo-events",
  "js-sys",
  "serde",
@@ -4985,7 +5002,7 @@ version = "0.20.0"
 dependencies = [
  "bevy",
  "console_error_panic_hook",
- "flume",
+ "flume 0.11.1",
  "getrandom 0.4.3",
  "nokhwa",
  "wasm-bindgen",
@@ -5131,7 +5148,7 @@ version = "0.10.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9d63f10b450319a0ace7aa8e0e25477d1fdb345313a97e220e886175539a1dbb"
 dependencies = [
- "flume",
+ "flume 0.11.1",
  "image",
  "nokhwa-bindings-linux",
  "nokhwa-bindings-macos",
@@ -5163,7 +5180,7 @@ dependencies = [
  "core-foundation 0.10.1",
  "core-media-sys",
  "core-video-sys",
- "flume",
+ "flume 0.11.1",
  "nokhwa-core",
  "objc",
  "once_cell",

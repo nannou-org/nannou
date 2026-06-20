@@ -46,7 +46,7 @@ dasp_sample = "0.11"
 ether-dream = "~0.2.5"
 evalexpr = "12"
 find_folder = "0.3"
-flume = "0.11"
+flume = "0.12"
 futures = "0.3"
 glam = { version = "0.32",  default-features = false }
 hound = "3.4"

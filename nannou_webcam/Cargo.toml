@@ -10,7 +10,10 @@ license.workspace = true
 default = []
 
 [dependencies]
-flume = { workspace = true }
+# Pinned to 0.11 to match `nokhwa`'s flume (it caps at 0.11), so nannou_webcam
+# resolves a single flume rather than 0.11 + the workspace's 0.12. Bump to the
+# workspace version once nokhwa moves to flume 0.12.
+flume = "0.11"
 bevy = { workspace = true, features = [
   "bevy_asset",
   "bevy_image",
