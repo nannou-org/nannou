@@ -1,8 +1,9 @@
 //! A minimal example to demonstrate the effect of HRTF (head-related transfer function) on a
 //! real-time stream of audio. HRTF is a popular approach to achieving binaural audio.
 //!
-//! The example uses generated white noise as the sound source. The source position can be rotated
-//! around the user by moving the mouse along the *x* axis.
+//! The example uses generated white noise as the sound source. The source position is controlled by
+//! moving the mouse: the *x* axis maps to left/right and the *y* axis maps to front/back, with the
+//! listener's head fixed at the centre of the window.
 //!
 //! The example will fail if the default cpal output device under the default host offers less than
 //! two channels.
@@ -241,10 +242,13 @@ fn view(app: &App, model: &Model) {
         .points(pt2(0.0, -30.0), pt2(0.0, 30.0));
     draw.text("HEAD").color(WHITE);
 
-    // Draw the source.
+    // Draw the source. Project the audio-space position back onto the screen to confirm the
+    // round-trip: the marker should sit directly under the cursor.
     let (x, y, z) = model.source_position.into();
+    let source_screen = pt2(x, z) * LISTENING_RADIUS;
+    draw.ellipse().radius(8.0).xy(source_screen).color(RED);
     let text = format!("Noise Source:\n[{:.2}, {:.2}, {:.2}]", x, y, z);
-    draw.text(&text).xy(app.mouse() + vec2(0.0, 20.0));
+    draw.text(&text).xy(source_screen + vec2(0.0, 20.0));
 }
 
 // Simple function for determining a gain based on the distance from the listener.

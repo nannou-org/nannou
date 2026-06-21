@@ -823,9 +823,11 @@ fn events<M, E>(
 
 // Each single-callback window-input driver has the same shape: for every message, look up the
 // target window's user functions, mark it the current view, and call the relevant callback
-// (optionally with a value derived from the event). Generate them from this macro.
+// (optionally with a value derived from the event, which may itself reference `app` - e.g. to
+// convert event coordinates into nannou's coordinate system). Generate them from this macro.
 macro_rules! window_event_driver {
-    ($name:ident, $msg:ty, $field:ident $(, |$evt:ident| $arg:expr)?) => {
+    // No derived value: the callback takes only `&App` and `&mut Model`.
+    ($name:ident, $msg:ty, $field:ident) => {
         fn $name<M>(
             app: App,
             mut events: MessageReader<$msg>,
@@ -838,11 +840,39 @@ macro_rules! window_event_driver {
                 if let Ok(user_fns) = user_fns.get(evt.window) {
                     if let Some(f) = user_fns.$field {
                         app.set_current_view(Some(evt.window));
-                        f(&app, &mut model $(, { let $evt = evt; $arg })?);
+                        f(&app, &mut model);
                     }
                 }
             }
         }
+    };
+    // Derived value with access to both `app` and the event.
+    ($name:ident, $msg:ty, $field:ident, |$app:ident, $evt:ident| $arg:expr) => {
+        fn $name<M>(
+            app: App,
+            mut events: MessageReader<$msg>,
+            user_fns: Query<&WindowUserFunctions<M>>,
+            mut model: ResMut<ModelHolder<M>>,
+        ) where
+            M: 'static + Send + Sync,
+        {
+            for evt in events.read() {
+                if let Ok(user_fns) = user_fns.get(evt.window) {
+                    if let Some(f) = user_fns.$field {
+                        app.set_current_view(Some(evt.window));
+                        f(&app, &mut model, {
+                            let $app = &app;
+                            let $evt = evt;
+                            $arg
+                        });
+                    }
+                }
+            }
+        }
+    };
+    // Derived value from the event alone.
+    ($name:ident, $msg:ty, $field:ident, |$evt:ident| $arg:expr) => {
+        window_event_driver!($name, $msg, $field, |_app, $evt| $arg);
     };
 }
 
@@ -908,8 +938,9 @@ fn received_char_events<M>(
     }
 }
 
-window_event_driver!(cursor_moved_events, CursorMoved, mouse_moved, |evt| evt
-    .position);
+window_event_driver!(cursor_moved_events, CursorMoved, mouse_moved, |app, evt| {
+    app.screen_to_points(evt.window, evt.position)
+});
 
 button_event_driver!(
     mouse_button_events,
@@ -926,7 +957,11 @@ window_event_driver!(window_moved_events, WindowMoved, moved, |evt| evt.position
 window_event_driver!(window_resized_events, WindowResized, resized, |evt| {
     Vec2::new(evt.width, evt.height)
 });
-window_event_driver!(touch_events, TouchInput, touch, |evt| *evt);
+window_event_driver!(touch_events, TouchInput, touch, |app, evt| {
+    let mut evt = *evt;
+    evt.position = app.screen_to_points(evt.window, evt.position);
+    evt
+});
 
 #[allow(clippy::type_complexity)]
 fn file_drop_events<M>(

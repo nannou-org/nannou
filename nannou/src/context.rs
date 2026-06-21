@@ -184,12 +184,20 @@ impl<'w, 's> App<'w, 's> {
     pub fn mouse(&self) -> Vec2 {
         self.with_window(self.window_id(), |window| {
             let screen_position = window.cursor_position().unwrap_or(Vec2::ZERO);
-            Vec2::new(
-                screen_position.x - window.width() / 2.0,
-                -(screen_position.y - window.height() / 2.0),
-            )
+            screen_to_points(screen_position, window.width(), window.height())
         })
         .expect("focused window entity is not a window")
+    }
+
+    /// Convert a raw screen position (top-left origin, y-down) within the given window into
+    /// nannou's coordinate system (centre origin, y-up), in points.
+    ///
+    /// Returns `Vec2::ZERO` if the window is no longer available.
+    pub(crate) fn screen_to_points(&self, window: Entity, screen_position: Vec2) -> Vec2 {
+        self.with_window(window, |window| {
+            screen_to_points(screen_position, window.width(), window.height())
+        })
+        .unwrap_or(Vec2::ZERO)
     }
 
     /// The [`Entity`] of the "current" window: the focused window, else the primary window, else a
@@ -728,4 +736,13 @@ impl LightBuilder<'_, '_, '_> {
                 .id()
         })
     }
+}
+
+/// Convert a raw screen position (top-left origin, y-down) within a window of the given dimensions
+/// into nannou's coordinate system (centre origin, y-up), in points.
+fn screen_to_points(screen_position: Vec2, width: f32, height: f32) -> Vec2 {
+    Vec2::new(
+        screen_position.x - width / 2.0,
+        -(screen_position.y - height / 2.0),
+    )
 }
