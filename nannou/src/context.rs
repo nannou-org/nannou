@@ -496,10 +496,15 @@ impl<'w, 's> App<'w, 's> {
         Window { app: self, entity }
     }
 
-    /// A handle for reading and updating the primary window, falling back to a primary window
-    /// created this call (but not yet spawned).
+    /// A handle for reading and updating the app's main window.
     ///
-    /// **Panics** if there is no primary window.
+    /// This is the window explicitly marked primary (see
+    /// [`Builder::primary`](crate::window::Builder::primary)) if there is one, including a
+    /// primary window created this call but not yet spawned. Otherwise it falls back to the
+    /// current window (see [`window_id`](Self::window_id)), so a single window is treated as
+    /// the main window without needing to be marked primary.
+    ///
+    /// **Panics** if there are no windows open.
     pub fn main_window(&self) -> Window<'_, 'w, 's> {
         let entity = self
             .primary_window
@@ -514,7 +519,8 @@ impl<'w, 's> App<'w, 's> {
                     .find(|(_, primary, _)| *primary)
                     .map(|(e, _, _)| *e)
             })
-            .expect("no primary window is open in the App");
+            // No window is explicitly primary: fall back to the current window.
+            .unwrap_or_else(|| self.window_id());
         Window { app: self, entity }
     }
 }
