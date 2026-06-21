@@ -151,7 +151,7 @@ impl Population {
         // a lower fitness = fewer entries to mating pool = less likely to be picked as a parent
         for i in 0..self.population.len() {
             let fitness = map_range(self.population[i].fitness, 0.0, max_fitness, 0.0, 1.0);
-            let n = fitness as usize * 100; // Arbitrary multiplier, we can also use monte carlo method
+            let n = (fitness * 100.0) as usize; // Arbitrary multiplier, we can also use monte carlo method
             for _ in 0..n {
                 self.mating_pool.push(self.population[i].clone());
             }
@@ -233,6 +233,11 @@ fn model(app: &App) -> Model {
 }
 
 fn update(_app: &App, model: &mut Model) {
+    // Once we've evolved the target phrase, stop evolving so we don't keep
+    // churning the (already solved) population on every reactive update.
+    if model.population.finished {
+        return;
+    }
     // Generate mating pool
     model.population.natural_selection();
     // Create next generation
