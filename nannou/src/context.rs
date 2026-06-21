@@ -57,7 +57,7 @@ use std::cell::{Cell, RefCell};
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
 
-use crate::app::find_project_path;
+use crate::app::{find_project_path, UpdateModeExt};
 use crate::camera::{CameraComponents, SetCamera};
 use crate::light::{LightComponents, SetLight};
 use crate::prelude::render::NannouCamera;
@@ -408,6 +408,15 @@ impl<'w, 's> App<'w, 's> {
     /// Set the update mode used while the window is focused.
     pub fn set_focused_update_mode(&self, mode: UpdateMode) {
         self.set_winit_settings(move |settings| settings.focused_mode = mode);
+    }
+
+    /// Drive updates at a fixed rate of `hz` ticks per second, while both focused and
+    /// unfocused. Analogous to Processing's `frameRate(fps)`.
+    ///
+    /// Convenience for `set_update_mode(UpdateMode::rate(hz))`. See
+    /// [`UpdateModeExt::rate`](crate::app::UpdateModeExt::rate) for the exact semantics.
+    pub fn set_update_rate(&self, hz: f64) {
+        self.set_update_mode(UpdateMode::rate(hz));
     }
 
     /// Queue a mutation of the [`WinitSettings`] resource.

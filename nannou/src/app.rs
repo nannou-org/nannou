@@ -1041,6 +1041,19 @@ pub trait UpdateModeExt {
     /// Stop driving updates from the frame loop, while still reacting to window events so
     /// the window can be closed, resized and redrawn.
     fn freeze() -> UpdateMode;
+    /// Drive updates at a fixed rate of `hz` ticks per second, like Processing's
+    /// `frameRate`.
+    ///
+    /// Device, user and window events are still received, but are buffered until the
+    /// next tick rather than waking the loop early, so the rate stays steady regardless
+    /// of input activity (input latency is at most one tick). The window remains
+    /// closable, resizable and redrawable because each tick runs the frame loop, and
+    /// thus bevy's `Last`-schedule window systems.
+    ///
+    /// A non-positive `hz` has no sensible tick interval and falls back to [`freeze`].
+    ///
+    /// [`freeze`]: UpdateModeExt::freeze
+    fn rate(hz: f64) -> UpdateMode;
 }
 
 impl UpdateModeExt for UpdateMode {
@@ -1062,6 +1075,20 @@ impl UpdateModeExt for UpdateMode {
             // `Last` schedule, which only runs when an update is triggered. Ignoring
             // window events here would leave a frozen window unable to close or redraw.
             react_to_window_events: true,
+        }
+    }
+
+    fn rate(hz: f64) -> UpdateMode {
+        if hz <= 0.0 {
+            return UpdateMode::freeze();
+        }
+        UpdateMode::Reactive {
+            wait: Duration::from_secs_f64(1.0 / hz),
+            // Buffer all events until the next tick so the rate stays steady; the finite
+            // wait keeps the frame loop (and window systems) running every tick.
+            react_to_device_events: false,
+            react_to_user_events: false,
+            react_to_window_events: false,
         }
     }
 }
