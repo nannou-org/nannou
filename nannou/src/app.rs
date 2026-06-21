@@ -1023,17 +1023,30 @@ where
     }
 }
 
+/// A practically-indefinite reactive wait used by [`UpdateModeExt::wait`] and
+/// [`UpdateModeExt::freeze`].
+///
+/// There is no `Instant::MAX` to wait until, and `Duration::MAX` can't be used here:
+/// `bevy_winit`'s reactive handler schedules the next wake-up as `Instant::now() + wait`
+/// via `Instant::checked_add`, which overflows (returns `None`) for `Duration::MAX`. When
+/// that happens `bevy_winit` silently skips setting the control flow and the app inherits
+/// whatever flow it was already in - benign when that is `Wait`, but a busy-loop if it had
+/// been polling. `u32::MAX` seconds (~136 years) is indistinguishable from "forever" for an
+/// interactive frame loop while staying well clear of overflow.
+const WAIT_INDEFINITELY: Duration = Duration::from_secs(u32::MAX as u64);
+
 pub trait UpdateModeExt {
-    /// Wait indefinitely for the next update.
+    /// Wait indefinitely for the next update, reacting to device, user and window events.
     fn wait() -> UpdateMode;
-    /// Freeze the application, sending no further updates.
+    /// Stop driving updates from the frame loop, while still reacting to window events so
+    /// the window can be closed, resized and redrawn.
     fn freeze() -> UpdateMode;
 }
 
 impl UpdateModeExt for UpdateMode {
     fn wait() -> UpdateMode {
         UpdateMode::Reactive {
-            wait: Duration::MAX,
+            wait: WAIT_INDEFINITELY,
             react_to_device_events: true,
             react_to_user_events: true,
             react_to_window_events: true,
@@ -1042,10 +1055,13 @@ impl UpdateModeExt for UpdateMode {
 
     fn freeze() -> UpdateMode {
         UpdateMode::Reactive {
-            wait: Duration::MAX,
+            wait: WAIT_INDEFINITELY,
             react_to_device_events: false,
             react_to_user_events: false,
-            react_to_window_events: false,
+            // Keep reacting to window events: bevy's window-close systems run in the
+            // `Last` schedule, which only runs when an update is triggered. Ignoring
+            // window events here would leave a frozen window unable to close or redraw.
+            react_to_window_events: true,
         }
     }
 }
