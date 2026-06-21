@@ -19,6 +19,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
+    app.set_update_rate(60.0);
     let angle1 = 0.0;
     let a_velocity1 = 0.01;
     let amplitude1 = 300.0;

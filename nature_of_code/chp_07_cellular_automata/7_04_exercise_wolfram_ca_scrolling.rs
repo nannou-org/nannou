@@ -147,6 +147,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
+    app.set_update_rate(60.0);
     let rect = geom::Rect::from_w_h(640.0, 800.0);
     app.new_window()
         .size(rect.w() as u32, rect.h() as u32)

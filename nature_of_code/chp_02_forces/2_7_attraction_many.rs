@@ -136,6 +136,7 @@ impl Mover {
 }
 
 fn model(app: &App) -> Model {
+    app.set_update_rate(60.0);
     let rect = geom::Rect::from_w_h(640.0, 360.0);
     let _window = app
         .new_window()

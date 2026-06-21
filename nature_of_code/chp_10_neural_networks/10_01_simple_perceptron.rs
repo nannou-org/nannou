@@ -88,6 +88,7 @@ fn f(x: f32) -> f32 {
 }
 
 fn model(app: &App) -> Model {
+    app.set_update_rate(60.0);
     app.new_window().size(640, 360).view(view).build();
 
     let x_min = -400.0;

@@ -51,7 +51,8 @@ impl Ball {
     }
 }
 
-fn model(_app: &App) -> Model {
+fn model(app: &App) -> Model {
+    app.set_update_rate(60.0);
     let ball = Ball::new();
     Model { ball }
 }

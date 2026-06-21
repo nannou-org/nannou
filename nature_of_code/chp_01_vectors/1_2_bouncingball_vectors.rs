@@ -15,6 +15,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
+    app.set_update_rate(60.0);
     let position = pt2(100.0, 100.0);
     let velocity = vec2(2.5, 5.0);
 

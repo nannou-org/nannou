@@ -60,6 +60,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
+    app.set_update_rate(60.0);
     app.new_window()
         .size(800, 200)
         .view(view)

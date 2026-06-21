@@ -59,6 +59,7 @@ impl Particle {
 }
 
 fn model(app: &App) -> Model {
+    app.set_update_rate(60.0);
     app.new_window().size(640, 360).view(view).build();
     let p = Particle::new(pt2(0.0, app.window_rect().top() - 20.0));
     Model { p }

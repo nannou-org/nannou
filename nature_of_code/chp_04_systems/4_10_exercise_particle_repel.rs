@@ -126,6 +126,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
+    app.set_update_rate(60.0);
     app.new_window().size(640, 360).view(view).build();
     let ps = ParticleSystem::new(pt2(0.0, 0.0));
     Model { ps }

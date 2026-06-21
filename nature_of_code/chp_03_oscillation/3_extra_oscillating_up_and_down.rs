@@ -14,6 +14,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
+    app.set_update_rate(60.0);
     app.new_window().size(400, 400).view(view).build();
     let angle = 0.0;
     Model { angle }

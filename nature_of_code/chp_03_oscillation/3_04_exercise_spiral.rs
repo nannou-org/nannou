@@ -15,6 +15,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
+    app.set_update_rate(60.0);
     let r = 0.0;
     let theta = 0.0;
 

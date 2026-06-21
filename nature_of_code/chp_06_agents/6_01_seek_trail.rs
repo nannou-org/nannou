@@ -71,6 +71,7 @@ impl Vehicle {
 }
 
 fn model(app: &App) -> Model {
+    app.set_update_rate(60.0);
     app.new_window().size(640, 360).view(view).build();
     let middle = app.window_rect().xy();
     let vehicle = Vehicle::new(middle.x, middle.y);

@@ -15,6 +15,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
+    app.set_update_rate(60.0);
     app.new_window().size(640, 360).view(view).build();
     let start_angle = 0.0;
     let angle_vel = 0.23;

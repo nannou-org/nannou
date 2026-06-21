@@ -217,6 +217,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
+    app.set_update_rate(60.0);
     app.new_window().size(640, 360).view(view).build();
     let target = "To be or not to be.".to_string();
     let pop_max = 150;
