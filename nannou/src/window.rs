@@ -15,7 +15,7 @@ use bevy::{
     input::mouse::MouseWheel,
     prelude::*,
     render::extract_component::ExtractComponent,
-    window::{PrimaryWindow, WindowLevel, WindowRef},
+    window::{PresentMode, PrimaryWindow, WindowLevel, WindowRef},
 };
 
 /// A context for building a window.
@@ -194,6 +194,13 @@ pub type UnfocusedFn<Model> = fn(&App<'_, '_>, &mut Model);
 /// A function for processing window closed events.
 pub type ClosedFn<Model> = fn(&App<'_, '_>, &mut Model);
 
+/// The default [`PresentMode`] used for nannou windows.
+///
+/// [`Mailbox`](PresentMode::Mailbox) ("fast vsync") gives low latency without
+/// tearing. Bevy falls back gracefully (`Mailbox` -> `Immediate` -> `Fifo`) on
+/// surfaces that don't support it, so it is safe everywhere.
+pub const DEFAULT_PRESENT_MODE: PresentMode = PresentMode::Mailbox;
+
 impl<'a, 'w, 's, M> Builder<'a, 'w, 's, M>
 where
     M: 'static,
@@ -202,7 +209,10 @@ where
     pub fn new(app: &'a App<'w, 's>) -> Self {
         Builder {
             app,
-            window: bevy::window::Window::default(),
+            window: bevy::window::Window {
+                present_mode: DEFAULT_PRESENT_MODE,
+                ..bevy::window::Window::default()
+            },
             camera: None,
             light: None,
             primary: false,
@@ -518,6 +528,24 @@ where
     pub fn size_pixels(self, width: u32, height: u32) -> Self {
         self.map_window(|mut w| {
             w.resolution.set_physical_resolution(width, height);
+            w
+        })
+    }
+
+    /// The [`PresentMode`] (a.k.a. swapchain / vsync mode) to use for this window.
+    ///
+    /// Defaults to [`DEFAULT_PRESENT_MODE`]. Bevy falls back gracefully on
+    /// surfaces that don't support the requested mode, so any variant is safe
+    /// to request.
+    ///
+    /// Note that non-blocking modes such as [`PresentMode::Mailbox`] and
+    /// [`PresentMode::Immediate`] remove the vblank backpressure that throttles
+    /// the update/draw loop, so they may increase CPU/GPU usage unless the frame
+    /// rate is otherwise limited. Use [`PresentMode::Fifo`] for traditional
+    /// "vsync on" behaviour.
+    pub fn present_mode(self, present_mode: PresentMode) -> Self {
+        self.map_window(|mut w| {
+            w.present_mode = present_mode;
             w
         })
     }
