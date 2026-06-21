@@ -61,9 +61,11 @@ fn view(app: &App, model: &Model) {
     draw.background().color(BLACK);
     let win = app.window_rect();
     let tile_count_x = map_range(app.mouse().x, win.left(), win.right(), 1.0, win.w() / 3.0);
-    let tile_count_y = map_range(app.mouse().x, win.top(), win.bottom(), 1.0, win.h() / 3.0);
-    let step_x = win.w() / tile_count_x;
-    let step_y = win.h() / tile_count_y;
+    let tile_count_y = map_range(app.mouse().y, win.top(), win.bottom(), 1.0, win.h() / 3.0);
+    // Floor the steps so an off-window mouse can't drive them to zero (or negative),
+    // which would panic `step_by`.
+    let step_x = (win.w() / tile_count_x).max(1.0);
+    let step_y = (win.h() / tile_count_y).max(1.0);
 
     for grid_y in (0..win.h() as usize).step_by(step_y as usize) {
         for grid_x in (0..win.w() as usize).step_by(step_x as usize) {

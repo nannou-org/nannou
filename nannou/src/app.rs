@@ -270,6 +270,7 @@ where
                         primary_window: Some(Window {
                             title: "Nannou".to_string(),
                             resolution: (1024.0, 768.0).into(),
+                            present_mode: crate::window::DEFAULT_PRESENT_MODE,
                             ..default()
                         }),
                         exit_condition: ExitCondition::OnAllClosed,
@@ -1022,17 +1023,43 @@ where
     }
 }
 
+/// A practically-indefinite reactive wait used by [`UpdateModeExt::wait`] and
+/// [`UpdateModeExt::freeze`].
+///
+/// There is no `Instant::MAX` to wait until, and `Duration::MAX` can't be used here:
+/// `bevy_winit`'s reactive handler schedules the next wake-up as `Instant::now() + wait`
+/// via `Instant::checked_add`, which overflows (returns `None`) for `Duration::MAX`. When
+/// that happens `bevy_winit` silently skips setting the control flow and the app inherits
+/// whatever flow it was already in - benign when that is `Wait`, but a busy-loop if it had
+/// been polling. `u32::MAX` seconds (~136 years) is indistinguishable from "forever" for an
+/// interactive frame loop while staying well clear of overflow.
+const WAIT_INDEFINITELY: Duration = Duration::from_secs(u32::MAX as u64);
+
 pub trait UpdateModeExt {
-    /// Wait indefinitely for the next update.
+    /// Wait indefinitely for the next update, reacting to device, user and window events.
     fn wait() -> UpdateMode;
-    /// Freeze the application, sending no further updates.
+    /// Stop driving updates from the frame loop, while still reacting to window events so
+    /// the window can be closed, resized and redrawn.
     fn freeze() -> UpdateMode;
+    /// Drive updates at a fixed rate of `hz` ticks per second, like Processing's
+    /// `frameRate`.
+    ///
+    /// Device, user and window events are still received, but are buffered until the
+    /// next tick rather than waking the loop early, so the rate stays steady regardless
+    /// of input activity (input latency is at most one tick). The window remains
+    /// closable, resizable and redrawable because each tick runs the frame loop, and
+    /// thus bevy's `Last`-schedule window systems.
+    ///
+    /// A non-positive `hz` has no sensible tick interval and falls back to [`freeze`].
+    ///
+    /// [`freeze`]: UpdateModeExt::freeze
+    fn rate(hz: f64) -> UpdateMode;
 }
 
 impl UpdateModeExt for UpdateMode {
     fn wait() -> UpdateMode {
         UpdateMode::Reactive {
-            wait: Duration::MAX,
+            wait: WAIT_INDEFINITELY,
             react_to_device_events: true,
             react_to_user_events: true,
             react_to_window_events: true,
@@ -1041,7 +1068,24 @@ impl UpdateModeExt for UpdateMode {
 
     fn freeze() -> UpdateMode {
         UpdateMode::Reactive {
-            wait: Duration::MAX,
+            wait: WAIT_INDEFINITELY,
+            react_to_device_events: false,
+            react_to_user_events: false,
+            // Keep reacting to window events: bevy's window-close systems run in the
+            // `Last` schedule, which only runs when an update is triggered. Ignoring
+            // window events here would leave a frozen window unable to close or redraw.
+            react_to_window_events: true,
+        }
+    }
+
+    fn rate(hz: f64) -> UpdateMode {
+        if hz <= 0.0 {
+            return UpdateMode::freeze();
+        }
+        UpdateMode::Reactive {
+            wait: Duration::from_secs_f64(1.0 / hz),
+            // Buffer all events until the next tick so the rate stays steady; the finite
+            // wait keeps the frame loop (and window systems) running every tick.
             react_to_device_events: false,
             react_to_user_events: false,
             react_to_window_events: false,

@@ -110,22 +110,23 @@ impl Mover {
     }
 
     fn display(&self, draw: &Draw) {
-        let heading = (self.velocity.angle() + PI / 2.0) * -1.0;
+        // The body is a circle, so it needs no rotation.
         draw.ellipse()
             .xy(self.position)
             .w_h(16.0, 16.0)
             .color(GREY)
             .stroke(BLACK)
-            .stroke_weight(2.0)
-            .rotate(heading);
+            .stroke_weight(2.0);
 
+        // A small square "nose" offset in the direction of travel.
+        let nose = self.position + self.velocity.normalize_or_zero() * 20.0;
         draw.rect()
-            .x_y(self.position.x + 20.0, self.position.y)
+            .xy(nose)
             .w_h(10.0, 10.0)
             .color(GREY)
             .stroke(BLACK)
             .stroke_weight(2.0)
-            .rotate(heading);
+            .rotate(self.velocity.angle());
     }
 }
 
@@ -135,6 +136,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
+    app.set_update_rate(60.0);
     app.new_window()
         .size(640, 360)
         .view(view)

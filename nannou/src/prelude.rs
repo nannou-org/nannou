@@ -21,7 +21,7 @@ pub use bevy::render::render_resource::*;
 pub use bevy::shader::*;
 pub use bevy::tasks::prelude::{AsyncComputeTaskPool, IoTaskPool, block_on};
 pub use bevy::tasks::{Task, futures_lite::future};
-pub use bevy::window::CursorOptions;
+pub use bevy::window::{CursorOptions, PresentMode};
 pub use bevy::winit::UpdateMode;
 
 #[cfg(feature = "egui")]

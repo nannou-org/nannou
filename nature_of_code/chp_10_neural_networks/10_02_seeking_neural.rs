@@ -124,7 +124,6 @@ impl Vehicle {
 
     fn display(&self, draw: &Draw) {
         // Draw a triangle rotated in the direction of velocity
-        // This calculation is wrong
         let theta = (self.velocity.angle() + PI / 2.0) * -1.0;
         let points = vec![
             pt2(0.0, -self.r * 2.0),
@@ -136,7 +135,7 @@ impl Vehicle {
             .points(points)
             .xy(self.position)
             .srgb(0.5, 0.5, 0.5)
-            .rotate(theta);
+            .rotate(-theta);
     }
 }
 
@@ -148,6 +147,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
+    app.set_update_rate(60.0);
     app.new_window()
         .size(640, 360)
         .view(view)

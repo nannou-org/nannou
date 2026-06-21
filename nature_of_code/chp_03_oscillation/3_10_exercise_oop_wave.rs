@@ -75,6 +75,7 @@ impl Wave {
 }
 
 fn model(app: &App) -> Model {
+    app.set_update_rate(60.0);
     app.new_window().size(750, 200).view(view).build();
     let wave0 = Wave::new(pt2(-325.0, 25.0), 100.0, 20.0, 500.0);
     let wave1 = Wave::new(pt2(-75.0, 0.0), 300.0, 40.0, 220.0);

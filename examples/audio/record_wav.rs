@@ -41,8 +41,26 @@ fn model(app: &App) -> Model {
     // Initialise the audio host so we can spawn an audio stream.
     let audio_host = audio::Host::new();
 
-    // Create a writer
-    let spec = get_spec(&audio_host);
+    // Record using the default input device's default config. We pin the stream to this device
+    // and config so the captured data matches the WAV header exactly (nannou would otherwise
+    // negotiate its own default sample rate and channel count).
+    let device = audio_host
+        .default_input_device()
+        .expect("no default input device available");
+    let config = device
+        .default_input_config()
+        .expect("failed to read the default input config");
+    let channels = config.channels();
+    let sample_rate = config.sample_rate();
+
+    // The stream captures samples as `f32` regardless of the device's native format, so the WAV
+    // is always written as 32-bit float.
+    let spec = hound::WavSpec {
+        channels,
+        sample_rate,
+        bits_per_sample: 32,
+        sample_format: hound::SampleFormat::Float,
+    };
     let writer = hound::WavWriter::create("recorded.wav", spec).unwrap();
     let capture_model = CaptureModel { writer };
 
@@ -52,6 +70,9 @@ fn model(app: &App) -> Model {
         let stream = audio_host
             .new_input_stream(capture_model)
             .capture(capture_fn)
+            .device(device)
+            .channels(channels as usize)
+            .sample_rate(sample_rate)
             .build()
             .unwrap();
 
@@ -116,26 +137,8 @@ fn view(app: &App, model: &Model) {
     let draw = app.draw();
     draw.background().color(DIM_GRAY);
 
-    if !model.is_paused && app.elapsed_frames() % 30 < 20 {
+    if !model.is_paused {
         let draw = app.draw();
         draw.ellipse().w_h(100.0, 100.0).color(RED);
-    }
-}
-
-// Get specification from default device format.
-fn get_spec(audio_host: &nannou_audio::Host) -> hound::WavSpec {
-    let default_input_config = audio_host
-        .default_input_device()
-        .unwrap()
-        .default_input_config()
-        .unwrap();
-
-    // The stream captures samples as `f32` (the default sample type) regardless of the
-    // device's native format, so the WAV is always written as 32-bit float.
-    hound::WavSpec {
-        channels: default_input_config.channels(),
-        sample_rate: default_input_config.sample_rate(),
-        bits_per_sample: 32,
-        sample_format: hound::SampleFormat::Float,
     }
 }

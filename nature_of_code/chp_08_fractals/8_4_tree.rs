@@ -18,6 +18,7 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
+    app.set_update_rate(60.0);
     let _window = app.new_window().size(300, 200).view(view).build();
     Model { theta: 0.0 }
 }
