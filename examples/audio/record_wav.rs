@@ -116,7 +116,7 @@ fn view(app: &App, model: &Model) {
     let draw = app.draw();
     draw.background().color(DIM_GRAY);
 
-    if !model.is_paused && app.elapsed_frames() % 30 < 20 {
+    if !model.is_paused {
         let draw = app.draw();
         draw.ellipse().w_h(100.0, 100.0).color(RED);
     }
