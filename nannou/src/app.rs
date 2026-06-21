@@ -107,6 +107,13 @@ pub struct Builder<M = (), E = WindowEvent> {
     render: Option<RenderFn<M>>,
     default_view: Option<View<M>>,
     exit: Option<ExitFn<M>>,
+    /// Whether render pipelines compile synchronously (the default). See
+    /// [`Builder::synchronous_pipeline_compilation`].
+    synchronous_pipeline_compilation: bool,
+    /// Whether the default Bevy plugins have been added to `app` yet. Plugin
+    /// setup is deferred until first needed so that `synchronous_pipeline_compilation`
+    /// can be configured beforehand.
+    plugins_initialized: bool,
 }
 
 /// A nannou `Sketch` builder.
@@ -215,42 +222,8 @@ where
     /// The Model that is returned by the function is the same model that will be passed to the
     /// given event and view functions.
     pub fn new(model: ModelFn<M>) -> Self {
-        let mut app = bevy::app::App::new();
-        app.add_plugins((
-            DefaultPlugins
-                .set(AssetPlugin {
-                    unapproved_path_mode: UnapprovedPathMode::Allow,
-                    ..default()
-                })
-                .set(WindowPlugin {
-                #[cfg(not(target_arch = "wasm32"))]
-                // Don't spawn a  window by default, we'll handle this ourselves
-                primary_window: None,
-                #[cfg(target_arch = "wasm32")]
-                // We create a default window on wasm to make sure that the render initialization
-                // has a canvas to attach to when configuring the surface.
-                primary_window: Some(Window {
-                    title: "Nannou".to_string(),
-                    resolution: (1024.0, 768.0).into(),
-                    ..default()
-                }),
-                exit_condition: ExitCondition::OnAllClosed,
-                ..default()
-            }),
-            #[cfg(feature = "egui")]
-            // Single-pass mode lets nannou users build egui UI imperatively from
-            // their `update`/`view` functions (the multi-pass default expects UI
-            // to be built within the dedicated `EguiPrimaryContextPass` schedule).
-            bevy_egui::EguiPlugin {
-                enable_multipass_for_primary_context: false,
-                ..bevy_egui::EguiPlugin::default()
-            },
-            NannouPlugin,
-        ))
-        .init_resource::<RunMode>();
-
         Builder {
-            app,
+            app: bevy::app::App::new(),
             model,
             config: Config::default(),
             event: None,
@@ -258,6 +231,8 @@ where
             render: None,
             default_view: None,
             exit: None,
+            synchronous_pipeline_compilation: true,
+            plugins_initialized: false,
         }
     }
 }
@@ -267,6 +242,80 @@ where
     M: 'static + Send + Sync,
     E: Message,
 {
+    /// Add Bevy's `DefaultPlugins` and nannou's own plugins to the app, if they
+    /// haven't been added already.
+    ///
+    /// Plugin setup is deferred out of [`Builder::new`] so that
+    /// [`Builder::synchronous_pipeline_compilation`] can be configured before the
+    /// plugins (and the value it controls) are built.
+    fn ensure_initialized(&mut self) {
+        if self.plugins_initialized {
+            return;
+        }
+        self.plugins_initialized = true;
+        self.app
+            .add_plugins((
+                DefaultPlugins
+                    .set(AssetPlugin {
+                        unapproved_path_mode: UnapprovedPathMode::Allow,
+                        ..default()
+                    })
+                    .set(WindowPlugin {
+                        #[cfg(not(target_arch = "wasm32"))]
+                        // Don't spawn a window by default, we'll handle this ourselves.
+                        primary_window: None,
+                        #[cfg(target_arch = "wasm32")]
+                        // We create a default window on wasm to make sure that the render
+                        // initialization has a canvas to attach to when configuring the surface.
+                        primary_window: Some(Window {
+                            title: "Nannou".to_string(),
+                            resolution: (1024.0, 768.0).into(),
+                            ..default()
+                        }),
+                        exit_condition: ExitCondition::OnAllClosed,
+                        ..default()
+                    })
+                    .set(bevy::render::RenderPlugin {
+                        synchronous_pipeline_compilation: self.synchronous_pipeline_compilation,
+                        ..default()
+                    }),
+                #[cfg(feature = "egui")]
+                // Single-pass mode lets nannou users build egui UI imperatively from
+                // their `update`/`view` functions (the multi-pass default expects UI
+                // to be built within the dedicated `EguiPrimaryContextPass` schedule).
+                bevy_egui::EguiPlugin {
+                    enable_multipass_for_primary_context: false,
+                    ..bevy_egui::EguiPlugin::default()
+                },
+                NannouPlugin,
+            ))
+            .init_resource::<RunMode>();
+    }
+
+    /// Set whether render pipelines are compiled synchronously (the default,
+    /// `true`) or asynchronously (`false`).
+    ///
+    /// nannou compiles pipelines synchronously by default so that the no-clear
+    /// "persistent canvas" works from the very first frame. With multisampling
+    /// enabled (the default), Bevy carries the previous frame's contents forward
+    /// each frame via an MSAA-writeback pass, whose pipeline would otherwise take
+    /// ~40 frames to compile asynchronously - and until it is ready nothing
+    /// persists, so anything drawn during that window (e.g. a sketch that composes
+    /// its image once on frame 0) is silently dropped.
+    ///
+    /// Pass `false` to opt back into Bevy's asynchronous pipeline compilation.
+    /// Call this before any other builder method that configures the underlying
+    /// app (e.g. `render`, `compute`, `run`).
+    pub fn synchronous_pipeline_compilation(mut self, synchronous: bool) -> Self {
+        assert!(
+            !self.plugins_initialized,
+            "`synchronous_pipeline_compilation` must be set before other builder \
+             methods that configure the app"
+        );
+        self.synchronous_pipeline_compilation = synchronous;
+        self
+    }
+
     /// The default `view` function that the app will call to allow you to present your Model to
     /// the surface of a window on your display.
     ///
@@ -298,6 +347,7 @@ where
         M: Send + Sync + Clone + 'static,
     {
         self.render = Some(render);
+        self.ensure_initialized();
         self.app.add_plugins(RenderPlugin::<M>::default());
         self
     }
@@ -317,6 +367,7 @@ where
     /// small single-window applications and examples.
     pub fn simple_window(mut self, view: ViewFn<M>) -> Self {
         self.default_view = Some(View::WithModel(view));
+        self.ensure_initialized();
         self.app.insert_resource(CreateDefaultWindow);
         self
     }
@@ -332,6 +383,7 @@ where
 
     /// Specify the behaviour of the application loop.
     pub fn set_run_mode(mut self, run_mode: RunMode) -> Self {
+        self.ensure_initialized();
         self.app.insert_resource(run_mode);
         self
     }
@@ -341,12 +393,14 @@ where
         SM: ShaderModel,
         SM::Data: PartialEq + Eq + Hash + Clone,
     {
+        self.ensure_initialized();
         self.app
             .add_plugins((NannouShaderModelPlugin::<SM>::default(),));
         self
     }
 
     pub fn compute<CM: Compute>(mut self, compute_fn: ComputeUpdateFn<M, CM>) -> Self {
+        self.ensure_initialized();
         let render_app = self.app.sub_app_mut(bevy::render::RenderApp);
         render_app.insert_resource(ComputeShaderHandle(CM::shader()));
         self.app
@@ -374,6 +428,7 @@ where
     where
         P: Plugin,
     {
+        self.ensure_initialized();
         self.app.add_plugins(plugin);
         self
     }
@@ -400,6 +455,7 @@ where
     /// thread as some platforms require that their application event loop and windows are
     /// initialised on the main thread.
     pub fn run(mut self) {
+        self.ensure_initialized();
         self.app
             .insert_resource(self.config.clone())
             .insert_resource(ModelFnRes(self.model))
@@ -472,6 +528,7 @@ impl Builder<()> {
     pub fn sketch(view: SketchViewFn) -> SketchBuilder {
         let mut builder = Builder::new(default_model);
         builder.default_view = Some(View::Sketch(view));
+        builder.ensure_initialized();
         builder.app.insert_resource(CreateDefaultWindow);
         SketchBuilder { builder }
     }
