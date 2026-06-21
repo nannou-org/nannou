@@ -57,7 +57,7 @@ use std::cell::{Cell, RefCell};
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
 
-use crate::app::{find_project_path, UpdateModeExt};
+use crate::app::{UpdateModeExt, find_project_path};
 use crate::camera::{CameraComponents, SetCamera};
 use crate::light::{LightComponents, SetLight};
 use crate::prelude::render::NannouCamera;
