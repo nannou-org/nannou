@@ -35,7 +35,7 @@
  */
 use nannou::prelude::*;
 use nannou::rand::rngs::StdRng;
-use nannou::rand::{Rng, SeedableRng};
+use nannou::rand::{RngExt, SeedableRng};
 
 fn main() {
     nannou::app(model).update(update).run();

@@ -11,10 +11,8 @@ git tag and a GitHub Release with auto-generated notes. You never need to run
 `cargo publish` by hand.
 
 > _**Maintainers**: publishing authenticates to crates.io with [Trusted
-> Publishing][trusted-publishing] (no stored API token) and is gated on the
-> `RELEASE_PLZ_ENABLED` repository variable - while it isn't set to `true`,
-> nothing is published. See [Trusted Publishing setup](#trusted-publishing-setup)
-> below for the one-time configuration._
+> Publishing][trusted-publishing] (no stored API token). See [Trusted Publishing
+> setup](#trusted-publishing-setup) below for the one-time configuration._
 
 If you would like to see a new version published, follow these steps.
 

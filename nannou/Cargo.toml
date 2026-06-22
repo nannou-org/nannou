@@ -44,6 +44,11 @@ bevy = { workspace = true, features = ["webgpu"] }
 tokio = { version = "1", features = ["rt"]}
 image = { workspace = true, features = [] }
 
+[dev-dependencies]
+# Only needed by `tests/shader_model_tests.rs`: the `#[shader_model]` expansion
+# references `::bevy::*` paths, so the test crate needs `bevy` in scope.
+bevy = { workspace = true }
+
 [features]
 default = [
     "jpeg",

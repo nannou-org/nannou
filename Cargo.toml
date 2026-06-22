@@ -27,19 +27,16 @@ license = "MIT OR Apache-2.0"
 # The single source of truth for the version of every published nannou crate.
 # All `nannou*` crates inherit this via `version.workspace = true` and are
 # released in lockstep. Bump it with `cargo run --bin set_version -- "X.Y.Z"`.
-version = "0.19.0"
+version = "0.20.0"
 homepage = "https://nannou.cc"
 repository = "https://github.com/nannou-org/nannou.git"
 
 [workspace.dependencies]
 audrey = "0.3"
-bevy = { version = "0.19.0-rc.2", default-features = false }
-# Pinned to the Bevy 0.19 release candidates while we wait for the stable
-# release. Tracked for a switch back to stable in #TODO (RC -> stable).
-bevy_egui = "0.40.0-rc.1"
+bevy = { version = "0.19.0", default-features = false }
+bevy_egui = "0.40.0"
 # `bevy-inspector-egui` has no Bevy 0.19 release yet. Re-enable it (and the
-# `inspector` feature + `inspector_ui` example) once one lands - see the
-# RC -> stable tracking issue (#TODO).
+# `inspector` feature + `inspector_ui` example) once one lands.
 #bevy-inspector-egui = "0.35"
 bitflags = "2.9"
 bytemuck = "1.22"
@@ -47,9 +44,9 @@ crossbeam-channel = "0.5"
 cpal = "0.18"
 dasp_sample = "0.11"
 ether-dream = "~0.2.5"
-evalexpr = "12"
+evalexpr = "13"
 find_folder = "0.3"
-flume = "0.11"
+flume = "0.12"
 futures = "0.3"
 glam = { version = "0.32",  default-features = false }
 hound = "3.4"
@@ -70,9 +67,9 @@ num-traits = {version = "0.2", default-features = false }
 parley = { version = "0.9.0", default-features = false, features = ["std"] }
 pennereq = "0.3"
 quote = "1"
-rand = {version = "0.9.0", default-features = false }
+rand = {version = "0.10", default-features = false }
 rayon = "1.10"
-ringbuf = "0.4"
+ringbuf = "0.5"
 rosc = "0.11"
 skrifa = "0.42"
 semver = "1"
@@ -82,20 +79,20 @@ serde_yaml = "0.9"
 # Must semver-unify with `bevy_text`'s `swash` dependency: glyph rasterisation
 # goes through bevy's `ScaleCx` resource, whose types must match.
 swash = { version = "0.2.6", default-features = false, features = ["std", "scale"] }
-syn = "1"
+syn = "2"
 thiserror = "2"
 tempfile = "3"
 tokio = "1"
-toml = "0.8"
-toml_edit = "0.22"
-usvg = "0.4"
+toml = "1"
+toml_edit = "0.25"
+usvg = "0.47"
 uuid = "1.8"
 video-rs = "0.11"
 walkdir = "2"
 wasm-bindgen = "0.2"
 web-sys = "0.3"
 console_error_panic_hook = "0.1"
-getrandom = { version = "0.3", default-features = false }
+getrandom = { version = "0.4", default-features = false }
 wgpu = "29"
 wikipedia = "0.5"
 
@@ -104,12 +101,12 @@ wikipedia = "0.5"
 # reference them via `{ workspace = true }`, so these version requirements live
 # in one place and `set_version` bumps them in lockstep with
 # `workspace.package.version`.
-nannou = { version = "0.19.0", path = "nannou" }
-nannou_audio = { version = "0.19.0", path = "nannou_audio" }
-nannou_core = { version = "0.19.0", path = "nannou_core" }
-nannou_derive = { version = "0.19.0", path = "nannou_derive" }
-nannou_draw = { version = "0.19.0", path = "nannou_draw" }
-nannou_laser = { version = "0.19.0", path = "nannou_laser" }
-nannou_osc = { version = "0.19.0", path = "nannou_osc" }
-nannou_video = { version = "0.19.0", path = "nannou_video" }
-nannou_wgpu = { version = "0.19.0", path = "nannou_wgpu" }
+nannou = { version = "0.20.0", path = "nannou" }
+nannou_audio = { version = "0.20.0", path = "nannou_audio" }
+nannou_core = { version = "0.20.0", path = "nannou_core" }
+nannou_derive = { version = "0.20.0", path = "nannou_derive" }
+nannou_draw = { version = "0.20.0", path = "nannou_draw" }
+nannou_laser = { version = "0.20.0", path = "nannou_laser" }
+nannou_osc = { version = "0.20.0", path = "nannou_osc" }
+nannou_video = { version = "0.20.0", path = "nannou_video" }
+nannou_wgpu = { version = "0.20.0", path = "nannou_wgpu" }
