@@ -106,7 +106,10 @@ jobs:
     - name: Run release-plz
       run: nix develop --command release-plz release
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # release-plz reads the git-forge token from GIT_TOKEN; it uses this to
+        # create the `v{version}` tag and GitHub Release. This is distinct from
+        # GITHUB_TOKEN, which the `release` subcommand does not consume.
+        GIT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         # Short-lived crates.io token minted via Trusted Publishing (OIDC);
         # release-plz passes it through to `cargo publish`. No crates.io secret
         # is stored. Requires each crate to have a trusted publisher configured
