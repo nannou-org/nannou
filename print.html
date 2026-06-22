@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-70ef8dd3.js";
+            window.path_to_searchindex_js = "searchindex-5c3bab5e.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-fb0cdf53.js"></script>
@@ -630,7 +630,7 @@ authors = ["mitchmindtree &lt;mitchell.nordine@gmail.com&gt;"]
 edition = "2024"
 
 [dependencies]
-nannou = "0.19"
+nannou = "0.20"
 </code></pre>
 <p>Note that there is a chance the nannou version above might be out of date.
 You can check the latest version by typing <code>cargo search nannou</code> in your
@@ -2610,10 +2610,8 @@ git tag and a GitHub Release with auto-generated notes. You never need to run
 <code>cargo publish</code> by hand.</p>
 <blockquote>
 <p><em><strong>Maintainers</strong>: publishing authenticates to crates.io with <a href="https://crates.io/docs/trusted-publishing">Trusted
-Publishing</a> (no stored API token) and is gated on the
-<code>RELEASE_PLZ_ENABLED</code> repository variable - while it isn’t set to <code>true</code>,
-nothing is published. See <a href="#trusted-publishing-setup">Trusted Publishing setup</a>
-below for the one-time configuration.</em></p>
+Publishing</a> (no stored API token). See <a href="#trusted-publishing-setup">Trusted Publishing
+setup</a> below for the one-time configuration.</em></p>
 </blockquote>
 <p>If you would like to see a new version published, follow these steps.</p>
 <h2 id="choose-a-version"><a class="header" href="#choose-a-version">Choose a Version</a></h2>
@@ -2766,7 +2764,7 @@ published.</p>
 <p>All notable changes to nannou should be documented below! From the most recent,
 back to the origins.</p>
 <hr>
-<h1 id="unreleased"><a class="header" href="#unreleased">Unreleased</a></h1>
+<h1 id="version-0200-2026-06-20"><a class="header" href="#version-0200-2026-06-20">Version 0.20.0 (2026-06-20)</a></h1>
 <h2 id="the-bevy-refactor"><a class="header" href="#the-bevy-refactor">The Bevy Refactor</a></h2>
 <p>This is a ground-up overhaul of nannou: it is now built on top of the
 <a href="https://bevyengine.org">Bevy</a> game engine. Rather than maintaining its own
