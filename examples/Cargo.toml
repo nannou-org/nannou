@@ -89,6 +89,10 @@ path = "compute/particle_sdf.rs"
 [[example]]
 name = "sdf_basic"
 path = "sdf/sdf_basic.rs"
+[[example]]
+name = "sdf_advanced"
+path = "sdf/sdf_advanced.rs"
+required-features = ["nannou/egui"]
 
 # Draw
 [[example]]

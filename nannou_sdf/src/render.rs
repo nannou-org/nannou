@@ -531,8 +531,13 @@ impl Default for SdfCamera {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct SdfLighting {
+    /// Direction the light travels in world space.
     pub direction: Vec3,
+    /// Linear RGB light tint. Values above 1.0 increase intensity.
+    pub color: Vec3,
+    /// Ambient contribution mixed into every shaded hit.
     pub ambient: f32,
+    /// Lambertian diffuse contribution.
     pub diffuse: f32,
 }
 
@@ -540,6 +545,7 @@ impl Default for SdfLighting {
     fn default() -> Self {
         Self {
             direction: Vec3::new(-0.4, -0.8, -0.6),
+            color: Vec3::ONE,
             ambient: 0.25,
             diffuse: 0.75,
         }
@@ -709,6 +715,7 @@ pub struct SdfRenderUniform {
     pub camera_right: Vec4,
     pub camera_up: Vec4,
     pub lighting_direction: Vec4,
+    pub lighting_color: Vec4,
     pub render_params: Vec4,
     pub grid: UVec4,
     pub atlas: UVec4,
@@ -746,7 +753,12 @@ pub(crate) fn shader_model(
                 .lighting
                 .direction
                 .normalize_or(Vec3::new(-0.4, -0.8, -0.6))
-                .extend(settings.lighting.ambient),
+                .extend(settings.lighting.ambient.clamp(0.0, 1.0)),
+            lighting_color: settings
+                .lighting
+                .color
+                .max(Vec3::ZERO)
+                .extend(settings.lighting.diffuse.max(0.0)),
             render_params: Vec4::new(
                 settings.max_steps as f32,
                 settings.hit_epsilon,

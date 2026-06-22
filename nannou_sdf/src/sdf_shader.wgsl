@@ -24,6 +24,7 @@ struct SdfRenderUniform {
     camera_right: vec4<f32>,
     camera_up: vec4<f32>,
     lighting_direction: vec4<f32>,
+    lighting_color: vec4<f32>,
     render_params: vec4<f32>,
     grid: vec4<u32>,
     atlas: vec4<u32>,
@@ -540,8 +541,10 @@ fn shade_hit(p: vec3<f32>, sample: CachedSample, hit_epsilon: f32) -> vec4<f32> 
     }
     let light_dir = normalize(-sdf.lighting_direction.xyz);
     let lambert = max(dot(n, light_dir), 0.0);
-    let ambient = sdf.lighting_direction.w;
-    let lit = sample.color.rgb * (ambient + lambert * (1.0 - ambient));
+    let ambient = clamp(sdf.lighting_direction.w, 0.0, 1.0);
+    let diffuse = max(sdf.lighting_color.w, 0.0);
+    let light_color = max(sdf.lighting_color.rgb, vec3<f32>(0.0));
+    let lit = sample.color.rgb * (ambient + lambert * diffuse) * light_color;
     return vec4<f32>(lit, sample.color.a);
 }
 
