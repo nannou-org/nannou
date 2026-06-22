@@ -113,7 +113,7 @@ struct PreparedSdfComputePass {
 struct SdfComputePipeline {
     layout_descriptor: BindGroupLayoutDescriptor,
     init: CachedComputePipelineId,
-    eval: [CachedComputePipelineId; 8],
+    eval: [CachedComputePipelineId; 9],
     finalize: CachedComputePipelineId,
 }
 
@@ -144,6 +144,7 @@ impl FromWorld for SdfComputePipeline {
             queue_compute_pipeline(pipeline_cache, &layout_descriptor, "sdf_eval_torus"),
             queue_compute_pipeline(pipeline_cache, &layout_descriptor, "sdf_eval_ellipsoid"),
             queue_compute_pipeline(pipeline_cache, &layout_descriptor, "sdf_eval_plane"),
+            queue_compute_pipeline(pipeline_cache, &layout_descriptor, "sdf_eval_terrain"),
         ];
         let finalize =
             queue_compute_pipeline(pipeline_cache, &layout_descriptor, "sdf_finalize_bricks");

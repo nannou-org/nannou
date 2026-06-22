@@ -30,6 +30,8 @@ pub use render::{
 pub(crate) const INVALID_ATLAS_SLOT: u32 = u32::MAX;
 const DEFAULT_ATLAS_CAPACITY: u32 = 4096;
 const MAX_AUTO_ATLAS_CAPACITY: u32 = 1 << 20;
+const TERRAIN_MAX_OCTAVES: u32 = 8;
+const TERRAIN_EPSILON: f32 = 0.000001;
 
 /// Standard Hermite smoothstep interpolation.
 pub fn smoothstep(edge0: f32, edge1: f32, x: f32) -> f32 {
@@ -602,6 +604,10 @@ pub fn ellipsoid() -> SdfEllipsoidBuilder {
 
 pub fn plane() -> SdfPlaneBuilder {
     SdfPlaneBuilder::new()
+}
+
+pub fn terrain() -> SdfTerrainBuilder {
+    SdfTerrainBuilder::new()
 }
 
 fn union(node: impl IntoSdfSceneNode) -> SdfSceneItem {
@@ -1421,6 +1427,113 @@ impl SdfPlaneBuilder {
 impl_common_builder_methods!(SdfPlaneBuilder);
 impl_primitive_traits!(SdfPlaneBuilder);
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct SdfTerrainBuilder {
+    builder: PrimitiveBuilder,
+}
+
+impl SdfTerrainBuilder {
+    fn new() -> Self {
+        Self {
+            builder: PrimitiveBuilder::new(SdfShape::terrain()),
+        }
+    }
+
+    pub fn params(mut self, params: SdfTerrainParams) -> Self {
+        if let SdfShape::Terrain { params: terrain } = &mut self.builder.edit.shape {
+            *terrain = params.clamped();
+        }
+        self
+    }
+
+    pub fn size(mut self, size: Vec2) -> Self {
+        if let SdfShape::Terrain { params } = &mut self.builder.edit.shape {
+            params.size = clamp_positive_vec2(size);
+        }
+        self
+    }
+
+    pub fn w_d(self, width: f32, depth: f32) -> Self {
+        self.size(Vec2::new(width, depth))
+    }
+
+    pub fn amplitude(mut self, amplitude: f32) -> Self {
+        if let SdfShape::Terrain { params } = &mut self.builder.edit.shape {
+            params.amplitude = clamp_non_negative(amplitude);
+        }
+        self
+    }
+
+    pub fn base_height(mut self, base_height: f32) -> Self {
+        if let SdfShape::Terrain { params } = &mut self.builder.edit.shape {
+            params.base_height = finite_or(base_height, 0.0);
+        }
+        self
+    }
+
+    pub fn floor_depth(mut self, floor_depth: f32) -> Self {
+        if let SdfShape::Terrain { params } = &mut self.builder.edit.shape {
+            params.floor_depth = clamp_non_negative(floor_depth);
+        }
+        self
+    }
+
+    pub fn seed(mut self, seed: u32) -> Self {
+        if let SdfShape::Terrain { params } = &mut self.builder.edit.shape {
+            params.seed = seed;
+        }
+        self
+    }
+
+    pub fn noise_scale(mut self, noise_scale: f32) -> Self {
+        if let SdfShape::Terrain { params } = &mut self.builder.edit.shape {
+            params.noise_scale = clamp_positive(noise_scale);
+        }
+        self
+    }
+
+    pub fn octaves(mut self, octaves: u32) -> Self {
+        if let SdfShape::Terrain { params } = &mut self.builder.edit.shape {
+            params.octaves = octaves.clamp(1, TERRAIN_MAX_OCTAVES);
+        }
+        self
+    }
+
+    pub fn lacunarity(mut self, lacunarity: f32) -> Self {
+        if let SdfShape::Terrain { params } = &mut self.builder.edit.shape {
+            params.lacunarity = clamp_positive(lacunarity);
+        }
+        self
+    }
+
+    pub fn gain(mut self, gain: f32) -> Self {
+        if let SdfShape::Terrain { params } = &mut self.builder.edit.shape {
+            params.gain = clamp_non_negative(gain);
+        }
+        self
+    }
+
+    pub fn ridge(mut self, ridge: f32) -> Self {
+        if let SdfShape::Terrain { params } = &mut self.builder.edit.shape {
+            params.ridge = finite_or(ridge, 0.0).clamp(0.0, 1.0);
+        }
+        self
+    }
+
+    pub fn noise_offset(mut self, noise_offset: Vec2) -> Self {
+        if let SdfShape::Terrain { params } = &mut self.builder.edit.shape {
+            params.noise_offset = Vec2::new(
+                finite_or(noise_offset.x, 0.0),
+                finite_or(noise_offset.y, 0.0),
+            );
+        }
+        self
+    }
+}
+
+impl_common_builder_methods!(SdfTerrainBuilder);
+impl_primitive_traits!(SdfTerrainBuilder);
+
 /// Direct mutator for a handle-layer edit.
 pub struct SdfHandleEdit<'a> {
     sdf: &'a Sdf,
@@ -1466,6 +1579,28 @@ impl<'a> SdfHandleEdit<'a> {
         self.update(|edit| {
             if let SdfShape::Cuboid { size, .. } = &mut edit.shape {
                 *size = Vec3::new(w, h, d);
+            }
+        });
+        self
+    }
+
+    pub fn terrain_params(self, params: SdfTerrainParams) -> Self {
+        self.update(|edit| {
+            if let SdfShape::Terrain {
+                params: terrain_params,
+            } = &mut edit.shape
+            {
+                *terrain_params = params.clamped();
+            }
+        });
+        self
+    }
+
+    pub fn terrain(self, f: impl FnOnce(&mut SdfTerrainParams)) -> Self {
+        self.update(|edit| {
+            if let SdfShape::Terrain { params } = &mut edit.shape {
+                f(params);
+                *params = params.clamped();
             }
         });
         self
@@ -1649,6 +1784,140 @@ impl Default for MaterialId {
     }
 }
 
+/// Procedural bounded heightfield terrain parameters.
+///
+/// The terrain occupies a finite local X/Z rectangle. Its top surface is
+/// `base_height + amplitude * fBm`, and its bottom is
+/// `base_height - amplitude - floor_depth`.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct SdfTerrainParams {
+    pub size: Vec2,
+    pub amplitude: f32,
+    pub base_height: f32,
+    pub floor_depth: f32,
+    pub seed: u32,
+    pub noise_scale: f32,
+    pub octaves: u32,
+    pub lacunarity: f32,
+    pub gain: f32,
+    pub ridge: f32,
+    pub noise_offset: Vec2,
+}
+
+impl Default for SdfTerrainParams {
+    fn default() -> Self {
+        Self {
+            size: Vec2::new(256.0, 256.0),
+            amplitude: 32.0,
+            base_height: 0.0,
+            floor_depth: 32.0,
+            seed: 0,
+            noise_scale: 0.02,
+            octaves: 5,
+            lacunarity: 2.0,
+            gain: 0.5,
+            ridge: 0.0,
+            noise_offset: Vec2::ZERO,
+        }
+    }
+}
+
+impl SdfTerrainParams {
+    pub fn clamped(self) -> Self {
+        Self {
+            size: clamp_positive_vec2(self.size),
+            amplitude: clamp_non_negative(self.amplitude),
+            base_height: finite_or(self.base_height, 0.0),
+            floor_depth: clamp_non_negative(self.floor_depth),
+            seed: self.seed,
+            noise_scale: clamp_positive(self.noise_scale),
+            octaves: self.octaves.clamp(1, TERRAIN_MAX_OCTAVES),
+            lacunarity: clamp_positive(self.lacunarity),
+            gain: clamp_non_negative(self.gain),
+            ridge: finite_or(self.ridge, 0.0).clamp(0.0, 1.0),
+            noise_offset: Vec2::new(
+                finite_or(self.noise_offset.x, 0.0),
+                finite_or(self.noise_offset.y, 0.0),
+            ),
+        }
+    }
+
+    fn height(self, xz: Vec2) -> f32 {
+        let params = self.clamped();
+        params.base_height + params.amplitude * terrain_fbm(params, xz)
+    }
+
+    fn bottom(self) -> f32 {
+        let params = self.clamped();
+        params.base_height - params.amplitude - params.floor_depth
+    }
+}
+
+fn finite_or(value: f32, fallback: f32) -> f32 {
+    if value.is_finite() { value } else { fallback }
+}
+
+fn clamp_positive(value: f32) -> f32 {
+    finite_or(value, TERRAIN_EPSILON).abs().max(TERRAIN_EPSILON)
+}
+
+fn clamp_positive_vec2(value: Vec2) -> Vec2 {
+    Vec2::new(clamp_positive(value.x), clamp_positive(value.y))
+}
+
+fn clamp_non_negative(value: f32) -> f32 {
+    finite_or(value, 0.0).max(0.0)
+}
+
+fn terrain_fbm(params: SdfTerrainParams, xz: Vec2) -> f32 {
+    let mut p = xz * params.noise_scale + params.noise_offset;
+    let mut amplitude = 1.0;
+    let mut amplitude_sum = 0.0;
+    let mut sum = 0.0;
+    for octave in 0..params.octaves {
+        let value = terrain_value_noise(p, params.seed.wrapping_add(octave));
+        let ridged = (1.0 - value.abs()) * 2.0 - 1.0;
+        sum += (value + (ridged - value) * params.ridge) * amplitude;
+        amplitude_sum += amplitude;
+        p *= params.lacunarity;
+        amplitude *= params.gain;
+    }
+    if amplitude_sum > 0.0 {
+        (sum / amplitude_sum).clamp(-1.0, 1.0)
+    } else {
+        0.0
+    }
+}
+
+fn terrain_value_noise(p: Vec2, seed: u32) -> f32 {
+    let cell = p.floor().as_ivec2();
+    let frac = p - cell.as_vec2();
+    let u = Vec2::new(
+        frac.x * frac.x * frac.x * (frac.x * (frac.x * 6.0 - 15.0) + 10.0),
+        frac.y * frac.y * frac.y * (frac.y * (frac.y * 6.0 - 15.0) + 10.0),
+    );
+    let a = terrain_hash_value(cell.x, cell.y, seed);
+    let b = terrain_hash_value(cell.x + 1, cell.y, seed);
+    let c = terrain_hash_value(cell.x, cell.y + 1, seed);
+    let d = terrain_hash_value(cell.x + 1, cell.y + 1, seed);
+    let x0 = a + (b - a) * u.x;
+    let x1 = c + (d - c) * u.x;
+    x0 + (x1 - x0) * u.y
+}
+
+fn terrain_hash_value(x: i32, y: i32, seed: u32) -> f32 {
+    let mut h = (x as u32).wrapping_mul(0x8da6_b343);
+    h ^= (y as u32).wrapping_mul(0xd816_3841);
+    h ^= seed.wrapping_mul(0xcb1a_b31f);
+    h ^= h >> 16;
+    h = h.wrapping_mul(0x7feb_352d);
+    h ^= h >> 15;
+    h = h.wrapping_mul(0x846c_a68b);
+    h ^= h >> 16;
+    let unit = (h & 0x00ff_ffff) as f32 / 16_777_215.0;
+    unit * 2.0 - 1.0
+}
+
 /// Stable identity for handle-layer edits.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub struct SdfHandle {
@@ -1704,6 +1973,9 @@ pub enum SdfShape {
     Plane {
         normal: Vec3,
         offset: f32,
+    },
+    Terrain {
+        params: SdfTerrainParams,
     },
 }
 
@@ -1767,6 +2039,12 @@ impl SdfShape {
         }
     }
 
+    fn terrain() -> Self {
+        Self::Terrain {
+            params: SdfTerrainParams::default(),
+        }
+    }
+
     fn kind_id(&self) -> u32 {
         match self {
             Self::Sphere { .. } => 0,
@@ -1777,6 +2055,7 @@ impl SdfShape {
             Self::Torus { .. } => 5,
             Self::Ellipsoid { .. } => 6,
             Self::Plane { .. } => 7,
+            Self::Terrain { .. } => 8,
         }
     }
 
@@ -1831,6 +2110,26 @@ impl SdfShape {
                 (p / r).length() - 1.0
             }
             Self::Plane { normal, offset } => p.dot(normal.normalize_or_zero()) - offset,
+            Self::Terrain { params } => {
+                let params = params.clamped();
+                let half = params.size * 0.5;
+                let xz = Vec2::new(p.x, p.z).clamp(-half, half);
+                let height = params.height(xz);
+                let bottom = params.bottom();
+                let distances = [
+                    p.x.abs() - half.x,
+                    p.z.abs() - half.y,
+                    p.y - height,
+                    bottom - p.y,
+                ];
+                let mut outside_sq = 0.0;
+                let mut max_distance = f32::NEG_INFINITY;
+                for distance in distances {
+                    outside_sq += distance.max(0.0) * distance.max(0.0);
+                    max_distance = max_distance.max(distance);
+                }
+                outside_sq.sqrt() + max_distance.min(0.0)
+            }
         }
     }
 
@@ -1874,6 +2173,14 @@ impl SdfShape {
             }
             Self::Ellipsoid { radii } => SdfBounds::from_min_max(-radii.abs(), radii.abs()),
             Self::Plane { .. } => scene_bounds,
+            Self::Terrain { params } => {
+                let params = params.clamped();
+                let half = params.size * 0.5;
+                SdfBounds::from_min_max(
+                    Vec3::new(-half.x, params.bottom(), -half.y),
+                    Vec3::new(half.x, params.base_height + params.amplitude, half.y),
+                )
+            }
         }
     }
 }
@@ -3273,19 +3580,25 @@ impl PackedSdfEdit {
     fn from_edit(edit: &SdfEdit) -> Self {
         let inv = edit.inverse_transform;
         let color = LinearRgba::from(edit.color).to_vec4();
-        let (params0, params1, params2) = match edit.shape {
-            SdfShape::Sphere { radius } => {
-                (Vec4::new(radius, 0.0, 0.0, 0.0), Vec4::ZERO, Vec4::ZERO)
-            }
+        let (params0, params1, params2, data_extra) = match edit.shape {
+            SdfShape::Sphere { radius } => (
+                Vec4::new(radius, 0.0, 0.0, 0.0),
+                Vec4::ZERO,
+                Vec4::ZERO,
+                UVec2::ZERO,
+            ),
             SdfShape::Cuboid { size, roundness } => {
-                (size.extend(roundness), Vec4::ZERO, Vec4::ZERO)
+                (size.extend(roundness), Vec4::ZERO, Vec4::ZERO, UVec2::ZERO)
             }
             SdfShape::Capsule { from, to, radius } => {
-                (from.extend(radius), to.extend(0.0), Vec4::ZERO)
+                (from.extend(radius), to.extend(0.0), Vec4::ZERO, UVec2::ZERO)
             }
-            SdfShape::Cylinder { radius, height } => {
-                (Vec4::new(radius, height, 0.0, 0.0), Vec4::ZERO, Vec4::ZERO)
-            }
+            SdfShape::Cylinder { radius, height } => (
+                Vec4::new(radius, height, 0.0, 0.0),
+                Vec4::ZERO,
+                Vec4::ZERO,
+                UVec2::ZERO,
+            ),
             SdfShape::Cone {
                 radius_top,
                 radius_bottom,
@@ -3294,6 +3607,7 @@ impl PackedSdfEdit {
                 Vec4::new(radius_top, radius_bottom, height, 0.0),
                 Vec4::ZERO,
                 Vec4::ZERO,
+                UVec2::ZERO,
             ),
             SdfShape::Torus {
                 major_radius,
@@ -3302,9 +3616,38 @@ impl PackedSdfEdit {
                 Vec4::new(major_radius, minor_radius, 0.0, 0.0),
                 Vec4::ZERO,
                 Vec4::ZERO,
+                UVec2::ZERO,
             ),
-            SdfShape::Ellipsoid { radii } => (radii.extend(0.0), Vec4::ZERO, Vec4::ZERO),
-            SdfShape::Plane { normal, offset } => (normal.extend(offset), Vec4::ZERO, Vec4::ZERO),
+            SdfShape::Ellipsoid { radii } => {
+                (radii.extend(0.0), Vec4::ZERO, Vec4::ZERO, UVec2::ZERO)
+            }
+            SdfShape::Plane { normal, offset } => {
+                (normal.extend(offset), Vec4::ZERO, Vec4::ZERO, UVec2::ZERO)
+            }
+            SdfShape::Terrain { params } => {
+                let params = params.clamped();
+                (
+                    Vec4::new(
+                        params.size.x,
+                        params.size.y,
+                        params.amplitude,
+                        params.base_height,
+                    ),
+                    Vec4::new(
+                        params.floor_depth,
+                        params.noise_scale,
+                        params.lacunarity,
+                        params.gain,
+                    ),
+                    Vec4::new(
+                        0.0,
+                        params.noise_offset.x,
+                        params.noise_offset.y,
+                        params.ridge,
+                    ),
+                    UVec2::new(params.octaves, params.seed),
+                )
+            }
         };
         Self {
             inv_x: inv.x_axis,
@@ -3320,7 +3663,12 @@ impl PackedSdfEdit {
                 params2.w,
             ),
             color,
-            data: UVec4::new(edit.shape.kind_id(), edit.material.0, 0, 0),
+            data: UVec4::new(
+                edit.shape.kind_id(),
+                edit.material.0,
+                data_extra.x,
+                data_extra.y,
+            ),
         }
     }
 }
@@ -3346,6 +3694,20 @@ mod tests {
 
     fn sdf() -> Sdf {
         Sdf::new(Entity::PLACEHOLDER)
+    }
+
+    fn assert_vec3_close(a: Vec3, b: Vec3) {
+        assert!(
+            (a - b).length() <= 0.0001,
+            "expected {a:?} to be close to {b:?}"
+        );
+    }
+
+    fn assert_vec4_close(a: Vec4, b: Vec4) {
+        assert!(
+            (a - b).length() <= 0.0001,
+            "expected {a:?} to be close to {b:?}"
+        );
     }
 
     #[test]
@@ -3489,6 +3851,174 @@ mod tests {
         assert_eq!(stages[0].data.z, SdfShape::sphere().kind_id());
         assert_eq!(stages[1].data.x, SdfOperation::SmoothSubtract(4.0).id());
         assert_eq!(stages[1].data.z, SdfShape::capsule().kind_id());
+    }
+
+    #[test]
+    fn terrain_samples_are_negative_below_surface_and_positive_above() {
+        let shape = SdfShape::Terrain {
+            params: SdfTerrainParams {
+                size: Vec2::splat(100.0),
+                amplitude: 0.0,
+                base_height: 10.0,
+                floor_depth: 5.0,
+                ..Default::default()
+            },
+        };
+
+        assert!(shape.distance(Vec3::new(0.0, 9.0, 0.0)) < 0.0);
+        assert!(shape.distance(Vec3::new(0.0, 11.0, 0.0)) > 0.0);
+        assert!(shape.distance(Vec3::new(0.0, 4.0, 0.0)) > 0.0);
+        assert!(shape.distance(Vec3::new(60.0, 8.0, 0.0)) > 0.0);
+    }
+
+    #[test]
+    fn terrain_noise_seed_and_offset_are_deterministic_but_distinct() {
+        let params = SdfTerrainParams {
+            size: Vec2::splat(128.0),
+            amplitude: 24.0,
+            seed: 17,
+            noise_scale: 0.037,
+            octaves: 5,
+            lacunarity: 2.13,
+            gain: 0.47,
+            ridge: 0.35,
+            ..Default::default()
+        }
+        .clamped();
+        let xz = Vec2::new(12.35, -42.75);
+        let height = params.height(xz);
+
+        let mut changed_seed = params;
+        changed_seed.seed = 91;
+        let mut changed_offset = params;
+        changed_offset.noise_offset = Vec2::new(13.5, -7.25);
+
+        assert_eq!(height, params.height(xz));
+        assert!((height - changed_seed.height(xz)).abs() > 0.0001);
+        assert!((height - changed_offset.height(xz)).abs() > 0.0001);
+    }
+
+    #[test]
+    fn terrain_bounds_include_max_height_and_bottom_floor() {
+        let params = SdfTerrainParams {
+            size: Vec2::new(80.0, 120.0),
+            amplitude: 12.0,
+            base_height: 3.0,
+            floor_depth: 5.0,
+            ..Default::default()
+        };
+        let shape = SdfShape::Terrain { params };
+        let local = shape.local_bounds(SdfBounds::default());
+        assert_vec3_close(local.min, Vec3::new(-40.0, -14.0, -60.0));
+        assert_vec3_close(local.max, Vec3::new(40.0, 15.0, 60.0));
+
+        let mut edit = SdfEdit::new(shape);
+        edit.transform.translation = Vec3::new(10.0, 2.0, -3.0);
+        edit.refresh_derived(SdfBounds::default());
+        assert_vec3_close(edit.world_aabb.min, Vec3::new(-30.0, -12.0, -63.0));
+        assert_vec3_close(edit.world_aabb.max, Vec3::new(50.0, 17.0, 57.0));
+    }
+
+    #[test]
+    fn keyed_terrain_parameter_edits_dirty_terrain_aabb() {
+        let sdf = sdf();
+        sdf.configure()
+            .bounds(SdfBounds::from_min_max(
+                Vec3::splat(-128.0),
+                Vec3::splat(128.0),
+            ))
+            .voxel_size(4.0)
+            .brick_size(8)
+            .narrow_band(2.0);
+        sdf.take_dirty_bricks();
+
+        sdf.scene(|scene| {
+            scene.union(
+                terrain()
+                    .key("terrain")
+                    .w_d(96.0, 96.0)
+                    .amplitude(10.0)
+                    .floor_depth(20.0),
+            );
+        });
+        assert!(sdf.dirty_brick_count() > 0);
+        sdf.take_dirty_bricks();
+
+        sdf.scene(|scene| {
+            scene.union(
+                terrain()
+                    .key("terrain")
+                    .w_d(96.0, 96.0)
+                    .amplitude(10.0)
+                    .floor_depth(20.0),
+            );
+        });
+        assert_eq!(sdf.dirty_brick_count(), 0);
+
+        sdf.scene(|scene| {
+            scene.union(
+                terrain()
+                    .key("terrain")
+                    .w_d(96.0, 96.0)
+                    .amplitude(18.0)
+                    .floor_depth(20.0),
+            );
+        });
+        assert!(sdf.dirty_brick_count() > 0);
+    }
+
+    #[test]
+    fn handle_terrain_parameter_edits_dirty_terrain_aabb() {
+        let sdf = sdf();
+        sdf.configure()
+            .bounds(SdfBounds::from_min_max(
+                Vec3::splat(-128.0),
+                Vec3::splat(128.0),
+            ))
+            .voxel_size(4.0)
+            .brick_size(8)
+            .narrow_band(2.0);
+        sdf.take_dirty_bricks();
+
+        let handle = sdf.insert(terrain().w_d(96.0, 96.0).amplitude(10.0).floor_depth(20.0));
+        assert!(sdf.dirty_brick_count() > 0);
+        sdf.take_dirty_bricks();
+
+        sdf.edit(handle).terrain(|params| {
+            params.amplitude = 18.0;
+            params.seed = 42;
+        });
+        assert!(sdf.dirty_brick_count() > 0);
+    }
+
+    #[test]
+    fn gpu_pack_emits_terrain_shape_kind_and_params() {
+        let sdf = sdf();
+        let params = SdfTerrainParams {
+            size: Vec2::new(90.0, 120.0),
+            amplitude: 14.0,
+            base_height: 5.0,
+            floor_depth: 9.0,
+            seed: 1234,
+            noise_scale: 0.031,
+            octaves: 6,
+            lacunarity: 2.4,
+            gain: 0.42,
+            ridge: 0.65,
+            noise_offset: Vec2::new(11.0, -7.0),
+        };
+        sdf.scene(|scene| {
+            scene.union(terrain().key("terrain").params(params).material(7u32));
+        });
+
+        let packed = sdf.with_scene(|scene| scene.pack_for_gpu());
+        assert_eq!(packed.stages.len(), 1);
+        assert_eq!(packed.stages[0].data.z, 8);
+        let edit = packed.edits[0];
+        assert_eq!(edit.data, UVec4::new(8, 7, 6, 1234));
+        assert_vec4_close(edit.params0, Vec4::new(90.0, 120.0, 14.0, 5.0));
+        assert_vec4_close(edit.params1, Vec4::new(9.0, 0.031, 2.4, 0.42));
+        assert_vec4_close(edit.params2, Vec4::new(1.0, 11.0, -7.0, 0.65));
     }
 
     #[test]

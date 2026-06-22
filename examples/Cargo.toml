@@ -93,6 +93,10 @@ path = "sdf/sdf_basic.rs"
 name = "sdf_advanced"
 path = "sdf/sdf_advanced.rs"
 required-features = ["nannou/egui"]
+[[example]]
+name = "sdf_terrain"
+path = "sdf/sdf_terrain.rs"
+required-features = ["nannou/egui"]
 
 # Draw
 [[example]]

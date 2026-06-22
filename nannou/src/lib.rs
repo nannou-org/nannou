@@ -52,9 +52,9 @@ pub mod sdf {
         SdfConfigBuilder, SdfCuboidBuilder, SdfCylinderBuilder, SdfDebugView, SdfDistanceFormat,
         SdfDrawExt, SdfEllipsoidBuilder, SdfExpression, SdfHandle, SdfKey, SdfLighting,
         SdfPlaneBuilder, SdfQuality, SdfRenderBuilder, SdfRenderSettings, SdfSample,
-        SdfSceneBuilder, SdfSphereBuilder, SdfStatus, SdfTorusBuilder, SdfUpdateBudget, SdfWarning,
-        capsule, cone, cuboid, ellipsoid, group, interpolate, plane, rounded_cuboid, smootherstep,
-        smoothstep, sphere, torus,
+        SdfSceneBuilder, SdfSphereBuilder, SdfStatus, SdfTerrainBuilder, SdfTerrainParams,
+        SdfTorusBuilder, SdfUpdateBudget, SdfWarning, capsule, cone, cuboid, ellipsoid, group,
+        interpolate, plane, rounded_cuboid, smootherstep, smoothstep, sphere, terrain, torus,
     };
 }
 pub mod time;

@@ -146,6 +146,77 @@ fn sd_ellipsoid(p: vec3<f32>, radii: vec3<f32>) -> f32 {
     return (length(p / r) - 1.0) * min(r.x, min(r.y, r.z));
 }
 
+fn terrain_hash_value(x: i32, y: i32, seed: u32) -> f32 {
+    var h = u32(x) * 0x8da6b343u;
+    h = h ^ (u32(y) * 0xd8163841u);
+    h = h ^ (seed * 0xcb1ab31fu);
+    h = h ^ (h >> 16u);
+    h = h * 0x7feb352du;
+    h = h ^ (h >> 15u);
+    h = h * 0x846ca68bu;
+    h = h ^ (h >> 16u);
+    let unit = f32(h & 0x00ffffffu) / 16777215.0;
+    return unit * 2.0 - 1.0;
+}
+
+fn terrain_value_noise(p: vec2<f32>, seed: u32) -> f32 {
+    let cell = vec2<i32>(floor(p));
+    let frac = p - vec2<f32>(cell);
+    let u = frac * frac * frac * (frac * (frac * 6.0 - vec2<f32>(15.0)) + vec2<f32>(10.0));
+    let a = terrain_hash_value(cell.x, cell.y, seed);
+    let b = terrain_hash_value(cell.x + 1, cell.y, seed);
+    let c = terrain_hash_value(cell.x, cell.y + 1, seed);
+    let d = terrain_hash_value(cell.x + 1, cell.y + 1, seed);
+    let x0 = mix(a, b, u.x);
+    let x1 = mix(c, d, u.x);
+    return mix(x0, x1, u.y);
+}
+
+fn terrain_fbm(xz: vec2<f32>, edit: PackedSdfEdit) -> f32 {
+    var p = xz * edit.params1.y + edit.params2.yz;
+    var amplitude = 1.0;
+    var amplitude_sum = 0.0;
+    var sum = 0.0;
+    var octave = 0u;
+    let octaves = clamp(edit.data.z, 1u, 8u);
+    loop {
+        if (octave >= octaves) {
+            break;
+        }
+        let value = terrain_value_noise(p, edit.data.w + octave);
+        let ridged = (1.0 - abs(value)) * 2.0 - 1.0;
+        sum = sum + mix(value, ridged, edit.params2.w) * amplitude;
+        amplitude_sum = amplitude_sum + amplitude;
+        p = p * edit.params1.z;
+        amplitude = amplitude * edit.params1.w;
+        octave = octave + 1u;
+    }
+    if (amplitude_sum > 0.0) {
+        return clamp(sum / amplitude_sum, -1.0, 1.0);
+    }
+    return 0.0;
+}
+
+fn sd_terrain(p: vec3<f32>, edit: PackedSdfEdit) -> f32 {
+    let size = max(abs(edit.params0.xy), vec2<f32>(0.000001));
+    let half_size = size * 0.5;
+    let xz = clamp(p.xz, -half_size, half_size);
+    let amplitude = max(edit.params0.z, 0.0);
+    let base_height = edit.params0.w;
+    let floor_depth = max(edit.params1.x, 0.0);
+    let height = base_height + amplitude * terrain_fbm(xz, edit);
+    let bottom = base_height - amplitude - floor_depth;
+    let d = vec4<f32>(
+        abs(p.x) - half_size.x,
+        abs(p.z) - half_size.y,
+        p.y - height,
+        bottom - p.y
+    );
+    let outside = max(d, vec4<f32>(0.0));
+    let inside = min(max(max(d.x, d.y), max(d.z, d.w)), 0.0);
+    return sqrt(dot(outside, outside)) + inside;
+}
+
 fn combine_distance(lhs: f32, lhs_color: vec4<f32>, rhs: f32, rhs_color: vec4<f32>, op: u32, weight: f32) -> CachedSample {
     if (lhs > FAR_DISTANCE * 0.5) {
         return CachedSample(rhs, rhs_color, 0u, true, 0u, vec3<i32>(0));
@@ -332,6 +403,18 @@ fn sdf_eval_plane(@builtin(global_invocation_id) id: vec3<u32>) {
     let local = transform_point(edit, p);
     let n = normalize(edit.params0.xyz);
     apply_stage(id.x, id.y, (dot(local, n) - edit.params0.w) * max(edit.params2.x, 0.000001), edit, stage);
+}
+
+@compute @workgroup_size(64)
+fn sdf_eval_terrain(@builtin(global_invocation_id) id: vec3<u32>) {
+    if (id.x >= sdf_compute.cache.atlas.y || id.y >= sdf_compute.counts.y) { return; }
+    let stage = compute_stages[sdf_compute.counts.x];
+    let edit = compute_edits[stage.data.y];
+    let dirty = compute_dirty_bricks[id.y];
+    if (dirty.data.x == INVALID_ATLAS_SLOT) { return; }
+    let p = compute_world_position(dirty.coord.xyz, compute_local_coord(id.x));
+    let local = transform_point(edit, p);
+    apply_stage(id.x, id.y, sd_terrain(local, edit) * max(edit.params2.x, 0.000001), edit, stage);
 }
 
 @compute @workgroup_size(1)
