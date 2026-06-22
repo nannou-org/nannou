@@ -1,4 +1,4 @@
-use nannou::prelude::*;
+use nannou::{prelude::*, sdf};
 use std::f32::consts::{PI, TAU};
 
 const WIDTH: u32 = 1280;
@@ -169,133 +169,155 @@ fn build_scene(app: &App, settings: &Settings) {
         .atlas_capacity(8192)
         .update_budget(SdfUpdateBudget::MaxBricksPerFrame(4096));
 
-    sdf.transaction(|s| {
-        s.rounded_cuboid()
+    let mut scene = sdf::scene();
+    scene.push_union(
+        sdf::rounded_cuboid()
             .key("foundation")
             .w_h_d(540.0, 24.0, 540.0)
             .roundness(12.0)
             .y(-112.0)
-            .color(metal_color);
+            .color(metal_color),
+    );
 
-        s.rounded_cuboid()
+    scene.push_smooth_union(
+        settings.smoothness,
+        sdf::rounded_cuboid()
             .key("lower_deck")
             .w_h_d(390.0, 18.0, 390.0)
             .roundness(10.0)
             .yaw(PI * 0.25)
             .y(-82.0)
-            .smooth_union(settings.smoothness)
-            .color(Color::srgb(0.11, 0.14, 0.18));
+            .color(Color::srgb(0.11, 0.14, 0.18)),
+    );
 
-        s.sphere()
+    scene.push_smooth_union(
+        settings.smoothness,
+        sdf::sphere()
             .key("reactor_core")
             .radius(settings.core_radius)
-            .smooth_union(settings.smoothness)
-            .color(core_color);
+            .color(core_color),
+    );
 
-        s.torus()
+    scene.push_smooth_union(
+        settings.smoothness * 0.7,
+        sdf::torus()
             .key("equator_ring")
             .major_radius(settings.core_radius * 1.38)
             .minor_radius(8.0 + heat * 10.0)
             .yaw(time * 0.24)
-            .smooth_union(settings.smoothness * 0.7)
-            .color(lamp_color);
+            .color(lamp_color),
+    );
 
-        s.torus()
+    scene.push_smooth_union(
+        settings.smoothness * 0.6,
+        sdf::torus()
             .key("vertical_ring_a")
             .major_radius(settings.core_radius * 1.18)
             .minor_radius(5.5 + heat * 5.0)
             .pitch(PI * 0.5)
             .roll(time * 0.18)
-            .smooth_union(settings.smoothness * 0.6)
-            .color(cool_color);
+            .color(cool_color),
+    );
 
-        s.torus()
+    scene.push_smooth_union(
+        settings.smoothness * 0.6,
+        sdf::torus()
             .key("vertical_ring_b")
             .major_radius(settings.core_radius * 1.08)
             .minor_radius(4.5 + heat * 4.0)
             .pitch(PI * 0.5)
             .yaw(PI * 0.5)
             .roll(-time * 0.16)
-            .smooth_union(settings.smoothness * 0.6)
-            .color(blackbody_color(settings.temperature + 600.0));
+            .color(blackbody_color(settings.temperature + 600.0)),
+    );
 
-        for (key, from, to) in [
-            (
-                "cut_x",
-                Vec3::new(-170.0, 0.0, 0.0),
-                Vec3::new(170.0, 0.0, 0.0),
-            ),
-            (
-                "cut_y",
-                Vec3::new(0.0, -145.0, 0.0),
-                Vec3::new(0.0, 145.0, 0.0),
-            ),
-            (
-                "cut_z",
-                Vec3::new(0.0, 0.0, -170.0),
-                Vec3::new(0.0, 0.0, 170.0),
-            ),
-        ] {
-            s.capsule()
+    for (key, from, to) in [
+        (
+            "cut_x",
+            Vec3::new(-170.0, 0.0, 0.0),
+            Vec3::new(170.0, 0.0, 0.0),
+        ),
+        (
+            "cut_y",
+            Vec3::new(0.0, -145.0, 0.0),
+            Vec3::new(0.0, 145.0, 0.0),
+        ),
+        (
+            "cut_z",
+            Vec3::new(0.0, 0.0, -170.0),
+            Vec3::new(0.0, 0.0, 170.0),
+        ),
+    ] {
+        scene.push_smooth_subtract(
+            settings.smoothness * 0.8,
+            sdf::capsule()
                 .key(key)
                 .from_to(from, to)
-                .radius(settings.tunnel_radius)
-                .smooth_subtract(settings.smoothness * 0.8);
-        }
+                .radius(settings.tunnel_radius),
+        );
+    }
 
-        for i in 0..10 {
-            let a = i as f32 / 10.0 * TAU + time * 0.12;
-            let inner = Vec3::new(a.cos() * 88.0, -54.0, a.sin() * 88.0);
-            let outer = Vec3::new(
-                a.cos() * 250.0,
-                -72.0 + (a * 3.0).sin() * 9.0,
-                a.sin() * 250.0,
-            );
-            s.capsule()
+    for i in 0..10 {
+        let a = i as f32 / 10.0 * TAU + time * 0.12;
+        let inner = Vec3::new(a.cos() * 88.0, -54.0, a.sin() * 88.0);
+        let outer = Vec3::new(
+            a.cos() * 250.0,
+            -72.0 + (a * 3.0).sin() * 9.0,
+            a.sin() * 250.0,
+        );
+        scene.push_smooth_union(
+            8.0,
+            sdf::capsule()
                 .key(format!("thermal_spoke_{i}"))
                 .from_to(inner, outer)
                 .radius(6.0 + heat * 3.0)
-                .smooth_union(8.0)
-                .color(blackbody_color(settings.temperature + i as f32 * 220.0));
-        }
+                .color(blackbody_color(settings.temperature + i as f32 * 220.0)),
+        );
+    }
 
-        for ix in -2..=2 {
-            for iz in -2..=2 {
-                if ix == 0 && iz == 0 {
-                    continue;
-                }
-                let x = ix as f32 * 106.0;
-                let z = iz as f32 * 106.0;
-                let distance = Vec2::new(ix as f32, iz as f32).length();
-                let height = settings.tower_height * (1.08 - distance * 0.08).max(0.45);
-                let y = -82.0 + height * 0.5;
-                let spin = time * (0.1 + distance * 0.03);
-                s.rounded_cuboid()
+    for ix in -2..=2 {
+        for iz in -2..=2 {
+            if ix == 0 && iz == 0 {
+                continue;
+            }
+            let x = ix as f32 * 106.0;
+            let z = iz as f32 * 106.0;
+            let distance = Vec2::new(ix as f32, iz as f32).length();
+            let height = settings.tower_height * (1.08 - distance * 0.08).max(0.45);
+            let y = -82.0 + height * 0.5;
+            let spin = time * (0.1 + distance * 0.03);
+            scene.push_union(
+                sdf::rounded_cuboid()
                     .key(format!("tower_{ix}_{iz}"))
                     .w_h_d(24.0, height, 24.0)
                     .roundness(5.0)
                     .xyz(Vec3::new(x, y, z))
                     .yaw(spin)
-                    .color(metal_color);
-                s.sphere()
+                    .color(metal_color),
+            );
+            scene.push_smooth_union(
+                settings.smoothness * 0.35,
+                sdf::sphere()
                     .key(format!("tower_lamp_{ix}_{iz}"))
                     .radius(12.0 + heat * 8.0)
                     .xyz(Vec3::new(x, y + height * 0.5 + 18.0, z))
-                    .smooth_union(settings.smoothness * 0.35)
                     .color(blackbody_color(
                         settings.temperature + 1800.0 - distance * 160.0,
-                    ));
-            }
+                    )),
+            );
         }
+    }
 
-        let satellites = settings.satellite_count.max(1);
-        for i in 0..satellites {
-            let phase = i as f32 / satellites as f32;
-            let a = phase * TAU + time * 0.38;
-            let lift = (phase * TAU * 3.0 + time).sin() * 42.0;
-            let radius = 155.0 + (phase * TAU * 5.0).sin() * 28.0;
-            let pos = Vec3::new(a.cos() * radius, 38.0 + lift, a.sin() * radius);
-            s.ellipsoid()
+    let satellites = settings.satellite_count.max(1);
+    for i in 0..satellites {
+        let phase = i as f32 / satellites as f32;
+        let a = phase * TAU + time * 0.38;
+        let lift = (phase * TAU * 3.0 + time).sin() * 42.0;
+        let radius = 155.0 + (phase * TAU * 5.0).sin() * 28.0;
+        let pos = Vec3::new(a.cos() * radius, 38.0 + lift, a.sin() * radius);
+        scene.push_smooth_union(
+            5.0,
+            sdf::ellipsoid()
                 .key(format!("satellite_{i}"))
                 .radii(Vec3::new(
                     11.0 + heat * 5.0,
@@ -304,12 +326,13 @@ fn build_scene(app: &App, settings: &Settings) {
                 ))
                 .xyz(pos)
                 .yaw(-a)
-                .smooth_union(5.0)
                 .color(blackbody_color(
                     settings.temperature + 2400.0 + phase * 900.0,
-                ));
-        }
-    });
+                )),
+        );
+    }
+
+    sdf.set_scene(scene);
 }
 
 fn view(app: &App, model: &Model) {

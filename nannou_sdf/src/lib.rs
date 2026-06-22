@@ -1,8 +1,7 @@
 //! Persistent 3D signed-distance-field scene support for nannou.
 //!
-//! The public API mirrors nannou's [`Draw`](nannou_draw::draw::Draw) builder style while keeping
-//! SDF scene state persistent so edits can be diffed and dirty regions can be updated
-//! incrementally.
+//! The public API builds explicit scene graph values while keeping SDF scene state persistent so
+//! edits can be diffed and dirty regions can be updated incrementally.
 
 mod render;
 
@@ -17,7 +16,6 @@ use bevy::{
 };
 use nannou_draw::render::NannouShaderModelPlugin;
 use std::{
-    cell::{Cell, RefCell},
     collections::{HashMap, HashSet},
     fmt,
     hash::{Hash, Hasher},
@@ -188,15 +186,18 @@ impl Sdf {
         SdfConfigBuilder { sdf: self }
     }
 
-    /// Record a transaction graph and replace the previous transaction layer with it.
-    pub fn transaction(&self, f: impl FnOnce(&SdfTransaction)) {
-        let transaction = SdfTransaction::new();
-        f(&transaction);
-        let graph = transaction.finish();
+    /// Replace the transient scene graph with an explicitly built scene.
+    ///
+    /// This is the canonical way to update animated SDF content: build a complete
+    /// [`SdfSceneBuilder`] value and submit it once per update. The scene diffs
+    /// this graph against the previous submitted graph and marks only changed
+    /// regions dirty.
+    pub fn set_scene(&self, scene: impl IntoSdfScene) {
+        let graph = scene.into_sdf_graph();
         self.scene
             .write()
             .expect("Sdf scene lock poisoned")
-            .replace_transaction_graph(graph);
+            .replace_scene_graph(graph);
     }
 
     /// Begin a persistent handle-layer sphere edit.
@@ -545,134 +546,304 @@ impl<'a> SdfConfigBuilder<'a> {
     }
 }
 
-/// A transaction recorder. Values built from it commit to the transaction on drop.
-pub struct SdfTransaction {
-    graph: RefCell<SdfGraph>,
-    next_call_order: Arc<Cell<u64>>,
+/// Start an owned SDF scene builder for transient scene content.
+pub fn scene() -> SdfSceneBuilder {
+    SdfSceneBuilder::new()
 }
 
-impl SdfTransaction {
-    fn new() -> Self {
-        Self {
-            graph: RefCell::new(SdfGraph::default()),
-            next_call_order: Arc::new(Cell::new(0)),
-        }
+/// Start an owned SDF group builder for nested CSG expressions.
+pub fn group() -> SdfSceneBuilder {
+    SdfSceneBuilder::new()
+}
+
+pub fn sphere() -> SdfBuilder<'static> {
+    SdfBuilder::detached(SdfShape::sphere())
+}
+
+pub fn cuboid() -> SdfBuilder<'static> {
+    SdfBuilder::detached(SdfShape::cuboid())
+}
+
+pub fn rounded_cuboid() -> SdfBuilder<'static> {
+    SdfBuilder::detached(SdfShape::rounded_cuboid())
+}
+
+pub fn capsule() -> SdfBuilder<'static> {
+    SdfBuilder::detached(SdfShape::capsule())
+}
+
+pub fn cylinder() -> SdfBuilder<'static> {
+    SdfBuilder::detached(SdfShape::cylinder())
+}
+
+pub fn cone() -> SdfBuilder<'static> {
+    SdfBuilder::detached(SdfShape::cone())
+}
+
+pub fn torus() -> SdfBuilder<'static> {
+    SdfBuilder::detached(SdfShape::torus())
+}
+
+pub fn ellipsoid() -> SdfBuilder<'static> {
+    SdfBuilder::detached(SdfShape::ellipsoid())
+}
+
+pub fn plane() -> SdfBuilder<'static> {
+    SdfBuilder::detached(SdfShape::plane())
+}
+
+pub fn union(node: impl IntoSdfSceneNode) -> SdfSceneItem {
+    SdfSceneItem::new(SdfOperation::Union, node)
+}
+
+pub fn subtract(node: impl IntoSdfSceneNode) -> SdfSceneItem {
+    SdfSceneItem::new(SdfOperation::Subtract, node)
+}
+
+pub fn intersect(node: impl IntoSdfSceneNode) -> SdfSceneItem {
+    SdfSceneItem::new(SdfOperation::Intersect, node)
+}
+
+pub fn smooth_union(k: f32, node: impl IntoSdfSceneNode) -> SdfSceneItem {
+    SdfSceneItem::new(SdfOperation::SmoothUnion(k), node)
+}
+
+pub fn smooth_subtract(k: f32, node: impl IntoSdfSceneNode) -> SdfSceneItem {
+    SdfSceneItem::new(SdfOperation::SmoothSubtract(k), node)
+}
+
+pub fn smooth_intersect(k: f32, node: impl IntoSdfSceneNode) -> SdfSceneItem {
+    SdfSceneItem::new(SdfOperation::SmoothIntersect(k), node)
+}
+
+pub fn blend(weight: f32, node: impl IntoSdfSceneNode) -> SdfSceneItem {
+    SdfSceneItem::new(SdfOperation::Blend(weight), node)
+}
+
+pub fn interpolate(
+    weight: f32,
+    from: impl IntoSdfSceneNode,
+    to: impl IntoSdfSceneNode,
+) -> SdfExpression {
+    SdfExpression {
+        node: SdfNode::Interpolate {
+            weight,
+            from: Box::new(single_node_graph(from.into_sdf_node())),
+            to: Box::new(single_node_graph(to.into_sdf_node())),
+        },
+    }
+}
+
+/// A value that can be submitted as the transient SDF scene.
+pub trait IntoSdfScene {
+    fn into_sdf_graph(self) -> SdfGraph;
+}
+
+/// A value that can appear on the right-hand side of an SDF operation.
+pub trait IntoSdfSceneNode {
+    fn into_sdf_node(self) -> SdfNode;
+}
+
+/// A transient scene graph builder.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SdfSceneBuilder {
+    graph: SdfGraph,
+}
+
+impl SdfSceneBuilder {
+    pub fn new() -> Self {
+        Self::default()
     }
 
-    fn child(&self) -> Self {
-        Self {
-            graph: RefCell::new(SdfGraph::default()),
-            next_call_order: self.next_call_order.clone(),
-        }
+    pub fn from_graph(graph: SdfGraph) -> Self {
+        Self { graph }
     }
 
-    fn finish(self) -> SdfGraph {
-        self.graph.into_inner()
+    pub fn add(mut self, item: SdfSceneItem) -> Self {
+        self.graph.items.push(item.into_graph_item());
+        self
     }
 
-    fn record_edit(&self, op: SdfOperation, mut edit: SdfEdit) {
-        if edit.key.is_none() {
-            let order = self.next_call_order.get();
-            self.next_call_order.set(order + 1);
-            edit.identity = SdfIdentity::CallOrder(order);
-        } else if let Some(key) = &edit.key {
-            edit.identity = SdfIdentity::Key(key.clone());
-        }
-        self.graph.borrow_mut().items.push(SdfGraphItem {
-            op,
-            node: SdfNode::Primitive(edit),
-        });
+    pub fn push(&mut self, item: SdfSceneItem) -> &mut Self {
+        self.graph.items.push(item.into_graph_item());
+        self
     }
 
-    fn record_node(&self, op: SdfOperation, node: SdfNode) {
+    pub fn union(self, node: impl IntoSdfSceneNode) -> Self {
+        self.add(union(node))
+    }
+
+    pub fn subtract(self, node: impl IntoSdfSceneNode) -> Self {
+        self.add(subtract(node))
+    }
+
+    pub fn intersect(self, node: impl IntoSdfSceneNode) -> Self {
+        self.add(intersect(node))
+    }
+
+    pub fn smooth_union(self, k: f32, node: impl IntoSdfSceneNode) -> Self {
+        self.add(smooth_union(k, node))
+    }
+
+    pub fn smooth_subtract(self, k: f32, node: impl IntoSdfSceneNode) -> Self {
+        self.add(smooth_subtract(k, node))
+    }
+
+    pub fn smooth_intersect(self, k: f32, node: impl IntoSdfSceneNode) -> Self {
+        self.add(smooth_intersect(k, node))
+    }
+
+    pub fn blend(self, weight: f32, node: impl IntoSdfSceneNode) -> Self {
+        self.add(blend(weight, node))
+    }
+
+    pub fn push_union(&mut self, node: impl IntoSdfSceneNode) -> &mut Self {
+        self.push(union(node))
+    }
+
+    pub fn push_subtract(&mut self, node: impl IntoSdfSceneNode) -> &mut Self {
+        self.push(subtract(node))
+    }
+
+    pub fn push_intersect(&mut self, node: impl IntoSdfSceneNode) -> &mut Self {
+        self.push(intersect(node))
+    }
+
+    pub fn push_smooth_union(&mut self, k: f32, node: impl IntoSdfSceneNode) -> &mut Self {
+        self.push(smooth_union(k, node))
+    }
+
+    pub fn push_smooth_subtract(&mut self, k: f32, node: impl IntoSdfSceneNode) -> &mut Self {
+        self.push(smooth_subtract(k, node))
+    }
+
+    pub fn push_smooth_intersect(&mut self, k: f32, node: impl IntoSdfSceneNode) -> &mut Self {
+        self.push(smooth_intersect(k, node))
+    }
+
+    pub fn push_blend(&mut self, weight: f32, node: impl IntoSdfSceneNode) -> &mut Self {
+        self.push(blend(weight, node))
+    }
+
+    pub fn build(self) -> SdfGraph {
         self.graph
-            .borrow_mut()
-            .items
-            .push(SdfGraphItem { op, node });
+    }
+}
+
+impl IntoSdfScene for SdfSceneBuilder {
+    fn into_sdf_graph(self) -> SdfGraph {
+        self.graph
+    }
+}
+
+impl IntoSdfScene for SdfGraph {
+    fn into_sdf_graph(self) -> SdfGraph {
+        self
+    }
+}
+
+impl IntoSdfScene for SdfSceneItem {
+    fn into_sdf_graph(self) -> SdfGraph {
+        SdfGraph {
+            items: vec![self.into_graph_item()],
+        }
+    }
+}
+
+impl IntoSdfSceneNode for SdfSceneBuilder {
+    fn into_sdf_node(self) -> SdfNode {
+        SdfNode::Group(self.graph)
+    }
+}
+
+impl IntoSdfSceneNode for SdfGraph {
+    fn into_sdf_node(self) -> SdfNode {
+        SdfNode::Group(self)
+    }
+}
+
+impl IntoSdfSceneNode for SdfNode {
+    fn into_sdf_node(self) -> SdfNode {
+        self
+    }
+}
+
+impl IntoSdfSceneNode for SdfSceneItem {
+    fn into_sdf_node(self) -> SdfNode {
+        SdfNode::Group(self.into_sdf_graph())
+    }
+}
+
+/// A graph node with the operation that combines it with the accumulated scene.
+#[derive(Clone, Debug, PartialEq)]
+pub struct SdfSceneItem {
+    pub op: SdfOperation,
+    pub node: SdfNode,
+}
+
+impl SdfSceneItem {
+    pub fn new(op: SdfOperation, node: impl IntoSdfSceneNode) -> Self {
+        Self {
+            op,
+            node: node.into_sdf_node(),
+        }
     }
 
-    pub fn sphere(&self) -> SdfBuilder<'_> {
-        SdfBuilder::transaction(self, SdfShape::sphere())
+    fn into_graph_item(self) -> SdfGraphItem {
+        SdfGraphItem {
+            op: self.op,
+            node: self.node,
+        }
     }
+}
 
-    pub fn cuboid(&self) -> SdfBuilder<'_> {
-        SdfBuilder::transaction(self, SdfShape::cuboid())
+/// An SDF expression node returned by helpers such as [`interpolate`].
+#[derive(Clone, Debug, PartialEq)]
+pub struct SdfExpression {
+    pub node: SdfNode,
+}
+
+impl IntoSdfSceneNode for SdfExpression {
+    fn into_sdf_node(self) -> SdfNode {
+        self.node
     }
+}
 
-    pub fn rounded_cuboid(&self) -> SdfBuilder<'_> {
-        SdfBuilder::transaction(self, SdfShape::rounded_cuboid())
+fn single_node_graph(node: SdfNode) -> SdfGraph {
+    SdfGraph {
+        items: vec![SdfGraphItem {
+            op: SdfOperation::Union,
+            node,
+        }],
     }
+}
 
-    pub fn capsule(&self) -> SdfBuilder<'_> {
-        SdfBuilder::transaction(self, SdfShape::capsule())
+fn assign_graph_identities(graph: &mut SdfGraph) {
+    let mut next_call_order = 0;
+    assign_graph_identities_inner(graph, &mut next_call_order);
+}
+
+fn assign_graph_identities_inner(graph: &mut SdfGraph, next_call_order: &mut u64) {
+    for item in &mut graph.items {
+        assign_node_identities(&mut item.node, next_call_order);
     }
+}
 
-    pub fn cylinder(&self) -> SdfBuilder<'_> {
-        SdfBuilder::transaction(self, SdfShape::cylinder())
-    }
-
-    pub fn cone(&self) -> SdfBuilder<'_> {
-        SdfBuilder::transaction(self, SdfShape::cone())
-    }
-
-    pub fn torus(&self) -> SdfBuilder<'_> {
-        SdfBuilder::transaction(self, SdfShape::torus())
-    }
-
-    pub fn ellipsoid(&self) -> SdfBuilder<'_> {
-        SdfBuilder::transaction(self, SdfShape::ellipsoid())
-    }
-
-    pub fn plane(&self) -> SdfBuilder<'_> {
-        SdfBuilder::transaction(self, SdfShape::plane())
-    }
-
-    pub fn union(&self, f: impl FnOnce(&SdfTransaction)) {
-        self.scoped(SdfOperation::Union, f);
-    }
-
-    pub fn subtract(&self, f: impl FnOnce(&SdfTransaction)) {
-        self.scoped(SdfOperation::Subtract, f);
-    }
-
-    pub fn intersect(&self, f: impl FnOnce(&SdfTransaction)) {
-        self.scoped(SdfOperation::Intersect, f);
-    }
-
-    pub fn smooth_union(&self, k: f32, f: impl FnOnce(&SdfTransaction)) {
-        self.scoped(SdfOperation::SmoothUnion(k), f);
-    }
-
-    pub fn smooth_subtract(&self, k: f32, f: impl FnOnce(&SdfTransaction)) {
-        self.scoped(SdfOperation::SmoothSubtract(k), f);
-    }
-
-    pub fn smooth_intersect(&self, k: f32, f: impl FnOnce(&SdfTransaction)) {
-        self.scoped(SdfOperation::SmoothIntersect(k), f);
-    }
-
-    pub fn blend(&self, weight: f32, f: impl FnOnce(&SdfTransaction)) {
-        self.scoped(SdfOperation::Blend(weight), f);
-    }
-
-    pub fn interpolate(&self, weight: f32, f: impl FnOnce(&SdfTransaction, &SdfTransaction)) {
-        let from = self.child();
-        let to = self.child();
-        f(&from, &to);
-        self.record_node(
-            SdfOperation::Union,
-            SdfNode::Interpolate {
-                weight,
-                from: Box::new(from.finish()),
-                to: Box::new(to.finish()),
-            },
-        );
-    }
-
-    fn scoped(&self, op: SdfOperation, f: impl FnOnce(&SdfTransaction)) {
-        let child = self.child();
-        f(&child);
-        self.record_node(op, SdfNode::Group(child.finish()));
+fn assign_node_identities(node: &mut SdfNode, next_call_order: &mut u64) {
+    match node {
+        SdfNode::Primitive(edit) => {
+            if let Some(key) = &edit.key {
+                edit.identity = SdfIdentity::Key(key.clone());
+            } else {
+                edit.identity = SdfIdentity::CallOrder(*next_call_order);
+                *next_call_order += 1;
+            }
+        }
+        SdfNode::Group(graph) => assign_graph_identities_inner(graph, next_call_order),
+        SdfNode::Interpolate { from, to, .. } => {
+            assign_graph_identities_inner(from, next_call_order);
+            assign_graph_identities_inner(to, next_call_order);
+        }
     }
 }
 
@@ -680,12 +851,11 @@ impl SdfTransaction {
 pub struct SdfBuilder<'a> {
     target: SdfBuilderTarget<'a>,
     edit: Option<SdfEdit>,
-    op: SdfOperation,
 }
 
 enum SdfBuilderTarget<'a> {
     Direct(&'a Sdf),
-    Transaction(&'a SdfTransaction),
+    Detached,
 }
 
 impl<'a> SdfBuilder<'a> {
@@ -693,15 +863,13 @@ impl<'a> SdfBuilder<'a> {
         Self {
             target: SdfBuilderTarget::Direct(sdf),
             edit: Some(SdfEdit::new(shape)),
-            op: SdfOperation::Union,
         }
     }
 
-    fn transaction(transaction: &'a SdfTransaction, shape: SdfShape) -> Self {
+    fn detached(shape: SdfShape) -> Self {
         Self {
-            target: SdfBuilderTarget::Transaction(transaction),
+            target: SdfBuilderTarget::Detached,
             edit: Some(SdfEdit::new(shape)),
-            op: SdfOperation::Union,
         }
     }
 
@@ -716,7 +884,7 @@ impl<'a> SdfBuilder<'a> {
                 .write()
                 .expect("Sdf scene lock poisoned")
                 .insert_handle_edit(edit),
-            SdfBuilderTarget::Transaction(_) => {
+            SdfBuilderTarget::Detached => {
                 edit.identity = SdfIdentity::Detached;
                 SdfHandle::INVALID
             }
@@ -968,46 +1136,6 @@ impl<'a> SdfBuilder<'a> {
         self
     }
 
-    pub fn union(mut self) -> Self {
-        self.op = SdfOperation::Union;
-        self
-    }
-
-    pub fn subtract(mut self) -> Self {
-        self.op = SdfOperation::Subtract;
-        self
-    }
-
-    pub fn intersect(mut self) -> Self {
-        self.op = SdfOperation::Intersect;
-        self
-    }
-
-    pub fn smooth_union(mut self, k: f32) -> Self {
-        self.op = SdfOperation::SmoothUnion(k);
-        self
-    }
-
-    pub fn smooth_subtract(mut self, k: f32) -> Self {
-        self.op = SdfOperation::SmoothSubtract(k);
-        self
-    }
-
-    pub fn smooth_intersect(mut self, k: f32) -> Self {
-        self.op = SdfOperation::SmoothIntersect(k);
-        self
-    }
-
-    pub fn blend(mut self, weight: f32) -> Self {
-        self.op = SdfOperation::Blend(weight);
-        self
-    }
-
-    pub fn interpolate(mut self, weight: f32) -> Self {
-        self.op = SdfOperation::Interpolate(weight);
-        self
-    }
-
     fn update(&mut self, f: impl FnOnce(&mut SdfEdit)) {
         if let Some(edit) = &mut self.edit {
             f(edit);
@@ -1016,6 +1144,10 @@ impl<'a> SdfBuilder<'a> {
 
     fn update_shape(&mut self, f: impl FnOnce(&mut SdfShape)) {
         self.update(|edit| f(&mut edit.shape));
+    }
+
+    fn into_edit(mut self) -> SdfEdit {
+        self.edit.take().expect("SDF builder already finished")
     }
 
     fn commit(&mut self) {
@@ -1029,9 +1161,7 @@ impl<'a> SdfBuilder<'a> {
                     .expect("Sdf scene lock poisoned")
                     .insert_handle_edit(edit);
             }
-            SdfBuilderTarget::Transaction(transaction) => {
-                transaction.record_edit(self.op, edit);
-            }
+            SdfBuilderTarget::Detached => {}
         }
     }
 }
@@ -1039,6 +1169,12 @@ impl<'a> SdfBuilder<'a> {
 impl Drop for SdfBuilder<'_> {
     fn drop(&mut self) {
         self.commit();
+    }
+}
+
+impl IntoSdfSceneNode for SdfBuilder<'_> {
+    fn into_sdf_node(self) -> SdfNode {
+        SdfNode::Primitive(self.into_edit())
     }
 }
 
@@ -2041,8 +2177,8 @@ impl DirtyBrickSet {
 #[derive(Clone, Debug)]
 pub struct SdfScene {
     pub config: SdfConfig,
-    pub transaction_graph: SdfGraph,
-    pub previous_transaction_graph: SdfGraph,
+    pub scene_graph: SdfGraph,
+    pub previous_scene_graph: SdfGraph,
     handle_slots: Vec<HandleSlot>,
     handle_order: Vec<SdfHandle>,
     pub dirty_bricks: DirtyBrickSet,
@@ -2056,8 +2192,8 @@ impl Default for SdfScene {
     fn default() -> Self {
         let mut scene = Self {
             config: SdfConfig::default(),
-            transaction_graph: SdfGraph::default(),
-            previous_transaction_graph: SdfGraph::default(),
+            scene_graph: SdfGraph::default(),
+            previous_scene_graph: SdfGraph::default(),
             handle_slots: Vec::new(),
             handle_order: Vec::new(),
             dirty_bricks: DirtyBrickSet::default(),
@@ -2086,8 +2222,8 @@ impl SdfScene {
         &self.config
     }
 
-    pub fn transaction_graph(&self) -> &SdfGraph {
-        &self.transaction_graph
+    pub fn scene_graph(&self) -> &SdfGraph {
+        &self.scene_graph
     }
 
     pub fn handle_graph(&self) -> SdfGraph {
@@ -2104,9 +2240,9 @@ impl SdfScene {
     }
 
     pub fn sample(&self, point: Vec3) -> Option<SdfSample> {
-        let tx = self.transaction_graph.sample(point);
+        let submitted = self.scene_graph.sample(point);
         let handles = self.handle_graph().sample(point);
-        match (tx, handles) {
+        match (submitted, handles) {
             (Some(a), Some(b)) => Some(combine_samples(a, b, SdfOperation::Union)),
             (Some(a), None) => Some(a),
             (None, Some(b)) => Some(b),
@@ -2123,16 +2259,17 @@ impl SdfScene {
         }
     }
 
-    fn replace_transaction_graph(&mut self, mut graph: SdfGraph) {
+    fn replace_scene_graph(&mut self, mut graph: SdfGraph) {
+        assign_graph_identities(&mut graph);
         refresh_graph(&mut graph, self.config.bounds);
-        let old = self.transaction_graph.clone();
-        self.diff_transaction_graphs(&old, &graph);
-        self.previous_transaction_graph = old;
-        self.transaction_graph = graph;
+        let old = self.scene_graph.clone();
+        self.diff_scene_graphs(&old, &graph);
+        self.previous_scene_graph = old;
+        self.scene_graph = graph;
         self.version += 1;
     }
 
-    fn diff_transaction_graphs(&mut self, old: &SdfGraph, new: &SdfGraph) {
+    fn diff_scene_graphs(&mut self, old: &SdfGraph, new: &SdfGraph) {
         let old_sig = graph_signature(old);
         let new_sig = graph_signature(new);
         if old_sig != new_sig {
@@ -2446,7 +2583,7 @@ impl SdfScene {
         let expansion =
             self.config.narrow_band + self.config.voxel_size * 2.0 + self.max_smooth_radius();
         let mut bounds = Vec::new();
-        collect_candidate_bounds(&self.transaction_graph, expansion, &mut bounds);
+        collect_candidate_bounds(&self.scene_graph, expansion, &mut bounds);
         let handle_graph = self.handle_graph();
         collect_candidate_bounds(&handle_graph, expansion, &mut bounds);
         bounds
@@ -2454,7 +2591,7 @@ impl SdfScene {
 
     fn max_smooth_radius(&self) -> f32 {
         let handle_graph = self.handle_graph();
-        self.transaction_graph
+        self.scene_graph
             .max_smooth_radius()
             .max(handle_graph.max_smooth_radius())
     }
@@ -2481,7 +2618,7 @@ impl SdfScene {
         let mut edits = Vec::new();
         let mut nodes = Vec::new();
         let mut stages = Vec::new();
-        pack_graph(&self.transaction_graph, &mut edits, &mut nodes, &mut stages);
+        pack_graph(&self.scene_graph, &mut edits, &mut nodes, &mut stages);
         pack_graph(&self.handle_graph(), &mut edits, &mut nodes, &mut stages);
 
         if edits.is_empty() {
@@ -2813,36 +2950,40 @@ mod tests {
     }
 
     #[test]
-    fn transactions_replace_keyed_edits() {
+    fn submitted_scenes_replace_keyed_edits() {
         let sdf = sdf();
         sdf.take_dirty_bricks();
-        sdf.transaction(|s| {
-            s.sphere().key("ball").radius(10.0);
-        });
+        sdf.set_scene(scene().union(sphere().key("ball").radius(10.0)));
         let first_dirty = sdf.dirty_brick_count();
         assert!(first_dirty > 0);
         sdf.take_dirty_bricks();
 
-        sdf.transaction(|s| {
-            s.sphere().key("ball").radius(10.0);
-        });
+        sdf.set_scene(scene().union(sphere().key("ball").radius(10.0)));
         assert_eq!(sdf.dirty_brick_count(), 0);
 
-        sdf.transaction(|s| {
-            s.sphere().key("ball").radius(20.0);
-        });
+        sdf.set_scene(scene().union(sphere().key("ball").radius(20.0)));
         assert!(sdf.dirty_brick_count() > 0);
     }
 
     #[test]
-    fn handle_edits_persist_outside_transactions() {
+    fn submitted_scenes_assign_call_order_identities() {
+        let sdf = sdf();
+        sdf.take_dirty_bricks();
+        sdf.set_scene(scene().union(sphere().radius(10.0)));
+        assert!(sdf.dirty_brick_count() > 0);
+        sdf.take_dirty_bricks();
+
+        sdf.set_scene(scene().union(sphere().radius(10.0)));
+        assert_eq!(sdf.dirty_brick_count(), 0);
+    }
+
+    #[test]
+    fn handle_edits_persist_outside_submitted_scenes() {
         let sdf = sdf();
         let handle = sdf.sphere().radius(5.0).finish_handle();
         assert!(sdf.sample(Vec3::ZERO).is_some());
 
-        sdf.transaction(|s| {
-            s.cuboid().key("box").w_h_d(2.0, 2.0, 2.0).x(20.0);
-        });
+        sdf.set_scene(scene().union(cuboid().key("box").w_h_d(2.0, 2.0, 2.0).x(20.0)));
         assert!(sdf.sample(Vec3::ZERO).unwrap().distance < 0.0);
 
         sdf.remove(handle);
@@ -2850,14 +2991,13 @@ mod tests {
     }
 
     #[test]
-    fn scoped_subtract_changes_field() {
+    fn explicit_subtract_changes_field() {
         let sdf = sdf();
-        sdf.transaction(|s| {
-            s.sphere().key("ball").radius(10.0);
-            s.subtract(|s| {
-                s.sphere().key("cut").radius(4.0);
-            });
-        });
+        sdf.set_scene(
+            scene()
+                .union(sphere().key("ball").radius(10.0))
+                .subtract(sphere().key("cut").radius(4.0)),
+        );
         let sample = sdf.sample(Vec3::ZERO).unwrap();
         assert!(sample.distance > 0.0);
     }
@@ -2865,15 +3005,17 @@ mod tests {
     #[test]
     fn gpu_pack_emits_ordered_shape_stages() {
         let sdf = sdf();
-        sdf.transaction(|s| {
-            s.sphere().key("ball").radius(10.0);
-            s.smooth_subtract(4.0, |s| {
-                s.capsule()
-                    .key("cut")
-                    .from_to(Vec3::new(-8.0, 0.0, 0.0), Vec3::new(8.0, 0.0, 0.0))
-                    .radius(2.0);
-            });
-        });
+        sdf.set_scene(
+            scene()
+                .union(sphere().key("ball").radius(10.0))
+                .smooth_subtract(
+                    4.0,
+                    capsule()
+                        .key("cut")
+                        .from_to(Vec3::new(-8.0, 0.0, 0.0), Vec3::new(8.0, 0.0, 0.0))
+                        .radius(2.0),
+                ),
+        );
 
         let stages = sdf.with_scene(|scene| scene.pack_for_gpu().stages);
         assert_eq!(stages.len(), 2);
@@ -2894,9 +3036,7 @@ mod tests {
             .voxel_size(1.0)
             .brick_size(8)
             .narrow_band(1.0);
-        sdf.transaction(|s| {
-            s.sphere().key("ball").radius(4.0);
-        });
+        sdf.set_scene(scene().union(sphere().key("ball").radius(4.0)));
 
         sdf.with_scene(|scene| {
             let candidate_bounds = scene.candidate_bounds();
@@ -2924,9 +3064,7 @@ mod tests {
             .voxel_size(1.0)
             .brick_size(8)
             .atlas_capacity(1);
-        sdf.transaction(|s| {
-            s.sphere().key("ball").radius(18.0);
-        });
+        sdf.set_scene(scene().union(sphere().key("ball").radius(18.0)));
 
         let mut scene = sdf.scene.write().expect("Sdf scene lock poisoned");
         let packed = scene.pack_for_gpu();

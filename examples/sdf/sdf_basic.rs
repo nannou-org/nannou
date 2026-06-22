@@ -1,4 +1,4 @@
-use nannou::prelude::*;
+use nannou::{prelude::*, sdf};
 
 fn main() {
     nannou::app(model).update(update).run();
@@ -25,25 +25,26 @@ fn update(app: &App, _model: &mut Model) {
         .voxel_size(1.0)
         .brick_size(8);
 
-    sdf.transaction(|s| {
-        s.sphere().key("planet").radius(80.0).color(STEEL_BLUE);
-
-        s.smooth_subtract(8.0, |s| {
-            s.capsule()
-                .key("tunnel")
-                .from_to(pt3(-130.0, 0.0, 0.0), pt3(130.0, 0.0, 0.0))
-                .radius(14.0 + 10.0 * t);
-        });
-
-        s.smooth_union(12.0, |s| {
-            s.torus()
-                .key("ring")
-                .major_radius(95.0)
-                .minor_radius(8.0)
-                .pitch(app.time() * 0.25)
-                .color(ORANGE_RED);
-        });
-    });
+    sdf.set_scene(
+        sdf::scene()
+            .union(sdf::sphere().key("planet").radius(80.0).color(STEEL_BLUE))
+            .smooth_subtract(
+                8.0,
+                sdf::capsule()
+                    .key("tunnel")
+                    .from_to(pt3(-130.0, 0.0, 0.0), pt3(130.0, 0.0, 0.0))
+                    .radius(14.0 + 10.0 * t),
+            )
+            .smooth_union(
+                12.0,
+                sdf::torus()
+                    .key("ring")
+                    .major_radius(95.0)
+                    .minor_radius(8.0)
+                    .pitch(app.time() * 0.25)
+                    .color(ORANGE_RED),
+            ),
+    );
 }
 
 fn view(app: &App, _model: &Model) {
