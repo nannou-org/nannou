@@ -14,6 +14,7 @@ members = [
     "nannou_core",
     "nannou_laser",
     "nannou_osc",
+    "nannou_sdf",
     "nannou_wgpu",
     "nature_of_code",
     "scripts/run_all_examples",
@@ -111,5 +112,6 @@ nannou_derive = { version = "0.19.0", path = "nannou_derive" }
 nannou_draw = { version = "0.19.0", path = "nannou_draw" }
 nannou_laser = { version = "0.19.0", path = "nannou_laser" }
 nannou_osc = { version = "0.19.0", path = "nannou_osc" }
+nannou_sdf = { version = "0.19.0", path = "nannou_sdf" }
 nannou_video = { version = "0.19.0", path = "nannou_video" }
 nannou_wgpu = { version = "0.19.0", path = "nannou_wgpu" }

@@ -42,6 +42,7 @@ pub use nannou_video::prelude::*;
 pub use crate::frame::*;
 pub use crate::render::RenderApp;
 pub use crate::render::compute::*;
+pub use crate::sdf::*;
 pub use crate::wgpu;
 pub use crate::wgpu::util::{BufferInitDescriptor, DeviceExt};
 pub use nannou_core::prelude::*;

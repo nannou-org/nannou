@@ -28,6 +28,7 @@ find_folder = { workspace = true }
 lyon = { workspace = true }
 nannou_core = { workspace = true, features = ["std"] }
 nannou_wgpu = { workspace = true, features = ["capturer"] }
+nannou_sdf = { workspace = true }
 noise = { workspace = true }
 pennereq = { workspace = true }
 serde = { workspace = true, features = ["derive"], optional = true }

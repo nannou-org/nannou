@@ -53,6 +53,7 @@ use bevy::{
 use nannou_core::geom;
 use nannou_draw::draw::Draw;
 use nannou_draw::text::font::SharedTextCx;
+use nannou_sdf::Sdf;
 use std::cell::{Cell, RefCell};
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
@@ -83,6 +84,7 @@ pub struct App<'w, 's> {
     windows: Query<'w, 's, (Entity, &'static bevy::window::Window)>,
     primary_window: Query<'w, 's, Entity, With<PrimaryWindow>>,
     draws: Query<'w, 's, &'static Draw>,
+    sdfs: Query<'w, 's, &'static Sdf>,
     monitors: Query<'w, 's, (Entity, &'static Monitor)>,
     primary_monitor: Query<'w, 's, Entity, With<PrimaryMonitor>>,
     camera_msaa: Query<'w, 's, (&'static RenderTarget, &'static Msaa), With<NannouCamera>>,
@@ -315,6 +317,25 @@ impl<'w, 's> App<'w, 's> {
         self.draws
             .get(window)
             .expect("no `Draw` found for the given window")
+            .clone()
+    }
+
+    /// The persistent 3D SDF scene for the window whose `view` is currently running, or the
+    /// focused window.
+    ///
+    /// **Panics** if there are no windows open.
+    pub fn sdf(&self) -> Sdf {
+        let window = self.current_view.get().unwrap_or_else(|| self.window_id());
+        self.sdf_for_window(window)
+    }
+
+    /// The persistent 3D SDF scene for the given window.
+    ///
+    /// **Panics** if the entity has no [`Sdf`] component (e.g. it is not a nannou window).
+    pub fn sdf_for_window(&self, window: Entity) -> Sdf {
+        self.sdfs
+            .get(window)
+            .expect("no `Sdf` found for the given window")
             .clone()
     }
 

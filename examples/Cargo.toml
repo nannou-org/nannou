@@ -86,6 +86,9 @@ path = "compute/particle_mouse.rs"
 [[example]]
 name = "particle_sdf"
 path = "compute/particle_sdf.rs"
+[[example]]
+name = "sdf_basic"
+path = "sdf/sdf_basic.rs"
 
 # Draw
 [[example]]

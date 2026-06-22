@@ -1,0 +1,22 @@
+[package]
+name = "nannou_sdf"
+version.workspace = true
+description = "Persistent 3D signed-distance-field scene API and renderer for nannou."
+readme = "README.md"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[dependencies]
+bevy = { workspace = true, default-features = false, features = [
+    "bevy_asset",
+    "bevy_color",
+    "bevy_log",
+    "bevy_pbr",
+    "bevy_render",
+    "bevy_window",
+] }
+nannou_core = { workspace = true }
+nannou_draw = { workspace = true }
+uuid = { workspace = true }

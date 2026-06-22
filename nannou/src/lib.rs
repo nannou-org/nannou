@@ -46,6 +46,9 @@ mod light;
 pub mod noise;
 pub mod prelude;
 mod render;
+pub mod sdf {
+    pub use nannou_sdf::*;
+}
 pub mod time;
 mod window;
 
@@ -56,6 +59,7 @@ pub struct NannouPlugin;
 impl Plugin for NannouPlugin {
     fn build(&self, app: &mut BevyApp) {
         app.add_plugins(nannou_draw::NannouDrawPlugin);
+        app.add_plugins(nannou_sdf::NannouSdfPlugin);
         // Keep each default window camera's orthographic z range sized to its window.
         app.add_systems(
             PostUpdate,
