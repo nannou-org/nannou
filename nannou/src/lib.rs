@@ -47,7 +47,15 @@ pub mod noise;
 pub mod prelude;
 mod render;
 pub mod sdf {
-    pub use nannou_sdf::*;
+    pub use nannou_sdf::{
+        MaterialId, NannouSdfPlugin, Sdf, SdfBounds, SdfCamera, SdfCapsuleBuilder, SdfConeBuilder,
+        SdfConfigBuilder, SdfCuboidBuilder, SdfCylinderBuilder, SdfDebugView, SdfDistanceFormat,
+        SdfDrawExt, SdfEllipsoidBuilder, SdfExpression, SdfHandle, SdfKey, SdfLighting,
+        SdfPlaneBuilder, SdfQuality, SdfRenderBuilder, SdfRenderSettings, SdfSample,
+        SdfSceneBuilder, SdfSphereBuilder, SdfStatus, SdfTorusBuilder, SdfUpdateBudget, SdfWarning,
+        capsule, cone, cuboid, ellipsoid, group, interpolate, plane, rounded_cuboid, smootherstep,
+        smoothstep, sphere, torus,
+    };
 }
 pub mod time;
 mod window;

@@ -186,13 +186,14 @@ impl Sdf {
         SdfConfigBuilder { sdf: self }
     }
 
-    /// Replace the transient scene graph with an explicitly built scene.
+    /// Rebuild the transient scene graph with a mutable scene builder.
     ///
-    /// This is the canonical way to update animated SDF content: build a complete
-    /// [`SdfSceneBuilder`] value and submit it once per update. The scene diffs
-    /// this graph against the previous submitted graph and marks only changed
-    /// regions dirty.
-    pub fn set_scene(&self, scene: impl IntoSdfScene) {
+    /// This is the canonical way to update animated SDF content. The submitted
+    /// scene is diffed against the previous scene and only changed regions are
+    /// marked dirty.
+    pub fn scene(&self, build: impl FnOnce(&mut SdfSceneBuilder)) {
+        let mut scene = SdfSceneBuilder::new();
+        build(&mut scene);
         let graph = scene.into_sdf_graph();
         self.scene
             .write()
@@ -200,49 +201,12 @@ impl Sdf {
             .replace_scene_graph(graph);
     }
 
-    /// Begin a persistent handle-layer sphere edit.
-    pub fn sphere(&self) -> SdfBuilder<'_> {
-        SdfBuilder::direct(self, SdfShape::sphere())
-    }
-
-    /// Begin a persistent handle-layer cuboid edit.
-    pub fn cuboid(&self) -> SdfBuilder<'_> {
-        SdfBuilder::direct(self, SdfShape::cuboid())
-    }
-
-    /// Begin a persistent handle-layer rounded cuboid edit.
-    pub fn rounded_cuboid(&self) -> SdfBuilder<'_> {
-        SdfBuilder::direct(self, SdfShape::rounded_cuboid())
-    }
-
-    /// Begin a persistent handle-layer capsule edit.
-    pub fn capsule(&self) -> SdfBuilder<'_> {
-        SdfBuilder::direct(self, SdfShape::capsule())
-    }
-
-    /// Begin a persistent handle-layer cylinder edit.
-    pub fn cylinder(&self) -> SdfBuilder<'_> {
-        SdfBuilder::direct(self, SdfShape::cylinder())
-    }
-
-    /// Begin a persistent handle-layer cone edit.
-    pub fn cone(&self) -> SdfBuilder<'_> {
-        SdfBuilder::direct(self, SdfShape::cone())
-    }
-
-    /// Begin a persistent handle-layer torus edit.
-    pub fn torus(&self) -> SdfBuilder<'_> {
-        SdfBuilder::direct(self, SdfShape::torus())
-    }
-
-    /// Begin a persistent handle-layer ellipsoid edit.
-    pub fn ellipsoid(&self) -> SdfBuilder<'_> {
-        SdfBuilder::direct(self, SdfShape::ellipsoid())
-    }
-
-    /// Begin a persistent handle-layer plane edit.
-    pub fn plane(&self) -> SdfBuilder<'_> {
-        SdfBuilder::direct(self, SdfShape::plane())
+    /// Insert a persistent handle-layer primitive and return its stable handle.
+    pub fn insert(&self, primitive: impl IntoSdfPrimitive) -> SdfHandle {
+        self.scene
+            .write()
+            .expect("Sdf scene lock poisoned")
+            .insert_handle_edit(primitive.into_sdf_edit())
     }
 
     /// Mutate an existing handle-layer edit. Invalid handles become no-ops.
@@ -267,13 +231,15 @@ impl Sdf {
     }
 
     /// Run a read-only closure against the current scene state.
-    pub fn with_scene<R>(&self, f: impl FnOnce(&SdfScene) -> R) -> R {
+    #[cfg(test)]
+    fn with_scene<R>(&self, f: impl FnOnce(&SdfScene) -> R) -> R {
         let scene = self.scene.read().expect("Sdf scene lock poisoned");
         f(&scene)
     }
 
     /// The number of dirty logical bricks currently tracked.
-    pub fn dirty_brick_count(&self) -> usize {
+    #[cfg(test)]
+    fn dirty_brick_count(&self) -> usize {
         self.scene
             .read()
             .expect("Sdf scene lock poisoned")
@@ -281,7 +247,8 @@ impl Sdf {
     }
 
     /// Drain the dirty brick set, expanding a full invalidation into explicit brick coordinates.
-    pub fn take_dirty_bricks(&self) -> Vec<SdfBrick> {
+    #[cfg(test)]
+    fn take_dirty_bricks(&self) -> Vec<SdfBrick> {
         self.scene
             .write()
             .expect("Sdf scene lock poisoned")
@@ -293,6 +260,14 @@ impl Sdf {
         self.scene.read().expect("Sdf scene lock poisoned").status()
     }
 
+    /// Recoverable issues detected in the current SDF scene.
+    pub fn validate(&self) -> Vec<SdfWarning> {
+        self.scene
+            .read()
+            .expect("Sdf scene lock poisoned")
+            .warnings()
+    }
+
     pub(crate) fn shader_model(&self, settings: SdfRenderSettings) -> SdfShaderModel {
         let scene = self.scene.read().expect("Sdf scene lock poisoned");
         let gpu = self.gpu.read().expect("Sdf gpu lock poisoned");
@@ -300,27 +275,46 @@ impl Sdf {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct SdfStatus {
     pub dirty_bricks: usize,
     pub resident_bricks: usize,
     pub atlas_capacity: u32,
     pub atlas_full: bool,
+    pub warnings: Vec<SdfWarning>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum SdfWarning {
+    MissingKeys {
+        count: usize,
+    },
+    ShapesOutsideBounds {
+        count: usize,
+    },
+    DirtyBricksExceedBudget {
+        dirty_bricks: usize,
+        max_bricks_per_frame: u32,
+    },
+    AtlasFull {
+        resident_bricks: usize,
+        atlas_capacity: u32,
+    },
 }
 
 /// GPU buffer handles derived from the CPU scene.
 #[derive(Clone, Debug, Default)]
-pub struct SdfGpuHandles {
-    pub edits: Handle<ShaderBuffer>,
-    pub nodes: Handle<ShaderBuffer>,
-    pub stages: Handle<ShaderBuffer>,
-    pub dirty_bricks: Handle<ShaderBuffer>,
-    pub brick_map: Handle<ShaderBuffer>,
-    pub brick_meta: Handle<ShaderBuffer>,
-    pub distance_atlas: Handle<ShaderBuffer>,
-    pub color_atlas: Handle<ShaderBuffer>,
-    pub material_atlas: Handle<ShaderBuffer>,
-    pub compute: SdfGpuComputeState,
+pub(crate) struct SdfGpuHandles {
+    pub(crate) edits: Handle<ShaderBuffer>,
+    pub(crate) nodes: Handle<ShaderBuffer>,
+    pub(crate) stages: Handle<ShaderBuffer>,
+    pub(crate) dirty_bricks: Handle<ShaderBuffer>,
+    pub(crate) brick_map: Handle<ShaderBuffer>,
+    pub(crate) brick_meta: Handle<ShaderBuffer>,
+    pub(crate) distance_atlas: Handle<ShaderBuffer>,
+    pub(crate) color_atlas: Handle<ShaderBuffer>,
+    pub(crate) material_atlas: Handle<ShaderBuffer>,
+    pub(crate) compute: SdfGpuComputeState,
     packed_version: u64,
     cache_version: u64,
     pending_cache_version: u64,
@@ -395,15 +389,16 @@ impl SdfGpuHandles {
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct SdfGpuComputeState {
-    pub cache_version: u64,
-    pub config: PackedSdfCacheConfig,
-    pub stage_shape_kinds: Vec<u32>,
-    pub dirty_count: u32,
-    pub stage_count: u32,
-    pub has_content: bool,
-    pub resident_count: u32,
-    pub atlas_full: bool,
+pub(crate) struct SdfGpuComputeState {
+    pub(crate) cache_version: u64,
+    pub(crate) config: PackedSdfCacheConfig,
+    pub(crate) stage_shape_kinds: Vec<u32>,
+    pub(crate) dirty_count: u32,
+    pub(crate) stage_count: u32,
+    pub(crate) has_content: bool,
+    pub(crate) resident_count: u32,
+    #[allow(dead_code)]
+    pub(crate) atlas_full: bool,
 }
 
 impl SdfGpuComputeState {
@@ -413,18 +408,18 @@ impl SdfGpuComputeState {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, ShaderType)]
-pub struct PackedSdfCacheConfig {
-    pub bounds_min: Vec4,
-    pub bounds_max: Vec4,
-    pub brick_dims: UVec4,
-    pub atlas: UVec4,
-    pub params: Vec4,
+pub(crate) struct PackedSdfCacheConfig {
+    pub(crate) bounds_min: Vec4,
+    pub(crate) bounds_max: Vec4,
+    pub(crate) brick_dims: UVec4,
+    pub(crate) atlas: UVec4,
+    pub(crate) params: Vec4,
 }
 
 #[derive(Clone, Copy, Debug, Default, ShaderType)]
-pub struct PackedSdfStage {
-    pub data: UVec4,
-    pub params: Vec4,
+struct PackedSdfStage {
+    data: UVec4,
+    params: Vec4,
 }
 
 impl PackedSdfStage {
@@ -437,9 +432,9 @@ impl PackedSdfStage {
 }
 
 #[derive(Clone, Copy, Debug, Default, ShaderType)]
-pub struct PackedDirtyBrick {
-    pub coord: UVec4,
-    pub data: UVec4,
+struct PackedDirtyBrick {
+    coord: UVec4,
+    data: UVec4,
 }
 
 impl PackedDirtyBrick {
@@ -459,9 +454,9 @@ impl PackedDirtyBrick {
 }
 
 #[derive(Clone, Copy, Debug, Default, ShaderType)]
-pub struct PackedBrickMeta {
-    pub data: UVec4,
-    pub distances: Vec4,
+struct PackedBrickMeta {
+    data: UVec4,
+    distances: Vec4,
 }
 
 impl PackedBrickMeta {
@@ -502,7 +497,27 @@ pub struct SdfConfigBuilder<'a> {
 
 impl<'a> SdfConfigBuilder<'a> {
     pub fn bounds(self, bounds: SdfBounds) -> Self {
-        self.update(|config| config.bounds = bounds);
+        self.update(|config| {
+            config.bounds = bounds;
+            config.auto_bounds = false;
+        });
+        self
+    }
+
+    pub fn auto_bounds(self) -> Self {
+        self.bounds_around_scene(32.0)
+    }
+
+    pub fn bounds_around_scene(self, padding: f32) -> Self {
+        self.update(|config| {
+            config.auto_bounds = true;
+            config.auto_bounds_padding = padding.max(0.0);
+        });
+        self
+    }
+
+    pub fn quality(self, quality: SdfQuality) -> Self {
+        self.update(|config| config.apply_quality(quality));
         self
     }
 
@@ -546,77 +561,74 @@ impl<'a> SdfConfigBuilder<'a> {
     }
 }
 
-/// Start an owned SDF scene builder for transient scene content.
-pub fn scene() -> SdfSceneBuilder {
-    SdfSceneBuilder::new()
-}
-
 /// Start an owned SDF group builder for nested CSG expressions.
-pub fn group() -> SdfSceneBuilder {
-    SdfSceneBuilder::new()
+pub fn group(build: impl FnOnce(&mut SdfSceneBuilder)) -> SdfSceneBuilder {
+    let mut group = SdfSceneBuilder::new();
+    build(&mut group);
+    group
 }
 
-pub fn sphere() -> SdfBuilder<'static> {
-    SdfBuilder::detached(SdfShape::sphere())
+pub fn sphere() -> SdfSphereBuilder {
+    SdfSphereBuilder::new()
 }
 
-pub fn cuboid() -> SdfBuilder<'static> {
-    SdfBuilder::detached(SdfShape::cuboid())
+pub fn cuboid() -> SdfCuboidBuilder {
+    SdfCuboidBuilder::new(SdfShape::cuboid())
 }
 
-pub fn rounded_cuboid() -> SdfBuilder<'static> {
-    SdfBuilder::detached(SdfShape::rounded_cuboid())
+pub fn rounded_cuboid() -> SdfCuboidBuilder {
+    SdfCuboidBuilder::new(SdfShape::rounded_cuboid())
 }
 
-pub fn capsule() -> SdfBuilder<'static> {
-    SdfBuilder::detached(SdfShape::capsule())
+pub fn capsule() -> SdfCapsuleBuilder {
+    SdfCapsuleBuilder::new()
 }
 
-pub fn cylinder() -> SdfBuilder<'static> {
-    SdfBuilder::detached(SdfShape::cylinder())
+pub fn cylinder() -> SdfCylinderBuilder {
+    SdfCylinderBuilder::new()
 }
 
-pub fn cone() -> SdfBuilder<'static> {
-    SdfBuilder::detached(SdfShape::cone())
+pub fn cone() -> SdfConeBuilder {
+    SdfConeBuilder::new()
 }
 
-pub fn torus() -> SdfBuilder<'static> {
-    SdfBuilder::detached(SdfShape::torus())
+pub fn torus() -> SdfTorusBuilder {
+    SdfTorusBuilder::new()
 }
 
-pub fn ellipsoid() -> SdfBuilder<'static> {
-    SdfBuilder::detached(SdfShape::ellipsoid())
+pub fn ellipsoid() -> SdfEllipsoidBuilder {
+    SdfEllipsoidBuilder::new()
 }
 
-pub fn plane() -> SdfBuilder<'static> {
-    SdfBuilder::detached(SdfShape::plane())
+pub fn plane() -> SdfPlaneBuilder {
+    SdfPlaneBuilder::new()
 }
 
-pub fn union(node: impl IntoSdfSceneNode) -> SdfSceneItem {
+fn union(node: impl IntoSdfSceneNode) -> SdfSceneItem {
     SdfSceneItem::new(SdfOperation::Union, node)
 }
 
-pub fn subtract(node: impl IntoSdfSceneNode) -> SdfSceneItem {
+fn subtract(node: impl IntoSdfSceneNode) -> SdfSceneItem {
     SdfSceneItem::new(SdfOperation::Subtract, node)
 }
 
-pub fn intersect(node: impl IntoSdfSceneNode) -> SdfSceneItem {
+fn intersect(node: impl IntoSdfSceneNode) -> SdfSceneItem {
     SdfSceneItem::new(SdfOperation::Intersect, node)
 }
 
-pub fn smooth_union(k: f32, node: impl IntoSdfSceneNode) -> SdfSceneItem {
+fn smooth_union(k: f32, node: impl IntoSdfSceneNode) -> SdfSceneItem {
     SdfSceneItem::new(SdfOperation::SmoothUnion(k), node)
 }
 
-pub fn smooth_subtract(k: f32, node: impl IntoSdfSceneNode) -> SdfSceneItem {
+fn smooth_subtract(k: f32, node: impl IntoSdfSceneNode) -> SdfSceneItem {
     SdfSceneItem::new(SdfOperation::SmoothSubtract(k), node)
 }
 
-pub fn smooth_intersect(k: f32, node: impl IntoSdfSceneNode) -> SdfSceneItem {
+fn smooth_intersect(k: f32, node: impl IntoSdfSceneNode) -> SdfSceneItem {
     SdfSceneItem::new(SdfOperation::SmoothIntersect(k), node)
 }
 
-pub fn blend(weight: f32, node: impl IntoSdfSceneNode) -> SdfSceneItem {
+fn blend(weight: f32, node: impl IntoSdfSceneNode) -> SdfSceneItem {
     SdfSceneItem::new(SdfOperation::Blend(weight), node)
 }
 
@@ -634,14 +646,16 @@ pub fn interpolate(
     }
 }
 
-/// A value that can be submitted as the transient SDF scene.
-pub trait IntoSdfScene {
-    fn into_sdf_graph(self) -> SdfGraph;
-}
-
 /// A value that can appear on the right-hand side of an SDF operation.
+#[doc(hidden)]
 pub trait IntoSdfSceneNode {
     fn into_sdf_node(self) -> SdfNode;
+}
+
+/// A primitive that can be inserted into the persistent handle layer.
+#[doc(hidden)]
+pub trait IntoSdfPrimitive {
+    fn into_sdf_edit(self) -> SdfEdit;
 }
 
 /// A transient scene graph builder.
@@ -655,98 +669,63 @@ impl SdfSceneBuilder {
         Self::default()
     }
 
-    pub fn from_graph(graph: SdfGraph) -> Self {
-        Self { graph }
-    }
-
-    pub fn add(mut self, item: SdfSceneItem) -> Self {
+    fn add(&mut self, item: SdfSceneItem) -> &mut Self {
         self.graph.items.push(item.into_graph_item());
         self
     }
 
-    pub fn push(&mut self, item: SdfSceneItem) -> &mut Self {
-        self.graph.items.push(item.into_graph_item());
-        self
-    }
-
-    pub fn union(self, node: impl IntoSdfSceneNode) -> Self {
+    pub fn union(&mut self, node: impl IntoSdfSceneNode) -> &mut Self {
         self.add(union(node))
     }
 
-    pub fn subtract(self, node: impl IntoSdfSceneNode) -> Self {
+    pub fn subtract(&mut self, node: impl IntoSdfSceneNode) -> &mut Self {
         self.add(subtract(node))
     }
 
-    pub fn intersect(self, node: impl IntoSdfSceneNode) -> Self {
+    pub fn intersect(&mut self, node: impl IntoSdfSceneNode) -> &mut Self {
         self.add(intersect(node))
     }
 
-    pub fn smooth_union(self, k: f32, node: impl IntoSdfSceneNode) -> Self {
+    pub fn smooth_union(&mut self, k: f32, node: impl IntoSdfSceneNode) -> &mut Self {
         self.add(smooth_union(k, node))
     }
 
-    pub fn smooth_subtract(self, k: f32, node: impl IntoSdfSceneNode) -> Self {
+    pub fn smooth_subtract(&mut self, k: f32, node: impl IntoSdfSceneNode) -> &mut Self {
         self.add(smooth_subtract(k, node))
     }
 
-    pub fn smooth_intersect(self, k: f32, node: impl IntoSdfSceneNode) -> Self {
+    pub fn smooth_intersect(&mut self, k: f32, node: impl IntoSdfSceneNode) -> &mut Self {
         self.add(smooth_intersect(k, node))
     }
 
-    pub fn blend(self, weight: f32, node: impl IntoSdfSceneNode) -> Self {
+    pub fn blend(&mut self, weight: f32, node: impl IntoSdfSceneNode) -> &mut Self {
         self.add(blend(weight, node))
     }
 
-    pub fn push_union(&mut self, node: impl IntoSdfSceneNode) -> &mut Self {
-        self.push(union(node))
-    }
-
-    pub fn push_subtract(&mut self, node: impl IntoSdfSceneNode) -> &mut Self {
-        self.push(subtract(node))
-    }
-
-    pub fn push_intersect(&mut self, node: impl IntoSdfSceneNode) -> &mut Self {
-        self.push(intersect(node))
-    }
-
-    pub fn push_smooth_union(&mut self, k: f32, node: impl IntoSdfSceneNode) -> &mut Self {
-        self.push(smooth_union(k, node))
-    }
-
-    pub fn push_smooth_subtract(&mut self, k: f32, node: impl IntoSdfSceneNode) -> &mut Self {
-        self.push(smooth_subtract(k, node))
-    }
-
-    pub fn push_smooth_intersect(&mut self, k: f32, node: impl IntoSdfSceneNode) -> &mut Self {
-        self.push(smooth_intersect(k, node))
-    }
-
-    pub fn push_blend(&mut self, weight: f32, node: impl IntoSdfSceneNode) -> &mut Self {
-        self.push(blend(weight, node))
-    }
-
-    pub fn build(self) -> SdfGraph {
-        self.graph
-    }
-}
-
-impl IntoSdfScene for SdfSceneBuilder {
-    fn into_sdf_graph(self) -> SdfGraph {
-        self.graph
-    }
-}
-
-impl IntoSdfScene for SdfGraph {
-    fn into_sdf_graph(self) -> SdfGraph {
+    pub fn union_many<I, N>(&mut self, nodes: I) -> &mut Self
+    where
+        I: IntoIterator<Item = N>,
+        N: IntoSdfSceneNode,
+    {
+        for node in nodes {
+            self.union(node);
+        }
         self
     }
-}
 
-impl IntoSdfScene for SdfSceneItem {
-    fn into_sdf_graph(self) -> SdfGraph {
-        SdfGraph {
-            items: vec![self.into_graph_item()],
+    pub fn smooth_union_many<I, N>(&mut self, k: f32, nodes: I) -> &mut Self
+    where
+        I: IntoIterator<Item = N>,
+        N: IntoSdfSceneNode,
+    {
+        for node in nodes {
+            self.smooth_union(k, node);
         }
+        self
+    }
+
+    fn into_sdf_graph(self) -> SdfGraph {
+        self.graph
     }
 }
 
@@ -770,19 +749,21 @@ impl IntoSdfSceneNode for SdfNode {
 
 impl IntoSdfSceneNode for SdfSceneItem {
     fn into_sdf_node(self) -> SdfNode {
-        SdfNode::Group(self.into_sdf_graph())
+        SdfNode::Group(SdfGraph {
+            items: vec![self.into_graph_item()],
+        })
     }
 }
 
 /// A graph node with the operation that combines it with the accumulated scene.
 #[derive(Clone, Debug, PartialEq)]
-pub struct SdfSceneItem {
-    pub op: SdfOperation,
-    pub node: SdfNode,
+struct SdfSceneItem {
+    op: SdfOperation,
+    node: SdfNode,
 }
 
 impl SdfSceneItem {
-    pub fn new(op: SdfOperation, node: impl IntoSdfSceneNode) -> Self {
+    fn new(op: SdfOperation, node: impl IntoSdfSceneNode) -> Self {
         Self {
             op,
             node: node.into_sdf_node(),
@@ -800,7 +781,7 @@ impl SdfSceneItem {
 /// An SDF expression node returned by helpers such as [`interpolate`].
 #[derive(Clone, Debug, PartialEq)]
 pub struct SdfExpression {
-    pub node: SdfNode,
+    node: SdfNode,
 }
 
 impl IntoSdfSceneNode for SdfExpression {
@@ -847,336 +828,598 @@ fn assign_node_identities(node: &mut SdfNode, next_call_order: &mut u64) {
     }
 }
 
-/// Shape construction builder.
-pub struct SdfBuilder<'a> {
-    target: SdfBuilderTarget<'a>,
-    edit: Option<SdfEdit>,
+/// Stable user-facing key for diffing dynamic submitted scenes.
+pub trait SdfKey {
+    fn into_sdf_key(self) -> String;
 }
 
-enum SdfBuilderTarget<'a> {
-    Direct(&'a Sdf),
-    Detached,
+impl SdfKey for String {
+    fn into_sdf_key(self) -> String {
+        self
+    }
 }
 
-impl<'a> SdfBuilder<'a> {
-    fn direct(sdf: &'a Sdf, shape: SdfShape) -> Self {
+impl SdfKey for &String {
+    fn into_sdf_key(self) -> String {
+        self.clone()
+    }
+}
+
+impl SdfKey for &str {
+    fn into_sdf_key(self) -> String {
+        self.to_string()
+    }
+}
+
+macro_rules! impl_numeric_key {
+    ($($ty:ty),* $(,)?) => {
+        $(
+            impl SdfKey for $ty {
+                fn into_sdf_key(self) -> String {
+                    self.to_string()
+                }
+            }
+        )*
+    };
+}
+
+impl_numeric_key!(
+    u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize
+);
+
+impl<A, B> SdfKey for (A, B)
+where
+    A: SdfKey,
+    B: SdfKey,
+{
+    fn into_sdf_key(self) -> String {
+        format!("{}/{}", self.0.into_sdf_key(), self.1.into_sdf_key())
+    }
+}
+
+impl<A, B, C> SdfKey for (A, B, C)
+where
+    A: SdfKey,
+    B: SdfKey,
+    C: SdfKey,
+{
+    fn into_sdf_key(self) -> String {
+        format!(
+            "{}/{}/{}",
+            self.0.into_sdf_key(),
+            self.1.into_sdf_key(),
+            self.2.into_sdf_key()
+        )
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+struct PrimitiveBuilder {
+    edit: SdfEdit,
+}
+
+impl PrimitiveBuilder {
+    fn new(shape: SdfShape) -> Self {
         Self {
-            target: SdfBuilderTarget::Direct(sdf),
-            edit: Some(SdfEdit::new(shape)),
+            edit: SdfEdit::new(shape),
         }
     }
 
-    fn detached(shape: SdfShape) -> Self {
-        Self {
-            target: SdfBuilderTarget::Detached,
-            edit: Some(SdfEdit::new(shape)),
-        }
+    fn key(mut self, key: impl SdfKey) -> Self {
+        let key = key.into_sdf_key();
+        self.edit.identity = SdfIdentity::Key(key.clone());
+        self.edit.key = Some(key);
+        self
     }
 
-    /// Commit this builder into the persistent handle layer and return the stable handle.
-    pub fn finish_handle(mut self) -> SdfHandle {
-        let Some(mut edit) = self.edit.take() else {
-            return SdfHandle::INVALID;
-        };
-        match self.target {
-            SdfBuilderTarget::Direct(sdf) => sdf
-                .scene
-                .write()
-                .expect("Sdf scene lock poisoned")
-                .insert_handle_edit(edit),
-            SdfBuilderTarget::Detached => {
-                edit.identity = SdfIdentity::Detached;
-                SdfHandle::INVALID
+    fn translate(mut self, v: Vec3) -> Self {
+        self.edit.transform.translation += v;
+        self
+    }
+
+    fn xyz(mut self, v: Vec3) -> Self {
+        self.edit.transform.translation = v;
+        self
+    }
+
+    fn x(mut self, x: f32) -> Self {
+        self.edit.transform.translation.x = x;
+        self
+    }
+
+    fn y(mut self, y: f32) -> Self {
+        self.edit.transform.translation.y = y;
+        self
+    }
+
+    fn z(mut self, z: f32) -> Self {
+        self.edit.transform.translation.z = z;
+        self
+    }
+
+    fn scale(mut self, s: f32) -> Self {
+        self.edit.transform.scale = Vec3::splat(s);
+        self
+    }
+
+    fn scale_axes(mut self, v: Vec3) -> Self {
+        self.edit.transform.scale = v;
+        self
+    }
+
+    fn scale_x(mut self, s: f32) -> Self {
+        self.edit.transform.scale.x = s;
+        self
+    }
+
+    fn scale_y(mut self, s: f32) -> Self {
+        self.edit.transform.scale.y = s;
+        self
+    }
+
+    fn scale_z(mut self, s: f32) -> Self {
+        self.edit.transform.scale.z = s;
+        self
+    }
+
+    fn quaternion(mut self, q: Quat) -> Self {
+        self.edit.transform.rotation = q;
+        self
+    }
+
+    fn euler(mut self, euler: Vec3) -> Self {
+        self.edit.transform.rotation = Quat::from_euler(EulerRot::XYZ, euler.x, euler.y, euler.z);
+        self
+    }
+
+    fn pitch(mut self, pitch: f32) -> Self {
+        self.edit.transform.rotation *= Quat::from_rotation_x(pitch);
+        self
+    }
+
+    fn yaw(mut self, yaw: f32) -> Self {
+        self.edit.transform.rotation *= Quat::from_rotation_y(yaw);
+        self
+    }
+
+    fn roll(mut self, roll: f32) -> Self {
+        self.edit.transform.rotation *= Quat::from_rotation_z(roll);
+        self
+    }
+
+    fn shell(mut self, thickness: f32) -> Self {
+        self.edit.modifiers.shell = Some(thickness.abs());
+        self
+    }
+
+    fn onion(mut self, thickness: f32) -> Self {
+        self.edit.modifiers.onion = Some(thickness.abs());
+        self
+    }
+
+    fn elongate(mut self, amount: Vec3) -> Self {
+        self.edit.modifiers.elongate = amount.max(Vec3::ZERO);
+        self
+    }
+
+    fn repeat(mut self, period: Vec3, bounds: SdfBounds) -> Self {
+        self.edit.modifiers.repeat = Some(SdfRepeat {
+            period: period.max(Vec3::splat(f32::EPSILON)),
+            bounds: Some(bounds),
+        });
+        self
+    }
+
+    fn color(mut self, color: impl Into<Color>) -> Self {
+        self.edit.color = color.into();
+        self
+    }
+
+    fn material(mut self, material: impl Into<MaterialId>) -> Self {
+        self.edit.material = material.into();
+        self
+    }
+
+    fn into_edit(self) -> SdfEdit {
+        self.edit
+    }
+}
+
+macro_rules! impl_common_builder_methods {
+    ($ty:ident) => {
+        impl $ty {
+            pub fn key(mut self, key: impl SdfKey) -> Self {
+                self.builder = self.builder.key(key);
+                self
+            }
+
+            pub fn translate(mut self, v: Vec3) -> Self {
+                self.builder = self.builder.translate(v);
+                self
+            }
+
+            pub fn position(mut self, v: Vec3) -> Self {
+                self.builder = self.builder.xyz(v);
+                self
+            }
+
+            pub fn center(self, v: Vec3) -> Self {
+                self.position(v)
+            }
+
+            pub fn xyz(self, v: Vec3) -> Self {
+                self.position(v)
+            }
+
+            pub fn x_y_z(self, x: f32, y: f32, z: f32) -> Self {
+                self.position(Vec3::new(x, y, z))
+            }
+
+            pub fn x(mut self, x: f32) -> Self {
+                self.builder = self.builder.x(x);
+                self
+            }
+
+            pub fn y(mut self, y: f32) -> Self {
+                self.builder = self.builder.y(y);
+                self
+            }
+
+            pub fn z(mut self, z: f32) -> Self {
+                self.builder = self.builder.z(z);
+                self
+            }
+
+            pub fn scale(mut self, s: f32) -> Self {
+                self.builder = self.builder.scale(s);
+                self
+            }
+
+            pub fn scale_axes(mut self, v: Vec3) -> Self {
+                self.builder = self.builder.scale_axes(v);
+                self
+            }
+
+            pub fn scale_x(mut self, s: f32) -> Self {
+                self.builder = self.builder.scale_x(s);
+                self
+            }
+
+            pub fn scale_y(mut self, s: f32) -> Self {
+                self.builder = self.builder.scale_y(s);
+                self
+            }
+
+            pub fn scale_z(mut self, s: f32) -> Self {
+                self.builder = self.builder.scale_z(s);
+                self
+            }
+
+            pub fn quaternion(mut self, q: Quat) -> Self {
+                self.builder = self.builder.quaternion(q);
+                self
+            }
+
+            pub fn euler(mut self, euler: Vec3) -> Self {
+                self.builder = self.builder.euler(euler);
+                self
+            }
+
+            pub fn pitch(mut self, pitch: f32) -> Self {
+                self.builder = self.builder.pitch(pitch);
+                self
+            }
+
+            pub fn yaw(mut self, yaw: f32) -> Self {
+                self.builder = self.builder.yaw(yaw);
+                self
+            }
+
+            pub fn roll(mut self, roll: f32) -> Self {
+                self.builder = self.builder.roll(roll);
+                self
+            }
+
+            pub fn rotate_x(self, radians: f32) -> Self {
+                self.pitch(radians)
+            }
+
+            pub fn rotate_y(self, radians: f32) -> Self {
+                self.yaw(radians)
+            }
+
+            pub fn rotate_z(self, radians: f32) -> Self {
+                self.roll(radians)
+            }
+
+            pub fn shell(mut self, thickness: f32) -> Self {
+                self.builder = self.builder.shell(thickness);
+                self
+            }
+
+            pub fn onion(mut self, thickness: f32) -> Self {
+                self.builder = self.builder.onion(thickness);
+                self
+            }
+
+            pub fn elongate(mut self, amount: Vec3) -> Self {
+                self.builder = self.builder.elongate(amount);
+                self
+            }
+
+            pub fn repeat(mut self, period: Vec3, bounds: SdfBounds) -> Self {
+                self.builder = self.builder.repeat(period, bounds);
+                self
+            }
+
+            pub fn color(mut self, color: impl Into<Color>) -> Self {
+                self.builder = self.builder.color(color);
+                self
+            }
+
+            pub fn material(mut self, material: impl Into<MaterialId>) -> Self {
+                self.builder = self.builder.material(material);
+                self
             }
         }
+    };
+}
+
+macro_rules! impl_primitive_traits {
+    ($ty:ident) => {
+        impl IntoSdfPrimitive for $ty {
+            fn into_sdf_edit(self) -> SdfEdit {
+                self.builder.into_edit()
+            }
+        }
+
+        impl IntoSdfSceneNode for $ty {
+            fn into_sdf_node(self) -> SdfNode {
+                SdfNode::Primitive(self.builder.into_edit())
+            }
+        }
+    };
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct SdfSphereBuilder {
+    builder: PrimitiveBuilder,
+}
+
+impl SdfSphereBuilder {
+    fn new() -> Self {
+        Self {
+            builder: PrimitiveBuilder::new(SdfShape::sphere()),
+        }
     }
 
-    pub fn key(mut self, key: impl Into<String>) -> Self {
-        self.update(|edit| {
-            let key = key.into();
-            edit.identity = SdfIdentity::Key(key.clone());
-            edit.key = Some(key);
-        });
+    pub fn radius(mut self, radius: f32) -> Self {
+        if let SdfShape::Sphere { radius: r } = &mut self.builder.edit.shape {
+            *r = radius;
+        }
+        self
+    }
+}
+
+impl_common_builder_methods!(SdfSphereBuilder);
+impl_primitive_traits!(SdfSphereBuilder);
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct SdfCuboidBuilder {
+    builder: PrimitiveBuilder,
+}
+
+impl SdfCuboidBuilder {
+    fn new(shape: SdfShape) -> Self {
+        Self {
+            builder: PrimitiveBuilder::new(shape),
+        }
+    }
+
+    pub fn size(mut self, size: Vec3) -> Self {
+        if let SdfShape::Cuboid { size: s, .. } = &mut self.builder.edit.shape {
+            *s = size;
+        }
+        self
+    }
+
+    pub fn w_h_d(self, w: f32, h: f32, d: f32) -> Self {
+        self.size(Vec3::new(w, h, d))
+    }
+
+    pub fn roundness(mut self, roundness: f32) -> Self {
+        let roundness = roundness.max(0.0);
+        if let SdfShape::Cuboid { roundness: r, .. } = &mut self.builder.edit.shape {
+            *r = roundness;
+        }
+        self.builder.edit.modifiers.roundness = roundness;
+        self
+    }
+}
+
+impl_common_builder_methods!(SdfCuboidBuilder);
+impl_primitive_traits!(SdfCuboidBuilder);
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct SdfCapsuleBuilder {
+    builder: PrimitiveBuilder,
+}
+
+impl SdfCapsuleBuilder {
+    fn new() -> Self {
+        Self {
+            builder: PrimitiveBuilder::new(SdfShape::capsule()),
+        }
+    }
+
+    pub fn from_to(mut self, from: Vec3, to: Vec3) -> Self {
+        if let SdfShape::Capsule { from: f, to: t, .. } = &mut self.builder.edit.shape {
+            *f = from;
+            *t = to;
+        }
         self
     }
 
     pub fn radius(mut self, radius: f32) -> Self {
-        self.update_shape(|shape| match shape {
-            SdfShape::Sphere { radius: r } => *r = radius,
-            SdfShape::Capsule { radius: r, .. } => *r = radius,
-            SdfShape::Cylinder { radius: r, .. } => *r = radius,
-            _ => {}
-        });
+        if let SdfShape::Capsule { radius: r, .. } = &mut self.builder.edit.shape {
+            *r = radius;
+        }
         self
     }
+}
 
-    pub fn w_h_d(mut self, w: f32, h: f32, d: f32) -> Self {
-        self.update_shape(|shape| match shape {
-            SdfShape::Cuboid { size, .. } => *size = Vec3::new(w, h, d),
-            _ => {}
-        });
-        self
+impl_common_builder_methods!(SdfCapsuleBuilder);
+impl_primitive_traits!(SdfCapsuleBuilder);
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct SdfCylinderBuilder {
+    builder: PrimitiveBuilder,
+}
+
+impl SdfCylinderBuilder {
+    fn new() -> Self {
+        Self {
+            builder: PrimitiveBuilder::new(SdfShape::cylinder()),
+        }
     }
 
-    pub fn roundness(mut self, roundness: f32) -> Self {
-        self.update_shape(|shape| match shape {
-            SdfShape::Cuboid { roundness: r, .. } => *r = roundness.max(0.0),
-            _ => {}
-        });
-        self.update(|edit| edit.modifiers.roundness = roundness.max(0.0));
-        self
-    }
-
-    pub fn from_to(mut self, from: Vec3, to: Vec3) -> Self {
-        self.update_shape(|shape| match shape {
-            SdfShape::Capsule { from: f, to: t, .. } => {
-                *f = from;
-                *t = to;
-            }
-            _ => {}
-        });
+    pub fn radius(mut self, radius: f32) -> Self {
+        if let SdfShape::Cylinder { radius: r, .. } = &mut self.builder.edit.shape {
+            *r = radius;
+        }
         self
     }
 
     pub fn height(mut self, height: f32) -> Self {
-        self.update_shape(|shape| match shape {
-            SdfShape::Cylinder { height: h, .. } | SdfShape::Cone { height: h, .. } => *h = height,
-            _ => {}
-        });
+        if let SdfShape::Cylinder { height: h, .. } = &mut self.builder.edit.shape {
+            *h = height;
+        }
         self
+    }
+}
+
+impl_common_builder_methods!(SdfCylinderBuilder);
+impl_primitive_traits!(SdfCylinderBuilder);
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct SdfConeBuilder {
+    builder: PrimitiveBuilder,
+}
+
+impl SdfConeBuilder {
+    fn new() -> Self {
+        Self {
+            builder: PrimitiveBuilder::new(SdfShape::cone()),
+        }
     }
 
     pub fn radius_top(mut self, radius: f32) -> Self {
-        self.update_shape(|shape| {
-            if let SdfShape::Cone { radius_top, .. } = shape {
-                *radius_top = radius;
-            }
-        });
+        if let SdfShape::Cone { radius_top, .. } = &mut self.builder.edit.shape {
+            *radius_top = radius;
+        }
         self
     }
 
     pub fn radius_bottom(mut self, radius: f32) -> Self {
-        self.update_shape(|shape| {
-            if let SdfShape::Cone { radius_bottom, .. } = shape {
-                *radius_bottom = radius;
-            }
-        });
+        if let SdfShape::Cone { radius_bottom, .. } = &mut self.builder.edit.shape {
+            *radius_bottom = radius;
+        }
         self
     }
 
+    pub fn height(mut self, height: f32) -> Self {
+        if let SdfShape::Cone { height: h, .. } = &mut self.builder.edit.shape {
+            *h = height;
+        }
+        self
+    }
+}
+
+impl_common_builder_methods!(SdfConeBuilder);
+impl_primitive_traits!(SdfConeBuilder);
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct SdfTorusBuilder {
+    builder: PrimitiveBuilder,
+}
+
+impl SdfTorusBuilder {
+    fn new() -> Self {
+        Self {
+            builder: PrimitiveBuilder::new(SdfShape::torus()),
+        }
+    }
+
     pub fn major_radius(mut self, radius: f32) -> Self {
-        self.update_shape(|shape| {
-            if let SdfShape::Torus { major_radius, .. } = shape {
-                *major_radius = radius;
-            }
-        });
+        if let SdfShape::Torus { major_radius, .. } = &mut self.builder.edit.shape {
+            *major_radius = radius;
+        }
         self
     }
 
     pub fn minor_radius(mut self, radius: f32) -> Self {
-        self.update_shape(|shape| {
-            if let SdfShape::Torus { minor_radius, .. } = shape {
-                *minor_radius = radius;
-            }
-        });
+        if let SdfShape::Torus { minor_radius, .. } = &mut self.builder.edit.shape {
+            *minor_radius = radius;
+        }
         self
+    }
+}
+
+impl_common_builder_methods!(SdfTorusBuilder);
+impl_primitive_traits!(SdfTorusBuilder);
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct SdfEllipsoidBuilder {
+    builder: PrimitiveBuilder,
+}
+
+impl SdfEllipsoidBuilder {
+    fn new() -> Self {
+        Self {
+            builder: PrimitiveBuilder::new(SdfShape::ellipsoid()),
+        }
     }
 
     pub fn radii(mut self, radii: Vec3) -> Self {
-        self.update_shape(|shape| {
-            if let SdfShape::Ellipsoid { radii: r } = shape {
-                *r = radii.max(Vec3::splat(f32::EPSILON));
-            }
-        });
+        if let SdfShape::Ellipsoid { radii: r } = &mut self.builder.edit.shape {
+            *r = radii.max(Vec3::splat(f32::EPSILON));
+        }
         self
+    }
+}
+
+impl_common_builder_methods!(SdfEllipsoidBuilder);
+impl_primitive_traits!(SdfEllipsoidBuilder);
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct SdfPlaneBuilder {
+    builder: PrimitiveBuilder,
+}
+
+impl SdfPlaneBuilder {
+    fn new() -> Self {
+        Self {
+            builder: PrimitiveBuilder::new(SdfShape::plane()),
+        }
     }
 
     pub fn normal(mut self, normal: Vec3) -> Self {
-        self.update_shape(|shape| {
-            if let SdfShape::Plane { normal: n, .. } = shape {
-                *n = normal.normalize_or_zero();
-            }
-        });
+        if let SdfShape::Plane { normal: n, .. } = &mut self.builder.edit.shape {
+            *n = normal.normalize_or_zero();
+        }
         self
     }
 
     pub fn offset(mut self, offset: f32) -> Self {
-        self.update_shape(|shape| {
-            if let SdfShape::Plane { offset: d, .. } = shape {
-                *d = offset;
-            }
-        });
-        self
-    }
-
-    pub fn translate(mut self, v: Vec3) -> Self {
-        self.update(|edit| edit.transform.translation += v);
-        self
-    }
-
-    pub fn xyz(mut self, v: Vec3) -> Self {
-        self.update(|edit| edit.transform.translation = v);
-        self
-    }
-
-    pub fn x_y_z(self, x: f32, y: f32, z: f32) -> Self {
-        self.xyz(Vec3::new(x, y, z))
-    }
-
-    pub fn x(mut self, x: f32) -> Self {
-        self.update(|edit| edit.transform.translation.x = x);
-        self
-    }
-
-    pub fn y(mut self, y: f32) -> Self {
-        self.update(|edit| edit.transform.translation.y = y);
-        self
-    }
-
-    pub fn z(mut self, z: f32) -> Self {
-        self.update(|edit| edit.transform.translation.z = z);
-        self
-    }
-
-    pub fn scale(mut self, s: f32) -> Self {
-        self.update(|edit| edit.transform.scale = Vec3::splat(s));
-        self
-    }
-
-    pub fn scale_axes(mut self, v: Vec3) -> Self {
-        self.update(|edit| edit.transform.scale = v);
-        self
-    }
-
-    pub fn scale_x(mut self, s: f32) -> Self {
-        self.update(|edit| edit.transform.scale.x = s);
-        self
-    }
-
-    pub fn scale_y(mut self, s: f32) -> Self {
-        self.update(|edit| edit.transform.scale.y = s);
-        self
-    }
-
-    pub fn scale_z(mut self, s: f32) -> Self {
-        self.update(|edit| edit.transform.scale.z = s);
-        self
-    }
-
-    pub fn quaternion(mut self, q: Quat) -> Self {
-        self.update(|edit| edit.transform.rotation = q);
-        self
-    }
-
-    pub fn euler(mut self, euler: Vec3) -> Self {
-        self.update(|edit| {
-            edit.transform.rotation = Quat::from_euler(EulerRot::XYZ, euler.x, euler.y, euler.z);
-        });
-        self
-    }
-
-    pub fn pitch(mut self, pitch: f32) -> Self {
-        self.update(|edit| edit.transform.rotation *= Quat::from_rotation_x(pitch));
-        self
-    }
-
-    pub fn yaw(mut self, yaw: f32) -> Self {
-        self.update(|edit| edit.transform.rotation *= Quat::from_rotation_y(yaw));
-        self
-    }
-
-    pub fn roll(mut self, roll: f32) -> Self {
-        self.update(|edit| edit.transform.rotation *= Quat::from_rotation_z(roll));
-        self
-    }
-
-    pub fn shell(mut self, thickness: f32) -> Self {
-        self.update(|edit| edit.modifiers.shell = Some(thickness.abs()));
-        self
-    }
-
-    pub fn onion(mut self, thickness: f32) -> Self {
-        self.update(|edit| edit.modifiers.onion = Some(thickness.abs()));
-        self
-    }
-
-    pub fn elongate(mut self, amount: Vec3) -> Self {
-        self.update(|edit| edit.modifiers.elongate = amount.max(Vec3::ZERO));
-        self
-    }
-
-    pub fn repeat(mut self, period: Vec3) -> Self {
-        self.update(|edit| {
-            edit.modifiers.repeat = Some(SdfRepeat {
-                period: period.max(Vec3::splat(f32::EPSILON)),
-                bounds: None,
-            });
-        });
-        self
-    }
-
-    pub fn repeat_bounds(mut self, bounds: SdfBounds) -> Self {
-        self.update(|edit| {
-            let repeat = edit.modifiers.repeat.get_or_insert(SdfRepeat {
-                period: Vec3::ONE,
-                bounds: None,
-            });
-            repeat.bounds = Some(bounds);
-        });
-        self
-    }
-
-    pub fn color(mut self, color: impl Into<Color>) -> Self {
-        self.update(|edit| edit.color = color.into());
-        self
-    }
-
-    pub fn material(mut self, material: impl Into<MaterialId>) -> Self {
-        self.update(|edit| edit.material = material.into());
-        self
-    }
-
-    fn update(&mut self, f: impl FnOnce(&mut SdfEdit)) {
-        if let Some(edit) = &mut self.edit {
-            f(edit);
+        if let SdfShape::Plane { offset: d, .. } = &mut self.builder.edit.shape {
+            *d = offset;
         }
-    }
-
-    fn update_shape(&mut self, f: impl FnOnce(&mut SdfShape)) {
-        self.update(|edit| f(&mut edit.shape));
-    }
-
-    fn into_edit(mut self) -> SdfEdit {
-        self.edit.take().expect("SDF builder already finished")
-    }
-
-    fn commit(&mut self) {
-        let Some(edit) = self.edit.take() else {
-            return;
-        };
-        match self.target {
-            SdfBuilderTarget::Direct(sdf) => {
-                sdf.scene
-                    .write()
-                    .expect("Sdf scene lock poisoned")
-                    .insert_handle_edit(edit);
-            }
-            SdfBuilderTarget::Detached => {}
-        }
+        self
     }
 }
 
-impl Drop for SdfBuilder<'_> {
-    fn drop(&mut self) {
-        self.commit();
-    }
-}
-
-impl IntoSdfSceneNode for SdfBuilder<'_> {
-    fn into_sdf_node(self) -> SdfNode {
-        SdfNode::Primitive(self.into_edit())
-    }
-}
+impl_common_builder_methods!(SdfPlaneBuilder);
+impl_primitive_traits!(SdfPlaneBuilder);
 
 /// Direct mutator for a handle-layer edit.
 pub struct SdfHandleEdit<'a> {
@@ -1324,6 +1567,8 @@ pub struct SdfConfig {
     pub update_budget: SdfUpdateBudget,
     pub narrow_band: f32,
     pub atlas_capacity: u32,
+    pub auto_bounds: bool,
+    pub auto_bounds_padding: f32,
 }
 
 impl Default for SdfConfig {
@@ -1336,8 +1581,45 @@ impl Default for SdfConfig {
             update_budget: SdfUpdateBudget::Unlimited,
             narrow_band: 4.0,
             atlas_capacity: DEFAULT_ATLAS_CAPACITY,
+            auto_bounds: false,
+            auto_bounds_padding: 32.0,
         }
     }
+}
+
+impl SdfConfig {
+    fn apply_quality(&mut self, quality: SdfQuality) {
+        match quality {
+            SdfQuality::Sketch => {
+                self.voxel_size = 4.0;
+                self.brick_size = 8;
+                self.narrow_band = 12.0;
+                self.distance_format = SdfDistanceFormat::R16Float;
+                self.update_budget = SdfUpdateBudget::MaxBricksPerFrame(2048);
+            }
+            SdfQuality::Balanced => {
+                self.voxel_size = 2.0;
+                self.brick_size = 8;
+                self.narrow_band = 8.0;
+                self.distance_format = SdfDistanceFormat::R32Float;
+                self.update_budget = SdfUpdateBudget::MaxBricksPerFrame(4096);
+            }
+            SdfQuality::High => {
+                self.voxel_size = 1.0;
+                self.brick_size = 8;
+                self.narrow_band = 4.0;
+                self.distance_format = SdfDistanceFormat::R32Float;
+                self.update_budget = SdfUpdateBudget::Unlimited;
+            }
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub enum SdfQuality {
+    Sketch,
+    Balanced,
+    High,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
@@ -1690,6 +1972,14 @@ impl SdfEdit {
         let matrix = self.transform.matrix();
         self.inverse_transform = matrix.inverse();
         self.local_aabb = self.shape.local_bounds(scene_bounds);
+        if let Some(bounds) = self
+            .modifiers
+            .repeat
+            .as_ref()
+            .and_then(|repeat| repeat.bounds)
+        {
+            self.local_aabb = bounds;
+        }
         let expansion = self.modifier_expansion();
         self.world_aabb = self.local_aabb.transform(matrix).inflate(expansion);
     }
@@ -2022,10 +2312,10 @@ struct BrickResidencyEstimate {
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct BrickCache {
-    pub bricks: HashMap<SdfBrick, BrickMeta>,
-    pub epoch: u64,
-    pub atlas_capacity: u32,
+pub(crate) struct BrickCache {
+    pub(crate) bricks: HashMap<SdfBrick, BrickMeta>,
+    pub(crate) epoch: u64,
+    pub(crate) atlas_capacity: u32,
     slot_bricks: Vec<Option<SdfBrick>>,
     free_slots: Vec<u32>,
     atlas_full: bool,
@@ -2121,7 +2411,7 @@ impl BrickCache {
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct DirtyBrickSet {
+pub(crate) struct DirtyBrickSet {
     bricks: HashSet<SdfBrick>,
     all_dirty: bool,
 }
@@ -2175,14 +2465,14 @@ impl DirtyBrickSet {
 }
 
 #[derive(Clone, Debug)]
-pub struct SdfScene {
-    pub config: SdfConfig,
-    pub scene_graph: SdfGraph,
-    pub previous_scene_graph: SdfGraph,
+pub(crate) struct SdfScene {
+    pub(crate) config: SdfConfig,
+    pub(crate) scene_graph: SdfGraph,
+    pub(crate) previous_scene_graph: SdfGraph,
     handle_slots: Vec<HandleSlot>,
     handle_order: Vec<SdfHandle>,
-    pub dirty_bricks: DirtyBrickSet,
-    pub brick_cache: BrickCache,
+    pub(crate) dirty_bricks: DirtyBrickSet,
+    pub(crate) brick_cache: BrickCache,
     brick_map_reset_pending: bool,
     version: u64,
     cache_version: u64,
@@ -2214,16 +2504,8 @@ struct HandleSlot {
 }
 
 impl SdfScene {
-    pub fn version(&self) -> u64 {
-        self.version
-    }
-
     pub fn config(&self) -> &SdfConfig {
         &self.config
-    }
-
-    pub fn scene_graph(&self) -> &SdfGraph {
-        &self.scene_graph
     }
 
     pub fn handle_graph(&self) -> SdfGraph {
@@ -2256,11 +2538,62 @@ impl SdfScene {
             resident_bricks: self.brick_cache.resident_count(),
             atlas_capacity: self.brick_cache.atlas_capacity,
             atlas_full: self.brick_cache.atlas_full,
+            warnings: self.warnings(),
         }
+    }
+
+    fn warnings(&self) -> Vec<SdfWarning> {
+        let mut warnings = Vec::new();
+        let dirty_bricks = self.dirty_brick_count();
+
+        if let SdfUpdateBudget::MaxBricksPerFrame(max_bricks_per_frame) = self.config.update_budget
+        {
+            if dirty_bricks > max_bricks_per_frame as usize {
+                warnings.push(SdfWarning::DirtyBricksExceedBudget {
+                    dirty_bricks,
+                    max_bricks_per_frame,
+                });
+            }
+        }
+
+        if self.brick_cache.atlas_full {
+            warnings.push(SdfWarning::AtlasFull {
+                resident_bricks: self.brick_cache.resident_count(),
+                atlas_capacity: self.brick_cache.atlas_capacity,
+            });
+        }
+
+        let mut edits = Vec::new();
+        self.scene_graph.flatten_edits(&mut edits);
+        let handle_graph = self.handle_graph();
+        handle_graph.flatten_edits(&mut edits);
+
+        let missing_keys = edits
+            .iter()
+            .filter(|edit| matches!(edit.identity, SdfIdentity::CallOrder(_)))
+            .count();
+        if missing_keys > 0 {
+            warnings.push(SdfWarning::MissingKeys {
+                count: missing_keys,
+            });
+        }
+
+        let outside_bounds = edits
+            .iter()
+            .filter(|edit| edit.world_aabb.intersect(self.config.bounds).is_none())
+            .count();
+        if outside_bounds > 0 {
+            warnings.push(SdfWarning::ShapesOutsideBounds {
+                count: outside_bounds,
+            });
+        }
+
+        warnings
     }
 
     fn replace_scene_graph(&mut self, mut graph: SdfGraph) {
         assign_graph_identities(&mut graph);
+        self.apply_auto_bounds_for_replacement(&mut graph);
         refresh_graph(&mut graph, self.config.bounds);
         let old = self.scene_graph.clone();
         self.diff_scene_graphs(&old, &graph);
@@ -2312,6 +2645,10 @@ impl SdfScene {
         edit.handle = Some(handle);
         edit.identity = SdfIdentity::Handle(handle);
         edit.refresh_derived(self.config.bounds);
+        if self.config.auto_bounds {
+            self.apply_auto_bounds_from(Some(edit.world_aabb));
+            edit.refresh_derived(self.config.bounds);
+        }
         self.mark_aabb_dirty(edit.world_aabb);
         self.handle_slots.push(HandleSlot {
             generation: handle.generation,
@@ -2323,20 +2660,39 @@ impl SdfScene {
     }
 
     fn update_handle(&mut self, handle: SdfHandle, f: impl FnOnce(&mut SdfEdit)) -> bool {
-        let Some(slot) = self.handle_slots.get_mut(handle.index as usize) else {
+        let Some((old_bounds, proposed_bounds)) = ({
+            let Some(slot) = self.handle_slots.get_mut(handle.index as usize) else {
+                return false;
+            };
+            if slot.generation != handle.generation {
+                return false;
+            }
+            let Some(edit) = &mut slot.edit else {
+                return false;
+            };
+            let old_bounds = edit.world_aabb;
+            f(edit);
+            edit.version += 1;
+            edit.refresh_derived(self.config.bounds);
+            Some((old_bounds, edit.world_aabb))
+        }) else {
             return false;
         };
-        if slot.generation != handle.generation {
-            return false;
-        }
-        let Some(edit) = &mut slot.edit else {
-            return false;
+
+        let new_bounds = if self.config.auto_bounds {
+            self.apply_auto_bounds_from(Some(proposed_bounds));
+            let Some(slot) = self.handle_slots.get_mut(handle.index as usize) else {
+                return false;
+            };
+            let Some(edit) = &mut slot.edit else {
+                return false;
+            };
+            edit.refresh_derived(self.config.bounds);
+            edit.world_aabb
+        } else {
+            proposed_bounds
         };
-        let old_bounds = edit.world_aabb;
-        f(edit);
-        edit.version += 1;
-        edit.refresh_derived(self.config.bounds);
-        let new_bounds = edit.world_aabb;
+
         self.mark_aabb_dirty(old_bounds.union(new_bounds));
         self.version += 1;
         true
@@ -2365,6 +2721,47 @@ impl SdfScene {
             slot.edit.as_ref()
         } else {
             None
+        }
+    }
+
+    fn apply_auto_bounds_for_replacement(&mut self, graph: &mut SdfGraph) {
+        if !self.config.auto_bounds {
+            return;
+        }
+        refresh_graph(graph, self.config.bounds);
+        let bounds = graph.bounds();
+        self.apply_auto_bounds_from(bounds);
+        refresh_graph(graph, self.config.bounds);
+    }
+
+    fn apply_auto_bounds_from(&mut self, replacement_bounds: Option<SdfBounds>) {
+        if !self.config.auto_bounds {
+            return;
+        }
+
+        let handle_bounds = self.handle_graph().bounds();
+        let scene_bounds = replacement_bounds.or_else(|| self.scene_graph.bounds());
+        let Some(bounds) = combine_optional_bounds(scene_bounds, handle_bounds) else {
+            return;
+        };
+
+        let padding = self
+            .config
+            .auto_bounds_padding
+            .max(self.config.narrow_band + self.config.voxel_size * 2.0);
+        let bounds = bounds.inflate(padding);
+        if bounds != self.config.bounds {
+            self.config.bounds = bounds;
+            self.refresh_handle_edits();
+            self.invalidate_all_bricks();
+        }
+    }
+
+    fn refresh_handle_edits(&mut self) {
+        for slot in &mut self.handle_slots {
+            if let Some(edit) = &mut slot.edit {
+                edit.refresh_derived(self.config.bounds);
+            }
         }
     }
 
@@ -2420,6 +2817,7 @@ impl SdfScene {
         self.dirty_bricks.count(&self.config)
     }
 
+    #[cfg(test)]
     fn take_dirty_bricks(&mut self) -> Vec<SdfBrick> {
         self.dirty_bricks.drain(&self.config)
     }
@@ -2669,6 +3067,15 @@ fn collect_node_candidate_bounds(node: &SdfNode, expansion: f32, out: &mut Vec<S
     }
 }
 
+fn combine_optional_bounds(a: Option<SdfBounds>, b: Option<SdfBounds>) -> Option<SdfBounds> {
+    match (a, b) {
+        (Some(a), Some(b)) => Some(a.union(b)),
+        (Some(a), None) => Some(a),
+        (None, Some(b)) => Some(b),
+        (None, None) => None,
+    }
+}
+
 fn edit_map(graph: &SdfGraph) -> HashMap<SdfIdentity, &SdfEdit> {
     let mut edits = Vec::new();
     graph.flatten_edits(&mut edits);
@@ -2850,16 +3257,16 @@ struct PackedSdfScene {
 }
 
 #[derive(Clone, Copy, Debug, Default, ShaderType)]
-pub struct PackedSdfEdit {
-    pub inv_x: Vec4,
-    pub inv_y: Vec4,
-    pub inv_z: Vec4,
-    pub inv_w: Vec4,
-    pub params0: Vec4,
-    pub params1: Vec4,
-    pub params2: Vec4,
-    pub color: Vec4,
-    pub data: UVec4,
+struct PackedSdfEdit {
+    inv_x: Vec4,
+    inv_y: Vec4,
+    inv_z: Vec4,
+    inv_w: Vec4,
+    params0: Vec4,
+    params1: Vec4,
+    params2: Vec4,
+    color: Vec4,
+    data: UVec4,
 }
 
 impl PackedSdfEdit {
@@ -2919,9 +3326,9 @@ impl PackedSdfEdit {
 }
 
 #[derive(Clone, Copy, Debug, Default, ShaderType)]
-pub struct PackedSdfNode {
-    pub data0: UVec4,
-    pub data1: Vec4,
+struct PackedSdfNode {
+    data0: UVec4,
+    data1: Vec4,
 }
 
 impl PackedSdfNode {
@@ -2953,15 +3360,21 @@ mod tests {
     fn submitted_scenes_replace_keyed_edits() {
         let sdf = sdf();
         sdf.take_dirty_bricks();
-        sdf.set_scene(scene().union(sphere().key("ball").radius(10.0)));
+        sdf.scene(|scene| {
+            scene.union(sphere().key("ball").radius(10.0));
+        });
         let first_dirty = sdf.dirty_brick_count();
         assert!(first_dirty > 0);
         sdf.take_dirty_bricks();
 
-        sdf.set_scene(scene().union(sphere().key("ball").radius(10.0)));
+        sdf.scene(|scene| {
+            scene.union(sphere().key("ball").radius(10.0));
+        });
         assert_eq!(sdf.dirty_brick_count(), 0);
 
-        sdf.set_scene(scene().union(sphere().key("ball").radius(20.0)));
+        sdf.scene(|scene| {
+            scene.union(sphere().key("ball").radius(20.0));
+        });
         assert!(sdf.dirty_brick_count() > 0);
     }
 
@@ -2969,21 +3382,76 @@ mod tests {
     fn submitted_scenes_assign_call_order_identities() {
         let sdf = sdf();
         sdf.take_dirty_bricks();
-        sdf.set_scene(scene().union(sphere().radius(10.0)));
+        sdf.scene(|scene| {
+            scene.union(sphere().radius(10.0));
+        });
         assert!(sdf.dirty_brick_count() > 0);
         sdf.take_dirty_bricks();
 
-        sdf.set_scene(scene().union(sphere().radius(10.0)));
+        sdf.scene(|scene| {
+            scene.union(sphere().radius(10.0));
+        });
         assert_eq!(sdf.dirty_brick_count(), 0);
+    }
+
+    #[test]
+    fn validation_reports_missing_scene_keys() {
+        let sdf = sdf();
+        sdf.scene(|scene| {
+            scene.union(sphere().radius(10.0));
+        });
+
+        assert!(
+            sdf.validate()
+                .contains(&SdfWarning::MissingKeys { count: 1 })
+        );
+    }
+
+    #[test]
+    fn tuple_keys_are_stable_scene_identities() {
+        assert_eq!((2, "lamp").into_sdf_key(), "2/lamp");
+
+        let sdf = sdf();
+        sdf.take_dirty_bricks();
+        sdf.scene(|scene| {
+            scene.union(sphere().key((2, "lamp")).radius(10.0));
+        });
+        sdf.take_dirty_bricks();
+
+        sdf.scene(|scene| {
+            scene.union(sphere().key((2, "lamp")).radius(10.0));
+        });
+        assert_eq!(sdf.dirty_brick_count(), 0);
+        assert!(
+            !sdf.validate()
+                .iter()
+                .any(|warning| matches!(warning, SdfWarning::MissingKeys { .. }))
+        );
+    }
+
+    #[test]
+    fn auto_bounds_follow_submitted_scene() {
+        let sdf = sdf();
+        sdf.configure().auto_bounds();
+        sdf.scene(|scene| {
+            scene.union(sphere().key("far").radius(12.0).x(500.0));
+        });
+
+        sdf.with_scene(|scene| {
+            assert!(scene.config.bounds.min.x < 488.0);
+            assert!(scene.config.bounds.max.x > 512.0);
+        });
     }
 
     #[test]
     fn handle_edits_persist_outside_submitted_scenes() {
         let sdf = sdf();
-        let handle = sdf.sphere().radius(5.0).finish_handle();
+        let handle = sdf.insert(sphere().radius(5.0));
         assert!(sdf.sample(Vec3::ZERO).is_some());
 
-        sdf.set_scene(scene().union(cuboid().key("box").w_h_d(2.0, 2.0, 2.0).x(20.0)));
+        sdf.scene(|scene| {
+            scene.union(cuboid().key("box").w_h_d(2.0, 2.0, 2.0).x(20.0));
+        });
         assert!(sdf.sample(Vec3::ZERO).unwrap().distance < 0.0);
 
         sdf.remove(handle);
@@ -2993,11 +3461,10 @@ mod tests {
     #[test]
     fn explicit_subtract_changes_field() {
         let sdf = sdf();
-        sdf.set_scene(
-            scene()
-                .union(sphere().key("ball").radius(10.0))
-                .subtract(sphere().key("cut").radius(4.0)),
-        );
+        sdf.scene(|scene| {
+            scene.union(sphere().key("ball").radius(10.0));
+            scene.subtract(sphere().key("cut").radius(4.0));
+        });
         let sample = sdf.sample(Vec3::ZERO).unwrap();
         assert!(sample.distance > 0.0);
     }
@@ -3005,17 +3472,16 @@ mod tests {
     #[test]
     fn gpu_pack_emits_ordered_shape_stages() {
         let sdf = sdf();
-        sdf.set_scene(
-            scene()
-                .union(sphere().key("ball").radius(10.0))
-                .smooth_subtract(
-                    4.0,
-                    capsule()
-                        .key("cut")
-                        .from_to(Vec3::new(-8.0, 0.0, 0.0), Vec3::new(8.0, 0.0, 0.0))
-                        .radius(2.0),
-                ),
-        );
+        sdf.scene(|scene| {
+            scene.union(sphere().key("ball").radius(10.0));
+            scene.smooth_subtract(
+                4.0,
+                capsule()
+                    .key("cut")
+                    .from_to(Vec3::new(-8.0, 0.0, 0.0), Vec3::new(8.0, 0.0, 0.0))
+                    .radius(2.0),
+            );
+        });
 
         let stages = sdf.with_scene(|scene| scene.pack_for_gpu().stages);
         assert_eq!(stages.len(), 2);
@@ -3036,7 +3502,9 @@ mod tests {
             .voxel_size(1.0)
             .brick_size(8)
             .narrow_band(1.0);
-        sdf.set_scene(scene().union(sphere().key("ball").radius(4.0)));
+        sdf.scene(|scene| {
+            scene.union(sphere().key("ball").radius(4.0));
+        });
 
         sdf.with_scene(|scene| {
             let candidate_bounds = scene.candidate_bounds();
@@ -3064,7 +3532,9 @@ mod tests {
             .voxel_size(1.0)
             .brick_size(8)
             .atlas_capacity(1);
-        sdf.set_scene(scene().union(sphere().key("ball").radius(18.0)));
+        sdf.scene(|scene| {
+            scene.union(sphere().key("ball").radius(18.0));
+        });
 
         let mut scene = sdf.scene.write().expect("Sdf scene lock poisoned");
         let packed = scene.pack_for_gpu();

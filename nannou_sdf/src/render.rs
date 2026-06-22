@@ -515,6 +515,11 @@ impl SdfCamera {
             ..Default::default()
         }
     }
+
+    pub fn fov_degrees(mut self, degrees: f32) -> Self {
+        self.fov_y_radians = degrees.to_radians();
+        self
+    }
 }
 
 impl Default for SdfCamera {
@@ -623,8 +628,39 @@ impl<'a> SdfRenderBuilder<'a> {
         self
     }
 
+    pub fn look_at(mut self, position: Vec3, target: Vec3) -> Self {
+        self.settings.camera.position = position;
+        self.settings.camera.target = target;
+        self
+    }
+
+    pub fn fov_degrees(mut self, degrees: f32) -> Self {
+        self.settings.camera.fov_y_radians = degrees.to_radians();
+        self
+    }
+
     pub fn lighting(mut self, lighting: SdfLighting) -> Self {
         self.settings.lighting = lighting;
+        self
+    }
+
+    pub fn light_dir(mut self, direction: Vec3) -> Self {
+        self.settings.lighting.direction = direction;
+        self
+    }
+
+    pub fn light_color(mut self, color: Vec3) -> Self {
+        self.settings.lighting.color = color;
+        self
+    }
+
+    pub fn ambient(mut self, ambient: f32) -> Self {
+        self.settings.lighting.ambient = ambient;
+        self
+    }
+
+    pub fn diffuse(mut self, diffuse: f32) -> Self {
+        self.settings.lighting.diffuse = diffuse;
         self
     }
 
