@@ -181,12 +181,7 @@ fn build_scene(app: &App, settings: &Settings) {
         .update_budget(SdfUpdateBudget::Unlimited);
 
     field.scene(|scene| {
-        scene.union(
-            sdf::terrain()
-                .key("terrain")
-                .params(params)
-                .color(Color::srgb(0.24, 0.56, 0.31)),
-        );
+        scene.union(sdf::terrain().key("terrain").params(params));
     });
 }
 

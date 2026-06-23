@@ -197,6 +197,61 @@ fn terrain_fbm(xz: vec2<f32>, edit: PackedSdfEdit) -> f32 {
     return 0.0;
 }
 
+fn terrain_height(xz: vec2<f32>, edit: PackedSdfEdit) -> f32 {
+    let amplitude = max(edit.params0.z, 0.0);
+    let base_height = edit.params0.w;
+    return base_height + amplitude * terrain_fbm(xz, edit);
+}
+
+fn terrain_slope(xz: vec2<f32>, edit: PackedSdfEdit) -> f32 {
+    let e = max(sdf_compute.cache.params.x * 2.0, 0.5);
+    let hx = terrain_height(xz + vec2<f32>(e, 0.0), edit) - terrain_height(xz - vec2<f32>(e, 0.0), edit);
+    let hz = terrain_height(xz + vec2<f32>(0.0, e), edit) - terrain_height(xz - vec2<f32>(0.0, e), edit);
+    return length(vec2<f32>(hx, hz)) / (2.0 * e);
+}
+
+fn terrain_color(p: vec3<f32>, edit: PackedSdfEdit) -> vec4<f32> {
+    let size = max(abs(edit.params0.xy), vec2<f32>(0.000001));
+    let half_size = size * 0.5;
+    let xz = clamp(p.xz, -half_size, half_size);
+    let amplitude = max(edit.params0.z, 0.0);
+    let base_height = edit.params0.w;
+    let floor_depth = max(edit.params1.x, 0.0);
+    let height = terrain_height(xz, edit);
+    let bottom = base_height - amplitude - floor_depth;
+    let height_t = clamp((height - (base_height - amplitude)) / max(amplitude * 2.0, 0.000001), 0.0, 1.0);
+    let slope = terrain_slope(xz, edit);
+    let low_noise = terrain_value_noise(xz * 0.035 + edit.params2.yz * 0.37, edit.data.w + 173u);
+    let detail_noise = terrain_value_noise(xz * max(edit.params1.y * 5.0, 0.015) + vec2<f32>(43.1, -17.7), edit.data.w + 719u);
+
+    let low_soil = vec3<f32>(0.18, 0.13, 0.08);
+    let dark_grass = vec3<f32>(0.13, 0.25, 0.11);
+    let meadow = vec3<f32>(0.28, 0.36, 0.16);
+    let dry_grass = vec3<f32>(0.40, 0.36, 0.20);
+    let rock = vec3<f32>(0.36, 0.34, 0.30);
+    let snow = vec3<f32>(0.82, 0.84, 0.78);
+
+    let grass_band = smoothstep(0.16, 0.38, height_t);
+    let alpine_band = smoothstep(0.45, 0.70, height_t);
+    let steep = smoothstep(0.38, 0.95, slope);
+    let high_rock = smoothstep(0.66, 0.82, height_t) * 0.45;
+    let snow_mask = smoothstep(0.78, 0.93, height_t) * (1.0 - smoothstep(0.62, 1.1, slope) * 0.45);
+    let vegetation_variation = clamp(0.5 + low_noise * 0.5, 0.0, 1.0);
+
+    var color = mix(low_soil, dark_grass, grass_band);
+    color = mix(color, meadow, alpine_band * (1.0 - steep * 0.55));
+    color = mix(color, dry_grass, smoothstep(0.52, 0.72, height_t) * (1.0 - steep) * 0.45);
+    color = mix(color, color * vec3<f32>(0.84, 1.08, 0.90), vegetation_variation * (1.0 - steep) * 0.20);
+    color = mix(color, rock, clamp(max(steep, high_rock), 0.0, 1.0));
+    color = mix(color, snow, snow_mask);
+
+    let surface = smoothstep(0.45, 0.90, clamp((p.y - bottom) / max(height - bottom, 0.000001), 0.0, 1.0));
+    color = mix(mix(low_soil, rock, 0.45), color, surface);
+    color = color * (0.92 + low_noise * 0.08 + detail_noise * 0.045);
+    color = color * mix(vec3<f32>(1.0), max(edit.color.rgb, vec3<f32>(0.0)), 0.35);
+    return vec4<f32>(max(color, vec3<f32>(0.0)), edit.color.a);
+}
+
 fn sd_terrain(p: vec3<f32>, edit: PackedSdfEdit) -> f32 {
     let size = max(abs(edit.params0.xy), vec2<f32>(0.000001));
     let half_size = size * 0.5;
@@ -204,7 +259,7 @@ fn sd_terrain(p: vec3<f32>, edit: PackedSdfEdit) -> f32 {
     let amplitude = max(edit.params0.z, 0.0);
     let base_height = edit.params0.w;
     let floor_depth = max(edit.params1.x, 0.0);
-    let height = base_height + amplitude * terrain_fbm(xz, edit);
+    let height = terrain_height(xz, edit);
     let bottom = base_height - amplitude - floor_depth;
     let d = vec4<f32>(
         abs(p.x) - half_size.x,
@@ -275,7 +330,7 @@ fn compute_world_position(brick: vec3<u32>, local: vec3<u32>) -> vec3<f32> {
     return clamp(p, sdf_compute.cache.bounds_min.xyz, sdf_compute.cache.bounds_max.xyz);
 }
 
-fn apply_stage(sample_index: u32, dirty_index: u32, rhs_distance: f32, edit: PackedSdfEdit, stage: PackedSdfStage) {
+fn apply_stage(sample_index: u32, dirty_index: u32, rhs_distance: f32, rhs_color: vec4<f32>, edit: PackedSdfEdit, stage: PackedSdfStage) {
     let dirty = compute_dirty_bricks[dirty_index];
     let slot = dirty.data.x;
     if (slot == INVALID_ATLAS_SLOT) {
@@ -284,7 +339,7 @@ fn apply_stage(sample_index: u32, dirty_index: u32, rhs_distance: f32, edit: Pac
     let atlas_index = compute_atlas_index(slot, compute_local_coord(sample_index));
     let lhs = compute_distance_atlas[atlas_index];
     let lhs_color = compute_color_atlas[atlas_index];
-    let combined = combine_distance(lhs, lhs_color, rhs_distance, edit.color, stage.data.x, stage.params.x);
+    let combined = combine_distance(lhs, lhs_color, rhs_distance, rhs_color, stage.data.x, stage.params.x);
     compute_distance_atlas[atlas_index] = combined.distance;
     compute_color_atlas[atlas_index] = combined.color;
     if (combined.distance == rhs_distance || lhs > FAR_DISTANCE * 0.5) {
@@ -317,7 +372,7 @@ fn sdf_eval_sphere(@builtin(global_invocation_id) id: vec3<u32>) {
     if (dirty.data.x == INVALID_ATLAS_SLOT) { return; }
     let p = compute_world_position(dirty.coord.xyz, compute_local_coord(id.x));
     let local = transform_point(edit, p);
-    apply_stage(id.x, id.y, sd_sphere(local, edit.params0.x) * max(edit.params2.x, 0.000001), edit, stage);
+    apply_stage(id.x, id.y, sd_sphere(local, edit.params0.x) * max(edit.params2.x, 0.000001), edit.color, edit, stage);
 }
 
 @compute @workgroup_size(64)
@@ -329,7 +384,7 @@ fn sdf_eval_cuboid(@builtin(global_invocation_id) id: vec3<u32>) {
     if (dirty.data.x == INVALID_ATLAS_SLOT) { return; }
     let p = compute_world_position(dirty.coord.xyz, compute_local_coord(id.x));
     let local = transform_point(edit, p);
-    apply_stage(id.x, id.y, sd_box(local, edit.params0.xyz, edit.params0.w) * max(edit.params2.x, 0.000001), edit, stage);
+    apply_stage(id.x, id.y, sd_box(local, edit.params0.xyz, edit.params0.w) * max(edit.params2.x, 0.000001), edit.color, edit, stage);
 }
 
 @compute @workgroup_size(64)
@@ -341,7 +396,7 @@ fn sdf_eval_capsule(@builtin(global_invocation_id) id: vec3<u32>) {
     if (dirty.data.x == INVALID_ATLAS_SLOT) { return; }
     let p = compute_world_position(dirty.coord.xyz, compute_local_coord(id.x));
     let local = transform_point(edit, p);
-    apply_stage(id.x, id.y, sd_capsule(local, edit.params0.xyz, edit.params1.xyz, edit.params0.w) * max(edit.params2.x, 0.000001), edit, stage);
+    apply_stage(id.x, id.y, sd_capsule(local, edit.params0.xyz, edit.params1.xyz, edit.params0.w) * max(edit.params2.x, 0.000001), edit.color, edit, stage);
 }
 
 @compute @workgroup_size(64)
@@ -353,7 +408,7 @@ fn sdf_eval_cylinder(@builtin(global_invocation_id) id: vec3<u32>) {
     if (dirty.data.x == INVALID_ATLAS_SLOT) { return; }
     let p = compute_world_position(dirty.coord.xyz, compute_local_coord(id.x));
     let local = transform_point(edit, p);
-    apply_stage(id.x, id.y, sd_cylinder(local, edit.params0.x, edit.params0.y) * max(edit.params2.x, 0.000001), edit, stage);
+    apply_stage(id.x, id.y, sd_cylinder(local, edit.params0.x, edit.params0.y) * max(edit.params2.x, 0.000001), edit.color, edit, stage);
 }
 
 @compute @workgroup_size(64)
@@ -365,7 +420,7 @@ fn sdf_eval_cone(@builtin(global_invocation_id) id: vec3<u32>) {
     if (dirty.data.x == INVALID_ATLAS_SLOT) { return; }
     let p = compute_world_position(dirty.coord.xyz, compute_local_coord(id.x));
     let local = transform_point(edit, p);
-    apply_stage(id.x, id.y, sd_cone(local, edit.params0.x, edit.params0.y, edit.params0.z) * max(edit.params2.x, 0.000001), edit, stage);
+    apply_stage(id.x, id.y, sd_cone(local, edit.params0.x, edit.params0.y, edit.params0.z) * max(edit.params2.x, 0.000001), edit.color, edit, stage);
 }
 
 @compute @workgroup_size(64)
@@ -377,7 +432,7 @@ fn sdf_eval_torus(@builtin(global_invocation_id) id: vec3<u32>) {
     if (dirty.data.x == INVALID_ATLAS_SLOT) { return; }
     let p = compute_world_position(dirty.coord.xyz, compute_local_coord(id.x));
     let local = transform_point(edit, p);
-    apply_stage(id.x, id.y, sd_torus(local, edit.params0.x, edit.params0.y) * max(edit.params2.x, 0.000001), edit, stage);
+    apply_stage(id.x, id.y, sd_torus(local, edit.params0.x, edit.params0.y) * max(edit.params2.x, 0.000001), edit.color, edit, stage);
 }
 
 @compute @workgroup_size(64)
@@ -389,7 +444,7 @@ fn sdf_eval_ellipsoid(@builtin(global_invocation_id) id: vec3<u32>) {
     if (dirty.data.x == INVALID_ATLAS_SLOT) { return; }
     let p = compute_world_position(dirty.coord.xyz, compute_local_coord(id.x));
     let local = transform_point(edit, p);
-    apply_stage(id.x, id.y, sd_ellipsoid(local, edit.params0.xyz) * max(edit.params2.x, 0.000001), edit, stage);
+    apply_stage(id.x, id.y, sd_ellipsoid(local, edit.params0.xyz) * max(edit.params2.x, 0.000001), edit.color, edit, stage);
 }
 
 @compute @workgroup_size(64)
@@ -402,7 +457,7 @@ fn sdf_eval_plane(@builtin(global_invocation_id) id: vec3<u32>) {
     let p = compute_world_position(dirty.coord.xyz, compute_local_coord(id.x));
     let local = transform_point(edit, p);
     let n = normalize(edit.params0.xyz);
-    apply_stage(id.x, id.y, (dot(local, n) - edit.params0.w) * max(edit.params2.x, 0.000001), edit, stage);
+    apply_stage(id.x, id.y, (dot(local, n) - edit.params0.w) * max(edit.params2.x, 0.000001), edit.color, edit, stage);
 }
 
 @compute @workgroup_size(64)
@@ -414,7 +469,7 @@ fn sdf_eval_terrain(@builtin(global_invocation_id) id: vec3<u32>) {
     if (dirty.data.x == INVALID_ATLAS_SLOT) { return; }
     let p = compute_world_position(dirty.coord.xyz, compute_local_coord(id.x));
     let local = transform_point(edit, p);
-    apply_stage(id.x, id.y, sd_terrain(local, edit) * max(edit.params2.x, 0.000001), edit, stage);
+    apply_stage(id.x, id.y, sd_terrain(local, edit) * max(edit.params2.x, 0.000001), terrain_color(local, edit), edit, stage);
 }
 
 @compute @workgroup_size(1)
