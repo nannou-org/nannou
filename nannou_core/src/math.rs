@@ -192,13 +192,31 @@ where
     S::one() + S::one()
 }
 
-/// Models the C++ fmod function.
+/// Models the C/C++ fmod function.
+///
+/// Computes the floating-point remainder of dividing `numer` by `denom`.
+/// The result has the same sign as `numer` and its magnitude is less than
+/// the magnitude of `denom`.
+///
+/// This matches the behavior of C's `fmod()` which uses truncation toward zero
+/// (not floor) for the quotient calculation.
+///
+/// # Examples
+///
+/// ```
+/// use nannou_core::math::fmod;
+///
+/// assert_eq!(fmod(5.1, 3.0), 5.1 % 3.0);
+/// assert_eq!(fmod(-5.1, 3.0), -5.1 % 3.0);
+/// assert_eq!(fmod(5.1, -3.0), 5.1 % -3.0);
+/// assert_eq!(fmod(-5.1, -3.0), -5.1 % -3.0);
+/// ```
 #[inline]
 pub fn fmod<F>(numer: F, denom: F) -> F
 where
     F: Float,
 {
-    let rquot: F = (numer / denom).floor();
+    let rquot: F = (numer / denom).trunc();
     numer - rquot * denom
 }
 
