@@ -208,10 +208,11 @@ pub struct Buffer {
 
 struct FrameInner(*mut crate::stream::frame::Frame);
 
-struct BufferInner(
-    // FIXME: Currently unused - should we be freeing this?
-    #[allow(dead_code)] *mut crate::stream::raw::Buffer,
-);
+/// Wrapper for raw buffer pointer passed to callbacks.
+///
+/// This is intentionally a thin wrapper without a `Drop` implementation
+/// because the underlying buffer is owned by the stream, not by this FFI handle.
+struct BufferInner(*mut crate::stream::raw::Buffer);
 
 struct ApiInner {
     inner: crate::Api,
