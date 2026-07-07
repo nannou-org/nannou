@@ -434,7 +434,7 @@ pub(crate) fn queue_shader_model<SM, QF, RC>(
                 .specialize(&pipeline_cache, &custom_pipeline, key, &mesh.layout)
                 .unwrap();
 
-            phase.add(Transparent3d {
+            phase.add_retained(Transparent3d {
                 sorting_info: TransparentSortingInfo3d::AlwaysOnTop,
                 distance: draw_idx.0 as f32,
                 pipeline,
