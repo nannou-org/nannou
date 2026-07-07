@@ -57,7 +57,7 @@ image = { version = "0.25", default-features = false }
 isf = "0.1.0"
 lasy = "0.4"
 lyon = "1.0"
-midir = "0.10"
+midir = "0.11"
 nokhwa = { version = "0.10", features = ["input-native", "camera-sync-impl"] }
 noise = "0.7"
 notosans = "0.1"
