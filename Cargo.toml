@@ -30,7 +30,7 @@ repository = "https://github.com/nannou-org/nannou.git"
 
 [workspace.dependencies]
 audrey = "0.3"
-bevy = { version = "0.19.0-rc.2", default-features = false }
+bevy = { version = "0.19.0", default-features = false }
 # Pinned to the Bevy 0.19 release candidates while we wait for the stable
 # release. Tracked for a switch back to stable in #TODO (RC -> stable).
 bevy_common_assets = "0.17.0-rc1"
