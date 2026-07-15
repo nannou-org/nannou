@@ -6,7 +6,8 @@
 //! - [**App**](./struct.App.html) - provides a context and API for windowing, devices, etc.
 //! - [**Proxy**](./struct.Proxy.html) - a handle to an **App** that may be used from a non-main
 //!   thread.
-//! - [**LoopMode**](./enum.LoopMode.html) - describes the behaviour of the application event loop.
+//! - [`RunMode`] and [`UpdateModeExt`] - describe the behaviour of the application loop and how
+//!   often the `update`/`view` functions are called.
 use bevy::asset::UnapprovedPathMode;
 use bevy::{
     app::AppExit,
@@ -193,16 +194,37 @@ pub enum RunMode {
     /// Run until the user exits the application.
     #[default]
     UntilExit,
-    /// Run for a fixed number of frames.
-    Ticks(u64),
-    /// Run for a fixed duration (best effort).
-    Duration(Duration),
+    /// Run `update` and `view` a fixed number of times, then hold the last frame on
+    /// screen while the window idles.
+    ///
+    /// The modern equivalent of the old `LoopMode::loop_once()` / `NTimes`: `update`
+    /// and `view` each run exactly `n` times, then the draw is frozen (see
+    /// [`nannou_draw::DrawFrozen`]) so the last frame's rendered meshes keep being
+    /// drawn and the frame stays on screen. The window idles at ~0 CPU and remains
+    /// closable and resizable. Input and window callbacks keep firing; they just no
+    /// longer trigger `update`/`view`.
+    ///
+    /// Because `view` runs a fixed number of times rather than continuously, a
+    /// `sketch` whose `view` reads live `app.time()`/`app.mouse()` is genuinely
+    /// frozen - this is the intended mode for static, sketch-based compositions.
+    ///
+    /// To instead run a fixed number of frames and then *quit* the process (e.g. for
+    /// headless rendering), call [`App::quit`](crate::app::App::quit) from your own
+    /// `update` once a counter reaches the desired frame.
+    LoopNTimes(u64),
 }
 
 impl RunMode {
-    /// Run the main update loop once.
-    pub fn once() -> Self {
-        RunMode::Ticks(1)
+    /// Run `update` and `view` once, then hold that frame on screen while the window
+    /// idles - the modern equivalent of `LoopMode::loop_once()`.
+    pub fn loop_once() -> Self {
+        RunMode::LoopNTimes(1)
+    }
+
+    /// Run `update` and `view` `n` times, then hold the last frame on screen while
+    /// the window idles - the modern equivalent of `LoopMode::loop_ntimes(n)`.
+    pub fn loop_ntimes(n: u64) -> Self {
+        RunMode::LoopNTimes(n)
     }
 }
 
@@ -343,8 +365,8 @@ where
 
     /// A function for updating the model within the application loop.
     ///
-    /// See the `LoopMode` documentation for more information about the different kinds of
-    /// application loop modes available in nannou and how they behave.
+    /// See [`RunMode`] and [`set_update_mode`](App::set_update_mode) for more information about how
+    /// often the loop runs and how the `update`/`view` functions are scheduled.
     ///
     /// Update events are also emitted as a variant of the `event` function. Note that if you
     /// specify both an `event` function and an `update` function, the `event` function will always
@@ -398,6 +420,24 @@ where
         self.ensure_initialized();
         self.app.insert_resource(run_mode);
         self
+    }
+
+    /// Run `update` and `view` once, then hold that frame on screen while the window
+    /// idles - the modern equivalent of `LoopMode::loop_once()`.
+    ///
+    /// Shorthand for [`set_run_mode`](Self::set_run_mode) with
+    /// [`RunMode::loop_once`].
+    pub fn loop_once(self) -> Self {
+        self.set_run_mode(RunMode::loop_once())
+    }
+
+    /// Run `update` and `view` `n` times, then hold the last frame on screen while
+    /// the window idles - the modern equivalent of `LoopMode::loop_ntimes(n)`.
+    ///
+    /// Shorthand for [`set_run_mode`](Self::set_run_mode) with
+    /// [`RunMode::loop_ntimes`].
+    pub fn loop_ntimes(self, n: u64) -> Self {
+        self.set_run_mode(RunMode::loop_ntimes(n))
     }
 
     pub fn shader_model<SM>(mut self) -> Self
@@ -497,7 +537,7 @@ where
                     window_closed_events::<M>,
                 ),
             )
-            .add_systems(Last, last::<M>)
+            .add_systems(Last, (apply_loop_once, last::<M>))
             .run();
     }
 }
@@ -520,6 +560,24 @@ impl SketchBuilder {
     /// The size of the sketch window.
     pub fn size(mut self, width: u32, height: u32) -> Self {
         self.builder = self.builder.size(width, height);
+        self
+    }
+
+    /// Draw the sketch once, then hold that frame on screen while the window idles -
+    /// the modern equivalent of `LoopMode::loop_once()`.
+    ///
+    /// `view` runs exactly once, so the composition is frozen (even a sketch whose
+    /// `view` reads live `app.time()`/`app.mouse()`). The window idles at ~0 CPU and
+    /// stays closable and resizable.
+    pub fn loop_once(mut self) -> Self {
+        self.builder = self.builder.loop_once();
+        self
+    }
+
+    /// Draw the sketch `n` times, then hold the last frame on screen while the window
+    /// idles. See [`loop_once`](Self::loop_once).
+    pub fn loop_ntimes(mut self, n: u64) -> Self {
+        self.builder = self.builder.loop_ntimes(n);
         self
     }
 
@@ -721,29 +779,19 @@ fn update<M>(
     view_fn: Res<ViewFnRes<M>>,
     mut model: ResMut<ModelHolder<M>>,
     run_mode: Res<RunMode>,
-    time: Res<Time>,
-    mut ticks: Local<u64>,
+    draw_frozen: Res<nannou_draw::DrawFrozen>,
     windows: Query<(Entity, &WindowUserFunctions<M>)>,
 ) where
     M: 'static + Send + Sync,
 {
-    match *run_mode {
-        RunMode::UntilExit => {
-            // Do nothing, we'll quit when the user closes the window.
+    // Once a `LoopNTimes` draw has been frozen (see `apply_loop_once`), stop advancing
+    // the model and re-running `view`. The frozen draw meshes keep the last frame on
+    // screen, so `update` and `view` each run exactly `n` times in total.
+    if let RunMode::LoopNTimes(_) = *run_mode {
+        if draw_frozen.0 {
+            return;
         }
-        RunMode::Ticks(run_ticks) => {
-            if *ticks >= run_ticks {
-                app.quit();
-                return;
-            }
-        }
-        RunMode::Duration(duration) => {
-            if time.elapsed() >= duration {
-                app.quit();
-                return;
-            }
-        }
-    };
+    }
 
     // Run the model update function. Reset the current view first so `app.draw()` called from
     // `update` targets the focused window rather than the last window of the previous frame's
@@ -778,8 +826,45 @@ fn update<M>(
             }
         }
     }
+}
 
-    *ticks += 1;
+/// Freeze the draw once a [`RunMode::LoopNTimes`] budget has been rendered.
+///
+/// Runs in `Last`, after `update_draw_mesh` (`PostUpdate`) has spawned the frame's
+/// meshes and before the next frame's `clear_previous_frame` (`First`) would despawn
+/// them, so the last rendered frame's meshes are preserved. Setting [`nannou_draw::DrawFrozen`]
+/// then stops the draw systems and, via [`update`], the user's `update`/`view`; switching to
+/// [`UpdateMode::freeze`] idles the loop while keeping the window closable and resizable.
+fn apply_loop_once(
+    app: App,
+    run_mode: Res<RunMode>,
+    mut draw_frozen: ResMut<nannou_draw::DrawFrozen>,
+    mut rendered: Local<u64>,
+) {
+    // Reset the freeze state whenever the run mode changes, so a loop mode can be
+    // (re-)entered at runtime via `App::set_run_mode`. Harmless at build time (the
+    // resource reads as changed on the first frame, re-affirming the defaults).
+    if run_mode.is_changed() {
+        *rendered = 0;
+        draw_frozen.0 = false;
+        // Entering a loop mode needs a driving update mode so its frames render before
+        // it freezes below. Other modes leave the update mode to the caller.
+        if matches!(*run_mode, RunMode::LoopNTimes(_)) {
+            app.set_update_mode(UpdateMode::Continuous);
+        }
+    }
+
+    let RunMode::LoopNTimes(n) = *run_mode else {
+        return;
+    };
+    if draw_frozen.0 {
+        return;
+    }
+    *rendered += 1;
+    if *rendered >= n {
+        draw_frozen.0 = true;
+        app.set_update_mode(UpdateMode::freeze());
+    }
 }
 
 #[allow(clippy::type_complexity)]
@@ -1086,6 +1171,11 @@ pub trait UpdateModeExt {
     fn wait() -> UpdateMode;
     /// Stop driving updates from the frame loop, while still reacting to window events so
     /// the window can be closed, resized and redrawn.
+    ///
+    /// Note that `bevy_winit` treats cursor movement over a focused window as a window event,
+    /// so a bare `freeze` still re-runs `update`/`view` whenever the mouse moves. For a true
+    /// "draw once, then hold" loop use [`RunMode::loop_once`], which caps how many times
+    /// `update`/`view` run regardless of input and holds the last frame on screen.
     fn freeze() -> UpdateMode;
     /// Drive updates at a fixed rate of `hz` ticks per second, like Processing's
     /// `frameRate`.

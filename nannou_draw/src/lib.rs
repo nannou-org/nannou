@@ -31,9 +31,26 @@ impl Plugin for NannouDrawPlugin {
             app.add_plugins(bevy::text::TextPlugin);
         }
         text::font::init_shared_text_cx(app);
-        app.add_plugins(NannouRenderPlugin)
-            .add_systems(First, (spawn_draw, reset_draw).chain());
+        app.init_resource::<DrawFrozen>()
+            .add_plugins(NannouRenderPlugin)
+            // `spawn_draw` stays ungated so newly created windows always get a `Draw`;
+            // `reset_draw` is skipped while frozen so the recorded scene is retained.
+            .add_systems(First, (spawn_draw, reset_draw.run_if(draw_active)).chain());
     }
+}
+
+/// When set, the per-frame draw systems (`reset_draw`, `clear_previous_frame` and
+/// `update_draw_mesh`) are skipped so the last frame's rendered meshes and camera
+/// clear color persist and keep being drawn by the render graph.
+///
+/// nannou's single-view run mode (`RunMode::loop_once`) sets this once the frame has
+/// been drawn, holding a static frame on screen without re-running the user's `view`.
+#[derive(Resource, Default)]
+pub struct DrawFrozen(pub bool);
+
+/// Run condition gating the per-frame draw systems on [`DrawFrozen`].
+pub(crate) fn draw_active(frozen: Res<DrawFrozen>) -> bool {
+    !frozen.0
 }
 
 fn reset_draw(mut draw_q: Query<&mut Draw>) {
