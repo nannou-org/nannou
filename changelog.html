@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-5c3bab5e.js";
+            window.path_to_searchindex_js = "searchindex-cabf821b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-fb0cdf53.js"></script>
@@ -177,6 +177,47 @@
                         <h1 id="changelog"><a class="header" href="#changelog">Changelog</a></h1>
 <p>All notable changes to nannou should be documented below! From the most recent,
 back to the origins.</p>
+<hr>
+<h1 id="unreleased"><a class="header" href="#unreleased">Unreleased</a></h1>
+<ul>
+<li>
+<p>Added <code>RunMode::loop_once()</code> and <code>RunMode::loop_ntimes(n)</code>, with matching
+<code>.loop_once()</code> / <code>.loop_ntimes(n)</code> shortcuts on both the app <code>Builder</code> and the
+<code>SketchBuilder</code>. These run <code>update</code> and <code>view</code> a fixed number of times and then
+hold the last frame on screen while the window idles (~0 CPU) and stays closable
+and resizable - the modern equivalent of the old <code>LoopMode::loop_once()</code> /
+<code>NTimes</code>, ideal for static <code>sketch</code>-based compositions. This fills a gap left by
+the Bevy refactor: no single <code>UpdateMode</code> could both ignore mouse movement and
+stay responsive, because <code>bevy_winit</code> cannot distinguish cursor movement from
+window close/resize (both are “window events”). The static frame is held by
+freezing the draw (the rendered meshes persist and keep being drawn) rather than
+by re-running <code>view</code>, so <code>view</code> runs exactly <code>n</code> times even for a sketch that
+reads live time or input.</p>
+<p>Migrating from the pre-0.20 <code>LoopMode</code>:</p>
+<ul>
+<li><code>LoopMode::loop_once()</code> -&gt; <code>RunMode::loop_once()</code> (or <code>.loop_once()</code> on the app
+or sketch builder).</li>
+<li><code>LoopMode::loop_ntimes(n)</code> -&gt; <code>RunMode::loop_ntimes(n)</code>.</li>
+<li><code>LoopMode::Wait</code> -&gt; <code>app.set_update_mode(UpdateMode::wait())</code>.</li>
+<li><code>LoopMode::Rate</code> / <code>rate_fps(fps)</code> -&gt; <code>app.set_update_rate(fps)</code> or
+<code>UpdateMode::rate(hz)</code>.</li>
+<li><code>LoopMode::RefreshSync</code> -&gt; <code>UpdateMode::Continuous</code> (the default).</li>
+</ul>
+</li>
+<li>
+<p>Added <code>App::set_run_mode(..)</code> to change the <code>RunMode</code> at runtime (e.g. to switch
+into or out of a loop mode), mirroring <code>App::set_update_mode</code>. Entering a loop mode
+resets its budget and drives the loop until it freezes, so loop modes can be entered
+and re-entered live. See the new <code>run_modes</code> example for switching between
+Continuous, reactive-rate, wait, and loop modes with the keyboard.</p>
+</li>
+<li>
+<p>Removed <code>RunMode::Ticks(n)</code>, <code>RunMode::Duration(..)</code> and <code>RunMode::once()</code>. They
+were unused, undocumented, and <code>once()</code> (quit after one frame) was easily confused
+with <code>loop_once()</code> (hold after one frame). To run a fixed number of frames and then
+quit, call <code>App::quit()</code> from your own <code>update</code> once a counter reaches the target.</p>
+</li>
+</ul>
 <hr>
 <h1 id="version-0200-2026-06-20"><a class="header" href="#version-0200-2026-06-20">Version 0.20.0 (2026-06-20)</a></h1>
 <h2 id="the-bevy-refactor"><a class="header" href="#the-bevy-refactor">The Bevy Refactor</a></h2>
