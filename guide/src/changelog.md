@@ -5,6 +5,44 @@ back to the origins.
 
 ---
 
+# Unreleased
+
+- Added `RunMode::loop_once()` and `RunMode::loop_ntimes(n)`, with matching
+  `.loop_once()` / `.loop_ntimes(n)` shortcuts on both the app `Builder` and the
+  `SketchBuilder`. These run `update` and `view` a fixed number of times and then
+  hold the last frame on screen while the window idles (~0 CPU) and stays closable
+  and resizable - the modern equivalent of the old `LoopMode::loop_once()` /
+  `NTimes`, ideal for static `sketch`-based compositions. This fills a gap left by
+  the Bevy refactor: no single `UpdateMode` could both ignore mouse movement and
+  stay responsive, because `bevy_winit` cannot distinguish cursor movement from
+  window close/resize (both are "window events"). The static frame is held by
+  freezing the draw (the rendered meshes persist and keep being drawn) rather than
+  by re-running `view`, so `view` runs exactly `n` times even for a sketch that
+  reads live time or input.
+
+  Migrating from the pre-0.20 `LoopMode`:
+
+  - `LoopMode::loop_once()` -> `RunMode::loop_once()` (or `.loop_once()` on the app
+    or sketch builder).
+  - `LoopMode::loop_ntimes(n)` -> `RunMode::loop_ntimes(n)`.
+  - `LoopMode::Wait` -> `app.set_update_mode(UpdateMode::wait())`.
+  - `LoopMode::Rate` / `rate_fps(fps)` -> `app.set_update_rate(fps)` or
+    `UpdateMode::rate(hz)`.
+  - `LoopMode::RefreshSync` -> `UpdateMode::Continuous` (the default).
+
+- Added `App::set_run_mode(..)` to change the `RunMode` at runtime (e.g. to switch
+  into or out of a loop mode), mirroring `App::set_update_mode`. Entering a loop mode
+  resets its budget and drives the loop until it freezes, so loop modes can be entered
+  and re-entered live. See the new `run_modes` example for switching between
+  Continuous, reactive-rate, wait, and loop modes with the keyboard.
+
+- Removed `RunMode::Ticks(n)`, `RunMode::Duration(..)` and `RunMode::once()`. They
+  were unused, undocumented, and `once()` (quit after one frame) was easily confused
+  with `loop_once()` (hold after one frame). To run a fixed number of frames and then
+  quit, call `App::quit()` from your own `update` once a counter reaches the target.
+
+---
+
 # Version 0.20.0 (2026-06-20)
 
 ## The Bevy Refactor

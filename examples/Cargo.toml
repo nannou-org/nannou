@@ -180,6 +180,9 @@ path = "nannou_basics/multi_window_draw.rs"
 [[example]]
 name = "simple_window"
 path = "nannou_basics/simple_window.rs"
+[[example]]
+name = "loop_once"
+path = "nannou_basics/loop_once.rs"
 
 # Offline
 [[example]]

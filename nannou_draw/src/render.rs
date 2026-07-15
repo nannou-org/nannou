@@ -157,7 +157,10 @@ impl Plugin for NannouRenderPlugin {
             NannouShaderModelPlugin::<DefaultNannouShaderModel>::default(),
         ))
         .init_resource::<TextModelKeepalive>()
-        .add_systems(First, clear_previous_frame)
+        // Both are skipped while `DrawFrozen` is set so the last frame's meshes are
+        // neither despawned (`clear_previous_frame`) nor rebuilt (`update_draw_mesh`),
+        // leaving them - and the camera clear color - in place for the render graph.
+        .add_systems(First, clear_previous_frame.run_if(crate::draw_active))
         // `update_draw_mesh` (re)spawns the draw meshes each frame, so it must run
         // before Bevy computes visibility - otherwise the freshly spawned meshes
         // have `ViewVisibility == false` when the render-world extraction runs and
@@ -166,6 +169,7 @@ impl Plugin for NannouRenderPlugin {
         .add_systems(
             PostUpdate,
             update_draw_mesh
+                .run_if(crate::draw_active)
                 .before(VisibilitySystems::VisibilityPropagate)
                 .after(bevy::text::load_font_assets_into_font_collection),
         );

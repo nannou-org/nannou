@@ -57,7 +57,7 @@ use std::cell::{Cell, RefCell};
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
 
-use crate::app::{UpdateModeExt, find_project_path};
+use crate::app::{RunMode, UpdateModeExt, find_project_path};
 use crate::camera::{CameraComponents, SetCamera};
 use crate::light::{LightComponents, SetLight};
 use crate::prelude::render::NannouCamera;
@@ -394,6 +394,20 @@ impl<'w, 's> App<'w, 's> {
         self.par_commands.command_scope(|mut commands| {
             commands.queue(|world: &mut World| {
                 world.write_message(AppExit::Success);
+            });
+        });
+    }
+
+    /// Set the [`RunMode`] at runtime, e.g. to switch into or out of a loop mode.
+    ///
+    /// Entering a loop mode (`RunMode::loop_once`/`loop_ntimes`) resets its frame budget
+    /// and drives the loop until it freezes; switching to another mode leaves the update
+    /// mode to you (pair it with [`set_update_mode`](Self::set_update_mode) if you want to
+    /// resume continuous animation).
+    pub fn set_run_mode(&self, run_mode: RunMode) {
+        self.par_commands.command_scope(move |mut commands| {
+            commands.queue(move |world: &mut World| {
+                *world.resource_mut::<RunMode>() = run_mode;
             });
         });
     }
