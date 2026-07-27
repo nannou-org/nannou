@@ -308,7 +308,7 @@ where
                         // initialization has a canvas to attach to when configuring the surface.
                         primary_window: Some(Window {
                             title: "Nannou".to_string(),
-                            resolution: (1024.0, 768.0).into(),
+                            resolution: (1024_u32, 768_u32).into(),
                             present_mode: crate::window::DEFAULT_PRESENT_MODE,
                             ..default()
                         }),

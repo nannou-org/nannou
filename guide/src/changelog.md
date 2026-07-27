@@ -7,6 +7,23 @@ back to the origins.
 
 # Unreleased
 
+- Fixed three issues with primary-window initialization on wasm:
+
+  - The 1024×768 bootstrap `WindowResolution` now uses integer dimensions,
+    restoring `wasm32-unknown-unknown` compilation with Bevy 0.19, which does not
+    implement `From<(f64, f64)>` for `WindowResolution`.
+  - Window reads immediately following
+    `app.new_window().primary().size(...).build()` now return the pending
+    configuration instead of the stale 1024×768 bootstrap state. Pending state is
+    preferred only during the frame in which it was recorded, so subsequent
+    reads continue to reflect live resize, focus, and cursor state. This prevents
+    application coordinates initialized in `model` from disagreeing with later
+    mouse and egui input.
+  - New window builders now inherit the bootstrap window's scale factor before
+    applying logical dimensions. On high-DPI wasm displays, `.size(...)` therefore
+    produces the requested logical canvas size while keeping nannou, mouse, and
+    egui coordinates aligned.
+
 - Added `RunMode::loop_once()` and `RunMode::loop_ntimes(n)`, with matching
   `.loop_once()` / `.loop_ntimes(n)` shortcuts on both the app `Builder` and the
   `SketchBuilder`. These run `update` and `view` a fixed number of times and then

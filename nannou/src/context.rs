@@ -102,15 +102,19 @@ pub struct App<'w, 's> {
     // The window whose `view` is currently being run, set by the classic driver systems so that
     // `draw()` targets the right window. `None` falls back to the focused window.
     current_view: Local<'s, Cell<Option<Entity>>>,
-    // Windows created this run via `new_window` but not yet spawned (spawns are deferred through the
-    // command queue). Lets the classic `model` read back a window it just created in the same call,
-    // e.g. `app.new_window().build(); let r = app.window_rect();`. The `bool` records whether the
-    // window was requested as primary, so `main_window` can resolve it before it spawns.
+    // Windows created this frame via `new_window` whose deferred commands have not yet been
+    // applied. Lets the classic `model` read back a window it just created in the same call, e.g.
+    // `app.new_window().build(); let r = app.window_rect();`.
     pending_windows: Local<'s, RefCell<Vec<PendingWindow>>>,
 }
 
-/// A window created this call but not yet spawned: `(entity, primary, component)`.
-type PendingWindow = (Entity, bool, bevy::window::Window);
+/// A window created or reconfigured this frame whose deferred command has not yet been applied.
+struct PendingWindow {
+    entity: Entity,
+    primary: bool,
+    frame_count: u32,
+    window: bevy::window::Window,
+}
 
 impl<'w, 's> App<'w, 's> {
     /// The elapsed seconds since startup.
@@ -150,34 +154,45 @@ impl<'w, 's> App<'w, 's> {
         self.mouse_buttons.clone()
     }
 
-    /// Run `f` with the [`Window`](bevy::window::Window) component for `entity`, from the world or
-    /// (for a window created this call but not yet spawned) the pending-window cache.
+    /// Run `f` with the [`Window`](bevy::window::Window) component for `entity`.
+    ///
+    /// A window created or reconfigured during the current frame takes precedence over the world
+    /// because its deferred command may not have been applied yet.
     pub(crate) fn with_window<R>(
         &self,
         entity: Entity,
         f: impl FnOnce(&bevy::window::Window) -> R,
     ) -> Option<R> {
+        let pending = self.pending_windows.borrow();
+        if let Some(window) = pending
+            .iter()
+            .rev()
+            .find(|pending| pending.entity == entity && pending.frame_count == self.frame_count.0)
+            .map(|pending| &pending.window)
+        {
+            return Some(f(window));
+        }
+        drop(pending);
+
         if let Ok((_, window)) = self.windows.get(entity) {
             return Some(f(window));
         }
-        let pending = self.pending_windows.borrow();
-        pending
-            .iter()
-            .rev()
-            .find(|(e, _, _)| *e == entity)
-            .map(|(_, _, w)| f(w))
+        None
     }
 
-    /// Record a window created this call but not yet spawned, so it can be read back immediately.
+    /// Record a window created or reconfigured this frame so it can be read back immediately.
     pub(crate) fn record_pending_window(
         &self,
         entity: Entity,
         primary: bool,
         window: bevy::window::Window,
     ) {
-        self.pending_windows
-            .borrow_mut()
-            .push((entity, primary, window));
+        self.pending_windows.borrow_mut().push(PendingWindow {
+            entity,
+            primary,
+            frame_count: self.frame_count.0,
+            window,
+        });
     }
 
     /// The current mouse position in points, relative to the centre of the focused window.
@@ -216,8 +231,14 @@ impl<'w, 's> App<'w, 's> {
             return entity;
         }
         // Then a window created this call but not yet spawned (e.g. just built in `model`).
-        if let Some((entity, _, _)) = self.pending_windows.borrow().last() {
-            return *entity;
+        if let Some(pending) = self
+            .pending_windows
+            .borrow()
+            .iter()
+            .rev()
+            .find(|pending| pending.frame_count == self.frame_count.0)
+        {
+            return pending.entity;
         }
         // Finally, any open window (e.g. a freshly-spawned window not yet focused).
         self.windows
@@ -238,7 +259,10 @@ impl<'w, 's> App<'w, 's> {
         let pending = self.pending_windows.borrow();
         let pending_count = pending
             .iter()
-            .filter(|(e, _, _)| self.windows.get(*e).is_err())
+            .filter(|pending| {
+                pending.frame_count == self.frame_count.0
+                    && self.windows.get(pending.entity).is_err()
+            })
             .count();
         query_count + pending_count
     }
@@ -478,9 +502,9 @@ impl<'w, 's> App<'w, 's> {
     /// [`Entity`] from [`build`](crate::window::Builder::build).
     pub fn new_window<M: 'static>(&self) -> crate::window::Builder<'_, 'w, 's, M> {
         // Drop any pending windows that have since been spawned, so the cache stays bounded.
-        self.pending_windows
-            .borrow_mut()
-            .retain(|(e, _, _)| self.windows.get(*e).is_err());
+        self.pending_windows.borrow_mut().retain(|pending| {
+            pending.frame_count == self.frame_count.0 && self.windows.get(pending.entity).is_err()
+        });
         crate::window::Builder::new(self)
     }
 
@@ -538,8 +562,8 @@ impl<'w, 's> App<'w, 's> {
                     .borrow()
                     .iter()
                     .rev()
-                    .find(|(_, primary, _)| *primary)
-                    .map(|(e, _, _)| *e)
+                    .find(|pending| pending.primary && pending.frame_count == self.frame_count.0)
+                    .map(|pending| pending.entity)
             })
             // No window is explicitly primary: fall back to the current window.
             .unwrap_or_else(|| self.window_id());

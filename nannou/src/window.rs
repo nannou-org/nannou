@@ -207,12 +207,26 @@ where
 {
     /// Begin building a new window.
     pub fn new(app: &'a App<'w, 's>) -> Self {
+        #[cfg(not(target_arch = "wasm32"))]
+        let window = bevy::window::Window {
+            present_mode: DEFAULT_PRESENT_MODE,
+            ..bevy::window::Window::default()
+        };
+        #[cfg(target_arch = "wasm32")]
+        let window = {
+            let mut resolution = bevy::window::WindowResolution::default();
+            resolution
+                .set_scale_factor_and_apply_to_physical_size(app.main_window().scale_factor());
+            bevy::window::Window {
+                present_mode: DEFAULT_PRESENT_MODE,
+                resolution,
+                ..bevy::window::Window::default()
+            }
+        };
+
         Builder {
             app,
-            window: bevy::window::Window {
-                present_mode: DEFAULT_PRESENT_MODE,
-                ..bevy::window::Window::default()
-            },
+            window,
             camera: None,
             light: None,
             primary: false,
