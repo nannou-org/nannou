@@ -39,73 +39,73 @@ fn view(app: &App, _model: &Model, _entity: Entity) {
 }
 
 fn key_pressed(_app: &App, _model: &mut Model, key: KeyCode) {
-	println!("key pressed: {:?}", key);
+    println!("key pressed: {:?}", key);
 }
 
 fn key_released(_app: &App, _model: &mut Model, key: KeyCode) {
-	println!("key released: {:?}", key);
+    println!("key released: {:?}", key);
 }
 
 fn received_character(_app: &App, _model: &mut Model, c: char) {
-	println!("received character: {}", c);
+    println!("received character: {}", c);
 }
 
 fn mouse_moved(_app: &App, _model: &mut Model, pos: Point2) {
-	println!("mouse moved: {:?}", pos);
+    println!("mouse moved: {:?}", pos);
 }
 
 fn mouse_pressed(_app: &App, _model: &mut Model, button: MouseButton) {
-	println!("mouse pressed: {:?}", button);
+    println!("mouse pressed: {:?}", button);
 }
 
 fn mouse_released(_app: &App, _model: &mut Model, button: MouseButton) {
-	println!("mouse released: {:?}", button);
+    println!("mouse released: {:?}", button);
 }
 
 fn mouse_wheel(_app: &App, _model: &mut Model, wheel: MouseWheel) {
-	println!("mouse wheel: {:?}", wheel);
+    println!("mouse wheel: {:?}", wheel);
 }
 
 fn mouse_entered(_app: &App, _model: &mut Model) {
-	println!("mouse entered");
+    println!("mouse entered");
 }
 
 fn mouse_exited(_app: &App, _model: &mut Model) {
-	println!("mouse exited");
+    println!("mouse exited");
 }
 
 fn touch(_app: &App, _model: &mut Model, touch: TouchInput) {
-	println!("touch: {:?}", touch);
+    println!("touch: {:?}", touch);
 }
 
 fn window_moved(_app: &App, _model: &mut Model, pos: IVec2) {
-	println!("window moved: {:?}", pos);
+    println!("window moved: {:?}", pos);
 }
 
 fn window_resized(_app: &App, _model: &mut Model, dim: Vec2) {
-	println!("window resized: {:?}", dim);
+    println!("window resized: {:?}", dim);
 }
 
 fn window_focused(_app: &App, _model: &mut Model) {
-	println!("window focused");
+    println!("window focused");
 }
 
 fn window_unfocused(_app: &App, _model: &mut Model) {
-	println!("window unfocused");
+    println!("window unfocused");
 }
 
 fn window_closed(_app: &App, _model: &mut Model) {
-	println!("window closed");
+    println!("window closed");
 }
 
 fn hovered_file(_app: &App, _model: &mut Model, path: std::path::PathBuf) {
-	println!("hovered file: {:?}", path);
+    println!("hovered file: {:?}", path);
 }
 
 fn hovered_file_cancelled(_app: &App, _model: &mut Model) {
-	println!("hovered file cancelled");
+    println!("hovered file cancelled");
 }
 
 fn dropped_file(_app: &App, _model: &mut Model, path: std::path::PathBuf) {
-	println!("dropped file: {:?}", path);
+    println!("dropped file: {:?}", path);
 }
