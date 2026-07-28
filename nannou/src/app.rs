@@ -22,7 +22,7 @@ use bevy::{
         TypeInfo,
     },
     render::extract_resource::ExtractResource,
-    window::{ExitCondition, WindowClosed, WindowEvent, WindowFocused, WindowResized},
+    window::{ExitCondition, WindowEvent, WindowFocused, WindowResized},
     winit::UpdateMode,
 };
 // TODO: re-enable once `bevy-inspector-egui` supports Bevy 0.19 (see the
@@ -534,9 +534,9 @@ where
                     touch_events::<M>,
                     file_drop_events::<M>,
                     window_focus_events::<M>,
-                    window_closed_events::<M>,
                 ),
             )
+            .add_observer(window_closed_observer::<M>)
             .add_systems(Last, (apply_loop_once, last::<M>))
             .run();
     }
@@ -1122,7 +1122,23 @@ fn window_focus_events<M>(
     }
 }
 
-window_event_driver!(window_closed_events, WindowClosed, closed);
+/// Invoke a window's `closed` callback as its entity is despawned.
+fn window_closed_observer<M>(
+    closed: On<Remove, WindowUserFunctions<M>>,
+    app: App,
+    user_fns: Query<&WindowUserFunctions<M>>,
+    mut model: ResMut<ModelHolder<M>>,
+) where
+    M: 'static + Send + Sync,
+{
+    let entity = closed.entity;
+    if let Ok(user_fns) = user_fns.get(entity) {
+        if let Some(f) = user_fns.closed {
+            app.set_current_view(Some(entity));
+            f(&app, &mut model);
+        }
+    }
+}
 
 fn last<M>(world: &mut World, exit_state: &mut SystemState<MessageReader<AppExit>>)
 where
