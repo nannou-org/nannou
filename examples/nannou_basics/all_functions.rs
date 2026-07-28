@@ -11,6 +11,7 @@ fn model(app: &App) -> Model {
         .size(720, 720)
         .key_pressed(key_pressed)
         .key_released(key_released)
+        .received_character(received_character)
         .mouse_moved(mouse_moved)
         .mouse_pressed(mouse_pressed)
         .mouse_released(mouse_released)
@@ -37,36 +38,74 @@ fn view(app: &App, _model: &Model, _entity: Entity) {
     draw.background().color(SKY_BLUE);
 }
 
-fn key_pressed(_app: &App, _model: &mut Model, _key: KeyCode) {}
+fn key_pressed(_app: &App, _model: &mut Model, key: KeyCode) {
+    println!("key pressed: {:?}", key);
+}
 
-fn key_released(_app: &App, _model: &mut Model, _key: KeyCode) {}
+fn key_released(_app: &App, _model: &mut Model, key: KeyCode) {
+    println!("key released: {:?}", key);
+}
 
-fn mouse_moved(_app: &App, _model: &mut Model, _pos: Point2) {}
+fn received_character(_app: &App, _model: &mut Model, c: char) {
+    println!("received character: {}", c);
+}
 
-fn mouse_pressed(_app: &App, _model: &mut Model, _button: MouseButton) {}
+fn mouse_moved(_app: &App, _model: &mut Model, pos: Point2) {
+    println!("mouse moved: {:?}", pos);
+}
 
-fn mouse_released(_app: &App, _model: &mut Model, _button: MouseButton) {}
+fn mouse_pressed(_app: &App, _model: &mut Model, button: MouseButton) {
+    println!("mouse pressed: {:?}", button);
+}
 
-fn mouse_wheel(_app: &App, _model: &mut Model, _wheel: MouseWheel) {}
+fn mouse_released(_app: &App, _model: &mut Model, button: MouseButton) {
+    println!("mouse released: {:?}", button);
+}
 
-fn mouse_entered(_app: &App, _model: &mut Model) {}
+fn mouse_wheel(_app: &App, _model: &mut Model, wheel: MouseWheel) {
+    println!("mouse wheel: {:?}", wheel);
+}
 
-fn mouse_exited(_app: &App, _model: &mut Model) {}
+fn mouse_entered(_app: &App, _model: &mut Model) {
+    println!("mouse entered");
+}
 
-fn touch(_app: &App, _model: &mut Model, _touch: TouchInput) {}
+fn mouse_exited(_app: &App, _model: &mut Model) {
+    println!("mouse exited");
+}
 
-fn window_moved(_app: &App, _model: &mut Model, _pos: IVec2) {}
+fn touch(_app: &App, _model: &mut Model, touch: TouchInput) {
+    println!("touch: {:?}", touch);
+}
 
-fn window_resized(_app: &App, _model: &mut Model, _dim: Vec2) {}
+fn window_moved(_app: &App, _model: &mut Model, pos: IVec2) {
+    println!("window moved: {:?}", pos);
+}
 
-fn window_focused(_app: &App, _model: &mut Model) {}
+fn window_resized(_app: &App, _model: &mut Model, dim: Vec2) {
+    println!("window resized: {:?}", dim);
+}
 
-fn window_unfocused(_app: &App, _model: &mut Model) {}
+fn window_focused(_app: &App, _model: &mut Model) {
+    println!("window focused");
+}
 
-fn window_closed(_app: &App, _model: &mut Model) {}
+fn window_unfocused(_app: &App, _model: &mut Model) {
+    println!("window unfocused");
+}
 
-fn hovered_file(_app: &App, _model: &mut Model, _path: std::path::PathBuf) {}
+fn window_closed(_app: &App, _model: &mut Model) {
+    println!("window closed");
+}
 
-fn hovered_file_cancelled(_app: &App, _model: &mut Model) {}
+fn hovered_file(_app: &App, _model: &mut Model, path: std::path::PathBuf) {
+    println!("hovered file: {:?}", path);
+}
 
-fn dropped_file(_app: &App, _model: &mut Model, _path: std::path::PathBuf) {}
+fn hovered_file_cancelled(_app: &App, _model: &mut Model) {
+    println!("hovered file cancelled");
+}
+
+fn dropped_file(_app: &App, _model: &mut Model, path: std::path::PathBuf) {
+    println!("dropped file: {:?}", path);
+}
