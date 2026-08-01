@@ -14,6 +14,6 @@ discussing and merging changes to a codebase.
 In the next section we'll take a look at a checklist for opening PRs at the
 nannou repo.
 
-[duckduckgo-pr]: https://duckduckgo.com/?t=ffab&q=how+to+make+a+pul+request+github&ia=web
+[duckduckgo-pr]: https://duckduckgo.com/?t=ffab&q=how+to+make+a+pull+request+github&ia=web
 [git]: https://en.wikipedia.org/wiki/Git
 [nannou-github]: https://github.com/nannou-org/nannou
