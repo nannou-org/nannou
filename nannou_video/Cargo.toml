@@ -10,6 +10,7 @@ license.workspace = true
 bevy = { workspace = true, default-features = false, features = [
     "bevy_asset",
     "bevy_render",
+    "std",
 ]}
 thiserror.workspace = true
 flume.workspace = true

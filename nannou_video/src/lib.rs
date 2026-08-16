@@ -8,6 +8,8 @@ mod events;
 #[cfg(not(target_arch = "wasm32"))]
 mod player;
 #[cfg(not(target_arch = "wasm32"))]
+mod recorder;
+#[cfg(not(target_arch = "wasm32"))]
 mod worker;
 
 #[cfg(target_arch = "wasm32")]
@@ -18,6 +20,8 @@ pub use components::{HwAccelPolicy, PlaybackMode, SeekTo, VideoOutput, VideoPlay
 pub use events::{VideoEnded, VideoFailed, VideoLoaded, VideoLooped, VideoSeeked};
 
 #[cfg(not(target_arch = "wasm32"))]
+pub use recorder::{RecorderPixelFormat, VideoRecordError, VideoRecorder, VideoRecorderConfig};
+#[cfg(not(target_arch = "wasm32"))]
 pub use video_rs::location::Url;
 
 pub mod prelude {
@@ -26,6 +30,10 @@ pub mod prelude {
         HwAccelPolicy, PlaybackMode, SeekTo, VideoOutput, VideoPlayer, VideoResize,
     };
     pub use crate::events::{VideoEnded, VideoFailed, VideoLoaded, VideoLooped, VideoSeeked};
+    #[cfg(not(target_arch = "wasm32"))]
+    pub use crate::recorder::{
+        RecorderPixelFormat, VideoRecordError, VideoRecorder, VideoRecorderConfig,
+    };
     #[cfg(not(target_arch = "wasm32"))]
     pub use video_rs::location::Url;
 }

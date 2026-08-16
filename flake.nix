@@ -6,6 +6,10 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     systems.url = "github:nix-systems/default";
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = inputs:
@@ -13,12 +17,21 @@
       systems = import inputs.systems;
       lib = inputs.nixpkgs.lib;
       perSystem = f: lib.genAttrs systems f;
-      systemPkgs = system: import inputs.nixpkgs { inherit system; };
+      systemPkgs = system: import inputs.nixpkgs {
+        inherit system;
+        overlays = [ inputs.rust-overlay.overlays.default ];
+      };
       perSystemPkgs = f: perSystem (system: f system (systemPkgs system));
     in
     {
       packages = perSystemPkgs (system: pkgs: {
-        nannou = pkgs.callPackage ./default.nix { };
+        nannou = pkgs.callPackage ./default.nix {
+          # Bevy `main` and wesl 0.4.3 require a newer rustc than nixpkgs carries.
+          rustPlatform = pkgs.makeRustPlatform {
+            cargo = pkgs.rust-bin.stable."1.97.1".minimal;
+            rustc = pkgs.rust-bin.stable."1.97.1".minimal;
+          };
+        };
         default = inputs.self.packages.${system}.nannou;
       });
 

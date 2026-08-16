@@ -77,9 +77,11 @@ impl<'a> Instanced<'a> {
 }
 
 #[derive(Component, ExtractComponent, Clone)]
+#[extract_app(RenderApp)]
 pub struct InstancedMesh;
 
 #[derive(Component, ExtractComponent, Clone)]
+#[extract_app(RenderApp)]
 pub struct InstanceRange(pub Range<u32>);
 
 pub struct InstancedShaderModelPlugin<SM>(PhantomData<SM>);
@@ -125,7 +127,7 @@ impl<P: PhaseItem, SM: ShaderModel, const I: usize> RenderCommand<P>
 {
     type Param = (
         SRes<RenderAssets<PreparedShaderModel<SM>>>,
-        SRes<ExtractedInstances<ShaderModelAsset<SM>>>,
+        SRes<ExtractedInstances<ShaderModelAsset<SM>, RenderApp>>,
     );
     type ViewQuery = ();
     type ItemQuery = ();

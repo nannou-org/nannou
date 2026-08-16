@@ -324,7 +324,7 @@ impl wgpu::RowPaddedBuffer {
             // fun exercise:
             // read the signature of wgpu::BufferSlice::get_mapped_range()
             // and try to figure out why we don't need another lifetime in ImageReadMapping :)
-            view: slice.get_mapped_range(),
+            view: slice.get_mapped_range().expect("buffer is not mapped"),
         })
     }
 }

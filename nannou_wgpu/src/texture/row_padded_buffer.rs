@@ -105,9 +105,13 @@ impl RowPaddedBuffer {
             "Wrapped buffer cannot be mapped for writing"
         );
 
-        // wgpu 29's `BufferViewMut` is write-only (mapped memory may be
+        // `BufferViewMut` is write-only (mapped memory may be
         // write-combining), so write through `slice(..).copy_from_slice(..)`.
-        let mut mapped = self.buffer.slice(..).get_mapped_range_mut();
+        let mut mapped = self
+            .buffer
+            .slice(..)
+            .get_mapped_range_mut()
+            .expect("buffer is not mapped for writing");
 
         let width = self.width as usize;
         let padded_width = width + self.row_padding as usize;

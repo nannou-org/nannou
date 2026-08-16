@@ -51,7 +51,7 @@ struct Particle {
 // The draw indirect args struct is used to pass the number of instances to draw to the GPU
 // The compute shader will write the number of particles to draw to `instance_count`
 #[repr(C)]
-#[derive(ShaderType)]
+#[derive(ShaderType, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 struct DrawIndirectArgs {
     pub index_count: u32,
     pub instance_count: u32,
@@ -240,25 +240,26 @@ fn view(app: &App, model: &Model) {
 fn create_particle_buffer(app: &App, size: u32) -> Handle<ShaderBuffer> {
     let particle_size = Particle::min_size().get() as usize;
     let mut particles = ShaderBuffer::with_size(
-        size as usize * particle_size * 2,
+        size as u64 * particle_size as u64 * 2,
         RenderAssetUsages::RENDER_WORLD,
     );
-    particles.buffer_description.label = Some("particles");
-    particles.buffer_description.usage |= BufferUsages::STORAGE | BufferUsages::VERTEX;
+    particles.label = "particles".into();
+    particles.buffer_usage |= BufferUsages::STORAGE | BufferUsages::VERTEX;
     let particles = app.asset_server().add(particles);
     particles
 }
 
 fn create_indirect_params_buffer(app: &App, size: u32) -> Handle<ShaderBuffer> {
-    let mut indirect_params = ShaderBuffer::from(DrawIndirectArgs {
+    let args = DrawIndirectArgs {
         index_count: 6, // Hardcoded for now, 2 triangles
         instance_count: size,
         first_index: 0,
         base_vertex: 0,
         first_instance: 0,
-    });
-    indirect_params.buffer_description.label = Some("indirect_params");
-    indirect_params.buffer_description.usage |= BufferUsages::STORAGE | BufferUsages::INDIRECT;
+    };
+    let mut indirect_params = ShaderBuffer::new(vec![args], RenderAssetUsages::default());
+    indirect_params.label = "indirect_params".into();
+    indirect_params.buffer_usage |= BufferUsages::STORAGE | BufferUsages::INDIRECT;
     let indirect_params = app.asset_server().add(indirect_params);
     indirect_params
 }

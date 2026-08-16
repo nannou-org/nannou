@@ -8,7 +8,7 @@ use bevy::ecs::entity::EntityHashMap;
 use bevy::prelude::*;
 use bevy::render::render_resource::Extent3d;
 use bevy::render::renderer::{RenderContext, RenderDevice};
-use bevy::render::view::{ExtractedWindows, ViewTarget};
+use bevy::render::view::{ExtractedWindow, ViewTarget};
 use bevy::render::{Extract, RenderApp};
 use nannou_core::geom;
 use std::cell::RefCell;
@@ -45,7 +45,7 @@ pub struct ExtractedWindowsScaleFactor(EntityHashMap<f32>);
 pub struct Frame<'a, 'r, 'w, 's> {
     window_id: Entity,
     view_target: &'r ViewTarget,
-    extracted_windows: &'r ExtractedWindows,
+    extracted_window: &'r ExtractedWindow,
     scale_factors: &'r ExtractedWindowsScaleFactor,
     render_device: &'r RenderDevice,
     frame_count: u32,
@@ -60,28 +60,29 @@ impl<'a, 'r, 'w, 's> Frame<'a, 'r, 'w, 's> {
     ///
     /// Use this to do custom wgpu rendering from your own render-world system: add
     /// [`FramePlugin`] (bundled in [`NannouPlugin`](crate::NannouPlugin)), then take the
-    /// [`RenderContext`], a [`ViewTarget`] (e.g. via `ViewQuery`), and `Res`-access to
-    /// [`ExtractedWindows`], [`RenderDevice`] and [`ExtractedWindowsScaleFactor`]. `frame_count` is
+    /// [`RenderContext`], a [`ViewTarget`] (e.g. via `ViewQuery`), the window's
+    /// [`ExtractedWindow`], and `Res`-access to [`RenderDevice`] and
+    /// [`ExtractedWindowsScaleFactor`]. `frame_count` is
     /// the render-world [`FrameCount`](bevy::diagnostic::FrameCount) (`FrameCount.0`). See
     /// `nannou::render` and the `wgpu_*` examples for the pattern the classic `app(..).render(..)`
     /// builder uses internally.
     pub fn new(
         render_device: &'r RenderDevice,
         scale_factors: &'r ExtractedWindowsScaleFactor,
-        view_target_id: Entity,
+        window_id: Entity,
         view_target: &'r ViewTarget,
-        extracted_windows: &'r ExtractedWindows,
+        extracted_window: &'r ExtractedWindow,
         frame_count: u32,
         render_context: &'a mut RenderContext<'w, 's>,
     ) -> Self {
         Frame {
-            window_id: view_target_id,
+            window_id,
             view_target,
             render_device,
             scale_factors,
             frame_count,
             render_context: RefCell::new(render_context),
-            extracted_windows,
+            extracted_window,
         }
     }
 
@@ -101,7 +102,7 @@ impl<'a, 'r, 'w, 's> Frame<'a, 'r, 'w, 's> {
     /// The returned **Rect** is equivalent to the result of calling **Window::rect** on the window
     /// associated with this **Frame**.
     pub fn rect(&self) -> geom::Rect {
-        let window = self.extracted_windows.windows.get(&self.window_id).unwrap();
+        let window = self.extracted_window;
         let scale_factor = self.scale_factors.get(&self.window_id).unwrap();
         let scale_factor = *scale_factor as f32;
         let [width, height] = [window.physical_width, window.physical_height];

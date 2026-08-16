@@ -359,7 +359,7 @@ pub(crate) fn sync_positions(
 }
 
 pub(crate) fn on_player_removed(
-    event: On<Remove, VideoPlayer>,
+    event: On<Remove<VideoPlayer>>,
     mut commands: Commands,
     mut registry: NonSendMut<VideoRegistry>,
 ) {

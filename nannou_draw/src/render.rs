@@ -122,7 +122,7 @@ pub trait ShaderModel:
 #[derive(Component, Clone)]
 pub struct ShaderModelAsset<SM: ShaderModel>(pub(crate) AssetId<SM>);
 
-impl<SM> ExtractInstance for ShaderModelAsset<SM>
+impl<SM> ExtractInstance<RenderApp> for ShaderModelAsset<SM>
 where
     SM: ShaderModel,
 {
@@ -187,7 +187,7 @@ where
     fn build(&self, app: &mut App) {
         app.init_asset::<SM>()
             .add_plugins((
-                ExtractInstancesPlugin::<ShaderModelAsset<SM>>::extract_visible(),
+                ExtractInstancesPlugin::<ShaderModelAsset<SM>, RenderApp>::extract_visible(),
                 RenderAssetPlugin::<PreparedShaderModel<SM>>::default(),
                 IndirectShaderModelPlugin::<SM>::default(),
                 InstancedShaderModelPlugin::<SM>::default(),
@@ -274,7 +274,7 @@ impl<P: PhaseItem, SM: ShaderModel, const I: usize> RenderCommand<P>
 {
     type Param = (
         SRes<RenderAssets<PreparedShaderModel<SM>>>,
-        SRes<ExtractedInstances<ShaderModelAsset<SM>>>,
+        SRes<ExtractedInstances<ShaderModelAsset<SM>, RenderApp>>,
     );
     type ViewQuery = ();
     type ItemQuery = ();
@@ -415,7 +415,7 @@ pub(crate) fn queue_shader_model<SM, QF, RC>(
             Has<Hdr>,
         )>,
         Res<RenderAssets<PreparedShaderModel<SM>>>,
-        Res<ExtractedInstances<ShaderModelAsset<SM>>>,
+        Res<ExtractedInstances<ShaderModelAsset<SM>, RenderApp>>,
     ),
 ) where
     SM: ShaderModel,
@@ -922,6 +922,7 @@ fn update_draw_mesh(
 }
 
 #[derive(Component, ExtractComponent, Clone)]
+#[extract_app(RenderApp)]
 pub struct DrawIndex(pub usize);
 
 /// The main-world entity of the [`NannouCamera`] a draw mesh was generated for.
@@ -929,9 +930,11 @@ pub struct DrawIndex(pub usize);
 /// [`queue_shader_model`] uses this to scope each mesh to its window's view,
 /// rather than queuing every mesh into every camera's phase.
 #[derive(Component, ExtractComponent, Clone, Copy)]
+#[extract_app(RenderApp)]
 pub struct NannouMeshCamera(pub Entity);
 
 #[derive(Component, ExtractComponent, Clone)]
+#[extract_app(RenderApp)]
 pub struct NannouTransient;
 
 /// Keeps the shader models created for text quad batches alive for the frame they
@@ -951,6 +954,7 @@ fn clear_previous_frame(
 }
 
 #[derive(Component, ExtractComponent, Clone)]
+#[extract_app(RenderApp)]
 #[component(on_add = add_visibility_class::<ShaderModelMesh>)]
 pub struct ShaderModelMesh;
 
@@ -1021,4 +1025,5 @@ impl NannouCamera {
 }
 
 #[derive(Component, ExtractComponent, Clone)]
+#[extract_app(RenderApp)]
 pub struct ShaderBufferHandle(pub Handle<ShaderBuffer>);

@@ -375,14 +375,14 @@ pub fn send_midi_messages(mut outputs: Query<(&OutputConnection, &mut MidiOutput
     }
 }
 
-fn on_midi_input_removed(event: On<Remove, MidiInput>, mut commands: Commands) {
+fn on_midi_input_removed(event: On<Remove<MidiInput>>, mut commands: Commands) {
     let entity = event.event_target();
     commands
         .entity(entity)
         .remove::<(InputConnection, MidiInputStream, MidiError)>();
 }
 
-fn on_midi_output_removed(event: On<Remove, MidiOutput>, mut commands: Commands) {
+fn on_midi_output_removed(event: On<Remove<MidiOutput>>, mut commands: Commands) {
     let entity = event.event_target();
     commands
         .entity(entity)

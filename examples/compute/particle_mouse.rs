@@ -99,11 +99,11 @@ fn model(app: &App) -> Model {
     // Create a buffer to store the particles.
     let particle_size = Particle::min_size().get() as usize;
     let mut particles = ShaderBuffer::with_size(
-        NUM_PARTICLES as usize * particle_size * 2,
+        NUM_PARTICLES as u64 * particle_size as u64 * 2,
         RenderAssetUsages::RENDER_WORLD,
     );
-    particles.buffer_description.label = Some("particles");
-    particles.buffer_description.usage |= BufferUsages::STORAGE | BufferUsages::VERTEX;
+    particles.label = "particles".into();
+    particles.buffer_usage |= BufferUsages::STORAGE | BufferUsages::VERTEX;
 
     let particles = app.asset_server().add(particles);
 

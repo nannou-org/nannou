@@ -5,14 +5,20 @@ use crate::{
 };
 use bevy::{
     app::{App, Plugin},
+    camera::NormalizedRenderTarget,
     core_pipeline::schedule::{Core3d, Core3dSystems},
     diagnostic::FrameCount,
-    ecs::entity::Entity,
+    ecs::{
+        entity::{ContainsEntity, Entity},
+        prelude::Query,
+    },
     prelude::{IntoScheduleConfigs, Res},
     render::{
         ExtractSchedule,
+        camera::ExtractedCamera,
         renderer::{RenderContext, RenderDevice, ViewQuery},
-        view::{ExtractedWindows, ViewTarget},
+        sync_world::MainEntity,
+        view::{ExtractedWindow, ViewTarget},
     },
     time::Time,
 };
@@ -44,8 +50,8 @@ where
             .add_systems(
                 ExtractSchedule,
                 (
-                    extract_resource::<RenderFnRes<M>, ()>,
-                    extract_resource::<ModelHolder<M>, ()>,
+                    extract_resource::<RenderFnRes<M>, bevy::render::RenderApp, ()>,
+                    extract_resource::<ModelHolder<M>, bevy::render::RenderApp, ()>,
                 ),
             )
             .add_systems(
@@ -73,11 +79,11 @@ impl RenderApp {
 }
 
 fn nannou_render_system<M>(
-    view: ViewQuery<(Entity, &ViewTarget)>,
+    view: ViewQuery<(&ViewTarget, &ExtractedCamera)>,
+    windows: Query<(MainEntity, &ExtractedWindow)>,
     mut ctx: RenderContext,
     render_fn: Option<Res<RenderFnRes<M>>>,
     model: Option<Res<ModelHolder<M>>>,
-    extracted_windows: Res<ExtractedWindows>,
     render_device: Res<RenderDevice>,
     scale_factors: Res<ExtractedWindowsScaleFactor>,
     time: Res<Time>,
@@ -92,7 +98,17 @@ fn nannou_render_system<M>(
         return;
     };
 
-    let (view_entity, view_target) = view.into_inner();
+    let (view_target, camera) = view.into_inner();
+    let Some(NormalizedRenderTarget::Window(window_ref)) = camera.target else {
+        return;
+    };
+    let window_entity = window_ref.entity();
+    let Some(extracted_window) = windows
+        .iter()
+        .find_map(|(main_entity, window)| (main_entity == window_entity).then_some(window))
+    else {
+        return;
+    };
     let render_app = RenderApp {
         elapsed_secs: time.elapsed_secs(),
         delta_secs: time.delta_secs(),
@@ -100,9 +116,9 @@ fn nannou_render_system<M>(
     let frame = Frame::new(
         &render_device,
         &scale_factors,
-        view_entity,
+        window_entity,
         view_target,
-        &extracted_windows,
+        extracted_window,
         frame_count.0,
         &mut ctx,
     );

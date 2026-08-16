@@ -20,9 +20,6 @@ bevy.workspace = true
 hrtf.workspace = true
 nannou = { workspace = true }
 nannou_audio = { workspace = true }
-# `nannou_isf` isn't published; depended on directly here (this crate is
-# `publish = false`) to keep the `isf_simple` example working.
-nannou_isf = { path = "../nannou_isf" }
 nannou_laser = { workspace = true, features = ["ffi", "ilda-idtf"] }
 nannou_osc = { workspace = true }
 walkdir.workspace = true
@@ -140,11 +137,6 @@ path = "draw/draw_textured_polygon.rs"
 [[example]]
 name = "draw_transform"
 path = "draw/draw_transform.rs"
-
-# Isf
-[[example]]
-name = "isf_simple"
-path = "isf/simple.rs"
 
 # Laser
 [[example]]

@@ -418,7 +418,7 @@ fn capture_frames(mut camera: Camera, sender: Sender<FramePayload>) {
     }
 }
 
-fn on_webcam_removed(event: On<Remove, Webcam>, mut commands: Commands) {
+fn on_webcam_removed(event: On<Remove<Webcam>>, mut commands: Commands) {
     let entity = event.event_target();
     commands
         .entity(entity)

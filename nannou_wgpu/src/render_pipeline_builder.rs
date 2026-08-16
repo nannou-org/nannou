@@ -521,6 +521,8 @@ fn build(
         vertex_buffers,
     } = builder;
 
+    let vertex_buffers: Vec<Option<wgpu::VertexBufferLayout>> =
+        vertex_buffers.into_iter().map(Some).collect();
     let vertex = wgpu::VertexState {
         module: &vs_mod,
         entry_point: Some(vs_entry_point),

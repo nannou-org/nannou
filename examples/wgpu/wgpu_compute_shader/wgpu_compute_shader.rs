@@ -181,7 +181,7 @@ fn update(app: &App, model: &mut Model) {
         });
         if let Ok(_) = rx.await {
             if let Ok(mut oscillators) = oscillators.lock() {
-                let bytes = &slice.get_mapped_range()[..];
+                let bytes = &slice.get_mapped_range().expect("buffer is not mapped")[..];
                 // "Cast" the slice of bytes to a slice of floats as required.
                 let floats = {
                     let len = bytes.len() / std::mem::size_of::<f32>();

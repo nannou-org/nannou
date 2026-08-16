@@ -111,6 +111,7 @@ impl<M> Clone for UserFunctions<M> {
 }
 
 #[derive(Component, Deref, DerefMut, ExtractComponent)]
+#[extract_app(bevy::render::RenderApp)]
 pub(crate) struct WindowUserFunctions<M: 'static>(pub(crate) UserFunctions<M>);
 
 /// The user function type for drawing their model to the surface of a single window.

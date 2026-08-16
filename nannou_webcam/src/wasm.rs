@@ -210,7 +210,7 @@ fn upload_wasm_frames(
     }
 }
 
-fn on_webcam_removed_wasm(event: On<Remove, Webcam>, mut commands: Commands) {
+fn on_webcam_removed_wasm(event: On<Remove<Webcam>>, mut commands: Commands) {
     let entity = event.event_target();
     commands
         .entity(entity)

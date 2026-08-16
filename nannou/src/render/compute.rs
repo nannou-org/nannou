@@ -172,6 +172,7 @@ fn prepare_bind_group<CM>(
 }
 
 #[derive(Component, ExtractComponent, Clone, Default)]
+#[extract_app(bevy::render::RenderApp)]
 pub(crate) struct ComputeState<S: Default + Clone + Send + Sync + 'static> {
     pub current: S,
     pub next: Option<S>,
@@ -186,6 +187,7 @@ pub(crate) struct ComputeState<S: Default + Clone + Send + Sync + 'static> {
 struct ComputePipelineIds<CM: Compute>(HashMap<CM::State, CachedComputePipelineId>);
 
 #[derive(Component, ExtractComponent, Clone)]
+#[extract_app(bevy::render::RenderApp)]
 pub(crate) struct ComputeModel<CM: Compute>(pub CM);
 
 #[derive(Component)]
@@ -244,6 +246,7 @@ where
             shader: self.shader.clone(),
             shader_defs: vec![],
             entry_point: Some(Cow::from(key.shader_entry)),
+            constants: vec![],
             zero_initialize_workgroup_memory: false,
         }
     }

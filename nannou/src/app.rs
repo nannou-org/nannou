@@ -148,7 +148,7 @@ struct ComputeUpdateFnRes<M, CM: Compute>(ComputeUpdateFn<M, CM>);
 #[derive(Resource, Deref, DerefMut)]
 pub(crate) struct RenderFnRes<M>(Option<RenderFn<M>>);
 
-impl<M> ExtractResource for RenderFnRes<M>
+impl<M> ExtractResource<bevy::render::RenderApp> for RenderFnRes<M>
 where
     M: Clone + Send + Sync + 'static,
 {
@@ -174,7 +174,7 @@ struct Config {
 #[derive(Resource, Deref, DerefMut)]
 pub struct ModelHolder<M>(pub M);
 
-impl<M> ExtractResource for ModelHolder<M>
+impl<M> ExtractResource<bevy::render::RenderApp> for ModelHolder<M>
 where
     M: Clone + Send + Sync + 'static,
 {

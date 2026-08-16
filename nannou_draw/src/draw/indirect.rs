@@ -78,6 +78,7 @@ impl<'a> Indirect<'a> {
 }
 
 #[derive(Component, ExtractComponent, Clone)]
+#[extract_app(RenderApp)]
 pub struct IndirectMesh;
 
 pub struct IndirectShaderModelPlugin<SM>(PhantomData<SM>);
@@ -123,7 +124,7 @@ impl<P: PhaseItem, SM: ShaderModel, const I: usize> RenderCommand<P>
 {
     type Param = (
         SRes<RenderAssets<PreparedShaderModel<SM>>>,
-        SRes<ExtractedInstances<ShaderModelAsset<SM>>>,
+        SRes<ExtractedInstances<ShaderModelAsset<SM>, RenderApp>>,
     );
     type ViewQuery = ();
     type ItemQuery = ();

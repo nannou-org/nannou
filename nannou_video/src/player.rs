@@ -126,7 +126,7 @@ pub(crate) fn drain_frames(
     }
 }
 
-pub(crate) fn on_player_removed(event: On<Remove, VideoPlayer>, mut commands: Commands) {
+pub(crate) fn on_player_removed(event: On<Remove<VideoPlayer>>, mut commands: Commands) {
     let entity = event.event_target();
     commands
         .entity(entity)

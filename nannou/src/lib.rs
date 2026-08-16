@@ -26,6 +26,13 @@ use bevy::diagnostic::FrameTimeDiagnosticsPlugin;
 use bevy::prelude::{App as BevyApp, IntoScheduleConfigs, Plugin, PostUpdate};
 use bevy::winit::WinitSettings;
 
+#[cfg(feature = "egui")]
+compile_error!(
+    "the `egui` feature is disabled while nannou tracks Bevy `main`: `bevy_egui` has no \
+     release compatible with Bevy 0.20 yet, and enabling it pulls in a second, incompatible \
+     Bevy 0.19."
+);
+
 pub use find_folder;
 pub use lyon;
 
