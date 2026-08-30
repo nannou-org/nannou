@@ -71,17 +71,7 @@ impl draw::render::RenderPrimitive for Ellipse {
         let h = maybe_y.map(f32::abs).unwrap_or(100.0);
         match resolution {
             None => {
-                // Determine the transform to apply to all points.
-                let radii = lyon::math::vector(w * 0.5, h * 0.5);
-                if radii.square_length() > 0.0 {
-                    let centre = lyon::math::point(0.0, 0.0);
-                    let mut builder = lyon::path::Path::svg_builder();
-                    let sweep_angle = lyon::math::Angle::radians(std::f32::consts::PI * 2.0);
-                    let x_rotation = lyon::math::Angle::radians(0.0);
-                    let start = lyon::math::point(w * 0.5, 0.0);
-                    builder.move_to(start);
-                    builder.arc(centre, radii, sweep_angle, x_rotation);
-                    let path = builder.build();
+                if let Some(path) = ellipse_outline_path(w, h) {
                     polygon::render_events_themed(
                         polygon.opts,
                         || (&path).into_iter(),
@@ -131,6 +121,51 @@ fn calculate_tex_coords(position: &Vec2, center: &Vec2, radius: &Vec2) -> Vec2 {
         (position.x - center.x) / (2.0 * radius.x) + 0.5,
         (position.y - center.y) / (2.0 * radius.y) + 0.5,
     )
+}
+
+/// Builds the outline path of an axis-aligned ellipse of the given width and
+/// height, centred on the origin. Returns `None` for a degenerate (zero-area)
+/// ellipse.
+///
+/// The path is explicitly closed so that a stroke joins cleanly at the seam
+/// instead of leaving a gap (see issue #1095).
+fn ellipse_outline_path(w: f32, h: f32) -> Option<lyon::path::Path> {
+    let radii = lyon::math::vector(w * 0.5, h * 0.5);
+    if radii.square_length() <= 0.0 {
+        return None;
+    }
+    let centre = lyon::math::point(0.0, 0.0);
+    let mut builder = lyon::path::Path::svg_builder();
+    let sweep_angle = lyon::math::Angle::radians(std::f32::consts::PI * 2.0);
+    let x_rotation = lyon::math::Angle::radians(0.0);
+    let start = lyon::math::point(w * 0.5, 0.0);
+    builder.move_to(start);
+    builder.arc(centre, radii, sweep_angle, x_rotation);
+    builder.close();
+    Some(builder.build())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ellipse_outline_path;
+    use lyon::path::PathEvent;
+
+    #[test]
+    fn ellipse_outline_path_is_closed() {
+        // Regression test for #1095: the default (no-resolution) ellipse outline
+        // must be a closed path so that strokes join at the seam instead of
+        // leaving an open arc.
+        let path = ellipse_outline_path(200.0, 200.0).expect("non-degenerate ellipse");
+        let closed = path
+            .iter()
+            .any(|event| matches!(event, PathEvent::End { close: true, .. }));
+        assert!(closed, "ellipse outline path should be closed");
+    }
+
+    #[test]
+    fn degenerate_ellipse_has_no_outline() {
+        assert!(ellipse_outline_path(0.0, 0.0).is_none());
+    }
 }
 
 impl SetOrientation for Ellipse {
