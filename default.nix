@@ -46,6 +46,8 @@ rustPlatform.buildRustPackage rec {
     makeWrapper
     llvmPackages.clang
     pkg-config
+    # Sets `LIBCLANG_PATH` for bindgen, so a host libclang is never picked up.
+    rustPlatform.bindgenHook
   ];
 
   buildInputs = ([
@@ -62,7 +64,6 @@ rustPlatform.buildRustPackage rec {
     udev
     libxkbcommon
     llvmPackages.bintools
-    llvmPackages.libclang
     vulkan-loader
     vulkan-validation-layers
     wayland
@@ -70,8 +71,6 @@ rustPlatform.buildRustPackage rec {
     libxcursor
     libxi
     libxrandr
-  ] ++ lib.optionals stdenv.isDarwin [
-    rustPlatform.bindgenHook
   ]);
 
   env = (lib.optionalAttrs stdenv.isLinux
@@ -79,7 +78,6 @@ rustPlatform.buildRustPackage rec {
       inherit XCURSOR_THEME;
       LD_LIBRARY_PATH = "${lib.makeLibraryPath buildInputs}";
       ALSA_LIB_DEV = "${alsa-lib.dev}";
-      LIBCLANG_PATH = "${llvmPackages.libclang.lib}/lib";
     });
 
 
