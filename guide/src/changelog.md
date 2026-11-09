@@ -41,6 +41,9 @@ back to the origins.
   with `loop_once()` (hold after one frame). To run a fixed number of frames and then
   quit, call `App::quit()` from your own `update` once a counter reaches the target.
 
+- Fixed wasm32 builds failing to compile because of a float default window
+  resolution (Bevy 0.17's `WindowResolution` only converts from `(u32, u32)`).
+
 ---
 
 # Version 0.20.0 (2026-06-20)
