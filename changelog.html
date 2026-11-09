@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-cabf821b.js";
+            window.path_to_searchindex_js = "searchindex-d7b3207f.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-fb0cdf53.js"></script>
@@ -216,6 +216,10 @@ Continuous, reactive-rate, wait, and loop modes with the keyboard.</p>
 were unused, undocumented, and <code>once()</code> (quit after one frame) was easily confused
 with <code>loop_once()</code> (hold after one frame). To run a fixed number of frames and then
 quit, call <code>App::quit()</code> from your own <code>update</code> once a counter reaches the target.</p>
+</li>
+<li>
+<p>Fixed wasm32 builds failing to compile because of a float default window
+resolution (Bevy 0.17’s <code>WindowResolution</code> only converts from <code>(u32, u32)</code>).</p>
 </li>
 </ul>
 <hr>
