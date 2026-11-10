@@ -32,7 +32,7 @@ pub use lyon;
 #[doc(inline)]
 pub use nannou_core::{glam, math, rand};
 
-pub use self::context::App;
+pub use self::context::{App, RenderTexture};
 
 pub mod app;
 mod camera;

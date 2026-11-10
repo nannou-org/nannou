@@ -686,9 +686,9 @@ fn update_draw_mesh(
     mut text_model_keepalive: ResMut<TextModelKeepalive>,
 ) {
     for draw in draw_q.iter() {
-        let Some((camera_entity, mut window_camera, _, window_layers)) =
-            cameras_q.iter_mut().find(|(_, _, render_target, _)| {
-                if let RenderTarget::Window(WindowRef::Primary) = render_target {
+        let Some((camera_entity, mut window_camera, render_target, window_layers)) =
+            cameras_q.iter_mut().find(|(target_entity, _, target, _)| {
+                if let RenderTarget::Window(WindowRef::Primary) = target {
                     let Ok((_, is_primary)) = windows.get(draw.window) else {
                         return false;
                     };
@@ -696,10 +696,13 @@ fn update_draw_mesh(
                         return true;
                     }
                 }
-                if let RenderTarget::Window(WindowRef::Entity(window)) = render_target {
+                if let RenderTarget::Window(WindowRef::Entity(window)) = target {
                     if *window == draw.window {
                         return true;
                     }
+                }
+                if matches!(target, RenderTarget::Image(_)) && *target_entity == draw.window {
+                    return true;
                 }
 
                 false
@@ -712,8 +715,22 @@ fn update_draw_mesh(
         // Reset the clear color each frame.
         window_camera.clear_color = ClearColorConfig::None;
 
-        // The window we are rendering to.
-        let (window, _) = windows.get(draw.window).unwrap();
+        let (draw_width, draw_height, draw_scale_factor) = match render_target {
+            RenderTarget::Image(image_target) => {
+                let image = images
+                    .get(&image_target.handle)
+                    .expect("render target image disappeared before drawing");
+                (
+                    image.width() as f32,
+                    image.height() as f32,
+                    image_target.scale_factor,
+                )
+            }
+            _ => {
+                let (window, _) = windows.get(draw.window).unwrap();
+                (window.width(), window.height(), window.scale_factor())
+            }
+        };
         let mut fill_tessellator = FillTessellator::new();
         let mut stroke_tessellator = StrokeTessellator::new();
 
@@ -739,8 +756,8 @@ fn update_draw_mesh(
                         &intermediary_state.text_buffer,
                         &draw_state.theme,
                         &curr_ctx.transform,
-                        Vec2::new(window.width(), window.height()),
-                        window.scale_factor(),
+                        Vec2::new(draw_width, draw_height),
+                        draw_scale_factor,
                         &text_cx,
                         &mut font_atlas_set,
                         &mut images,
@@ -795,8 +812,8 @@ fn update_draw_mesh(
                         transform: &curr_ctx.transform,
                         fill_tessellator: &mut fill_tessellator,
                         stroke_tessellator: &mut stroke_tessellator,
-                        output_attachment_size: Vec2::new(window.width(), window.height()),
-                        output_attachment_scale_factor: window.scale_factor(),
+                        output_attachment_size: Vec2::new(draw_width, draw_height),
+                        output_attachment_scale_factor: draw_scale_factor,
                     };
 
                     // If no mesh is currently set, initialise a new one.
@@ -837,8 +854,8 @@ fn update_draw_mesh(
                         transform: &curr_ctx.transform,
                         fill_tessellator: &mut fill_tessellator,
                         stroke_tessellator: &mut stroke_tessellator,
-                        output_attachment_size: Vec2::new(window.width(), window.height()),
-                        output_attachment_scale_factor: window.scale_factor(),
+                        output_attachment_size: Vec2::new(draw_width, draw_height),
+                        output_attachment_scale_factor: draw_scale_factor,
                     };
 
                     // Render the primitive.
@@ -876,8 +893,8 @@ fn update_draw_mesh(
                         transform: &curr_ctx.transform,
                         fill_tessellator: &mut fill_tessellator,
                         stroke_tessellator: &mut stroke_tessellator,
-                        output_attachment_size: Vec2::new(window.width(), window.height()),
-                        output_attachment_scale_factor: window.scale_factor(),
+                        output_attachment_size: Vec2::new(draw_width, draw_height),
+                        output_attachment_scale_factor: draw_scale_factor,
                     };
 
                     // Render the primitive.
@@ -1009,6 +1026,10 @@ pub mod blend {
     RenderLayers
 )]
 pub struct NannouCamera;
+
+/// Marks a camera created for a nannou render texture.
+#[derive(Component)]
+pub struct NannouRenderTextureCamera;
 
 impl NannouCamera {
     pub fn for_window(window: Entity) -> impl Bundle {

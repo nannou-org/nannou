@@ -61,7 +61,13 @@ fn reset_draw(mut draw_q: Query<&mut Draw>) {
 
 fn spawn_draw(
     mut commands: Commands,
-    query: Query<Entity, (Without<Draw>, With<Window>)>,
+    query: Query<
+        Entity,
+        (
+            Without<Draw>,
+            Or<(With<Window>, With<render::NannouRenderTextureCamera>)>,
+        ),
+    >,
     text_cx: Res<SharedTextCx>,
 ) {
     for entity in query.iter() {
