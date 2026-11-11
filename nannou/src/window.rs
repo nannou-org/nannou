@@ -12,10 +12,12 @@ use bevy::{
     camera::Hdr,
     camera::RenderTarget,
     camera::visibility::RenderLayers,
+    ecs::system::NonSendMarker,
     input::mouse::MouseWheel,
     prelude::*,
     render::extract_component::ExtractComponent,
     window::{PresentMode, PrimaryWindow, WindowLevel, WindowRef},
+    winit::{WINIT_WINDOWS, converters::convert_window_level},
 };
 
 /// A context for building a window.
@@ -690,4 +692,27 @@ pub(crate) fn update_default_camera_z_range(
             }
         }
     }
+}
+
+/// Marks a window whose initial [`WindowLevel`] nannou has already re-applied to the underlying
+/// winit window.
+#[derive(Component)]
+pub(crate) struct WindowLevelApplied;
+
+/// Re-apply each window's [`WindowLevel`] once, as soon as its winit window exists.
+pub(crate) fn reapply_initial_window_level(
+    mut commands: Commands,
+    windows: Query<(Entity, &bevy::window::Window), Without<WindowLevelApplied>>,
+    _non_send_marker: NonSendMarker,
+) {
+    WINIT_WINDOWS.with_borrow(|winit_windows| {
+        for (entity, window) in windows.iter() {
+            // The winit window may not have been created yet, retry on a later frame.
+            let Some(winit_window) = winit_windows.get_window(entity) else {
+                continue;
+            };
+            winit_window.set_window_level(convert_window_level(window.window_level));
+            commands.entity(entity).insert(WindowLevelApplied);
+        }
+    });
 }

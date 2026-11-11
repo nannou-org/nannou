@@ -23,7 +23,7 @@
 //! with no `unsafe` and no builder machinery. See the [`context`] module and the `system_param`
 //! example for details.
 use bevy::diagnostic::FrameTimeDiagnosticsPlugin;
-use bevy::prelude::{App as BevyApp, IntoScheduleConfigs, Plugin, PostUpdate};
+use bevy::prelude::{App as BevyApp, IntoScheduleConfigs, Last, Plugin, PostUpdate};
 use bevy::winit::WinitSettings;
 
 pub use find_folder;
@@ -61,6 +61,7 @@ impl Plugin for NannouPlugin {
             PostUpdate,
             window::update_default_camera_z_range.before(bevy::camera::CameraUpdateSystems),
         );
+        app.add_systems(Last, window::reapply_initial_window_level);
         // `FramePlugin` extracts per-window scale factors so a `Frame` can be constructed from a
         // (custom or classic) render-world system.
         app.add_plugins(crate::frame::FramePlugin);
